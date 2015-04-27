@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Be Brief!</title>
+        <script src="js/jquery-1.11.1.min.js"></script>
+        <script src="js/underscore-1.7.0.min.js"></script>
+        <script src="js/utility.js"></script>
+        <script src="js/editor.js"></script>
+        <script src="js/engine.js"></script>
+        <script src="js/render.js"></script>
+        <script>
+            function rend(code) {
+                render.renderWindow(engine.getTurtle(), code, engine.getMemory(), 0, 0, window.innerWidth, window.innerHeight); // TODO: shared 'memory' ?!
+            }
+
+            function loaded() {
+                rend(editor.getCode()); // TODO: cross-dependency
+            }
+
+            function resize() {
+                rend(editor.getCode()); // TODO: cross-dependency
+            }
+
+            function updateKey() {
+                rend(editor.getCode()); // TODO: cross-dependency
+            }
+
+            function handleKey(which, shift, ctrl, alt, meta) {
+                var nmap = [
+                    [13,  false, false, false, false, editor.insertNewLine],       // <cr>
+                    [72,  false, false, false, false, editor.back],                // h
+                    [66,  false, false, false, false, editor.back],                // b
+                    [8,   false, false, false, false, editor.back],                // backspace
+                    [76,  false, false, false, false, editor.forward],             // l
+                    [87,  false, false, false, false, editor.forward],             // w
+                    [32,  false, false, false, false, editor.forward],             // space
+                    [74,  false, false, false, false, editor.down],                // j
+                    [75,  false, false, false, false, editor.up],                  // k
+                    [88,  false, false, false, false, editor.delForward],          // x
+                    [48,  false, false, false, false, _.partial(editor.count, 0)], // 0
+                    [49,  false, false, false, false, _.partial(editor.count, 1)], // 1
+                    [50,  false, false, false, false, _.partial(editor.count, 2)], // 2
+                    [51,  false, false, false, false, _.partial(editor.count, 3)], // 3
+                    [52,  false, false, false, false, _.partial(editor.count, 4)], // 4
+                    [53,  false, false, false, false, _.partial(editor.count, 5)], // 5
+                    [54,  false, false, false, false, _.partial(editor.count, 6)], // 6
+                    [55,  false, false, false, false, _.partial(editor.count, 7)], // 7
+                    [56,  false, false, false, false, _.partial(editor.count, 8)], // 8
+                    [57,  false, false, false, false, _.partial(editor.count, 9)], // 9
+                    [192, true,  false, false, false, editor.cycleColor],          // ~
+                    [87,  true,  false, false, false, editor.saveRemote],          // ^w
+                    [69,  true,  false, false, false, editor.loadRemote],          // ^e
+                    [66,  true,  false, false, false, editor.loadBack],            // ^b
+                    [65,  false, false, false, false, editor.insertAfter],         // a
+                    [73,  false, false, false, false, editor.insertBefore],        // i
+                    ];
+
+                var imap = [
+                    [27, false, false, false, false, editor.insertEscape],         // <esc>
+                    [8,  false, false, false, false, editor.insertBackspace],      // <bs>
+                    [9,  false, false, false, false, function () {/* disable */}], // <tab>
+                    [13, false, false, false, false, function () {/* disable */}], // <cr>
+                    [32, false, false, false, false, editor.insertSpace],          // <space>
+                    ];
+
+                var map = (function () {
+                    switch (editor.getMode()) {
+                        case 'normal':       return nmap;
+                        case 'insert':       return imap;
+                        case 'insert-after': return imap;
+                    }})();
+
+                var binding = _(map).find(function (b) {
+                    return b[0] == which &&
+                           b[1] == shift &&
+                           b[2] == ctrl  &&
+                           b[3] == alt   &&
+                           b[4] == meta });
+
+                if (binding) {
+                    event.preventDefault();
+                    binding[5]();
+                } else {
+                    // $('#debug').html('Which: ' + which + ' shift: ' + shift + ' ctrl: ' + ctrl + ' alt: ' + alt + ' meta: ' + meta);
+                }
+            }
+
+            function keydown() {
+                handleKey(event.which, event.shiftKey, event.ctrlKey, event.altKey, event.metaKey);
+                updateKey();
+            }
+
+            function keypress() {
+                event.preventDefault();
+                switch (editor.getMode()) {
+                    case 'insert':
+                    case 'insert-after':
+                        event.preventDefault();
+                        editor.insertCharacter(String.fromCharCode(event.charCode));
+                        updateKey();
+                        break;
+                }
+            }
+
+            function keyup() {
+            }
+
+            $(document).ready(loaded);
+            $(window).resize(resize);
+            $(document).keydown(keydown);
+            $(document).keypress(keypress);
+            $(document).keyup(keyup);
+
+            editor.load([{kind:'symbol',value:'main'}]);
+            editor.loadRemote();
+        </script>
+    </head>
+    <body style="margin: 0; padding: 0; height: 100%">
+        <!-- <h1 id="debug">Test</h1> -->
+        <canvas id="canvas" style="width: 100%; height: 100%"></canvas>
+    </body>
+</html>

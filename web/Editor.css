@@ -1,0 +1,106 @@
+body {
+    font-family: Sans-Serif;
+    background-color: Black;
+    color: White;
+}
+
+span {
+    display: inline-block;
+    font-size: x-large;
+    font-weight: bold;
+    padding: 6px;
+    margin: 6px;
+    border-radius: 4px;
+    -moz-border-radius: 4px;
+    -webkit-border-radius: 4px;
+    -khtml-border-radius: 4px;
+}
+
+.cursor 
+{
+    color: #F00;
+    font-size: xx-large;
+    font-weight: bold;
+    border: 0;
+    padding: 0;
+    margin: 0;
+}
+
+.list {
+    background: #555;
+}
+
+.list .list 
+{
+    background: #999;
+}
+
+.list .list .list 
+{
+    background: #555;
+}
+
+.list .list .list .list 
+{
+    background: #999;
+}
+
+.list .list .list .list .list 
+{
+    background: #555;
+}
+
+.primitive
+{
+    background: #080;
+}
+
+.secondary
+{
+    background: #00F;
+}
+
+.number 
+{
+    background: #DDD;
+    color: #000;
+}
+
+.string 
+{
+    background: #FF0;
+    color: #000;
+}
+
+.boolean
+{
+    background: #F0F;
+}
+
+.unknown
+{
+    border-color: #F00;
+    background: #FFF;
+    color: #000;
+}
+
+.complete
+{
+    color: #888;
+    border: 0;
+    padding: 0;
+    margin: 0;
+}
+
+.selected
+{
+    background: #00F;
+    padding: 0px;
+    margin: 0px;
+    border: 0;
+}
+
+#output, #dictionary
+{
+    color: #DDD;
+}

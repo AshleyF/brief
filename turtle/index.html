@@ -1,0 +1,689 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<!-- taken from: https://raw.githubusercontent.com/AshleyF/Turtle/master/Default.htm -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>Turtle Tiles</title>
+        <style type="text/css">
+        body {
+            font-family: Sans-Serif;
+            font-size: small;
+            margin: 0;
+            color: White;
+            background-color: Black;
+        }
+        td {
+            border-right: 1px solid gainsboro;
+            border-bottom: 1px solid gainsboro;
+            padding: 2px;
+            margin: 0px;
+        }
+        table {
+            border-left: 1px solid gainsboro;
+            border-top: 1px solid gainsboro;
+        }
+        #canvas, #turtle {
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+        #turtle {
+            margin: -16px 0 0 -16px;
+        }
+        div.words
+        {
+            font-size: xx-large;
+            padding: 1em;
+        }
+        .words span 
+        {
+            display: inline-block;
+            border: 4px solid white;
+            border-radius: 0.5em;
+            padding: 0.2em;
+            margin: 0.1em;
+            background-color: Red;
+            color: White;
+            font-weight: bold;
+            font-size: x-large;
+        }
+        .words span.number {
+            background-color: #333;
+        }
+        .words span.move 
+        {
+            background-color: Red;
+        }
+        .words span.direction
+        {
+            background-color: Orange;
+            color: Black;
+        }
+        .words span.stack
+        {
+            background-color: Yellow;
+            color: Black;
+        }
+        .words span.math
+        {
+            background-color: Green;
+        }
+        .words span.animate
+        {
+            background-color: Blue;
+        }
+        .words span.compose
+        {
+            background-color: Purple;
+        }
+        .words span.container
+        {
+            background-color: #aaa;
+        }
+        .words span.user
+        {
+            background-color: White;
+            color: Black;
+        }
+        .words span.debug
+        {
+            background-color: Red;
+            border-color: Red;
+        }
+        .words span.container span.container
+        {
+            background-color: White;
+        }
+        .words span span
+        {
+            border-color: #555;
+        }
+        </style>
+        <script type="text/javascript">
+            var delay = 0;
+            var walk = true;
+            var showTurtle = true;
+            var thickness = 4;
+            var last = "";
+            var code = "";
+            var dictionary;
+            var data;
+            var bearing;
+            var x, y;
+            var r, g, b;
+            var num;
+            var frame;
+            var count = 0;
+            function toggleTurtle(show) {
+                walk = showTurtle = show;
+                if (show)
+                    turtle();
+                else
+                    document.getElementById("turtle").style.display = "none";
+                update(document.getElementById("input").value);
+            }
+            function getCanvas() {
+                var canvas = document.getElementById('canvas');
+                if (!canvas.getContext) {
+                    alert("Your browser doesn't support HTML5 Canvas (try in Chrome, Firefox, Safari, Opera, etc.).");
+                    return;
+                }
+                return canvas;
+            }
+            function turtle() {
+                var turt = document.getElementById('turtle');
+                turt.style.display = "";
+                turt.style.left = x + "px";
+                turt.style.top = y + "px";
+                var tctx = turt.getContext('2d');
+                tctx.fillStyle = "rgba(0,0,0,0)";
+                tctx.globalCompositeOperation = "copy";
+                tctx.fillRect(0, 0, 32, 32);
+                tctx.fillStyle = "rgb(" + r + "," + g + "," + b + ")";
+                tctx.beginPath();
+                var p0 = bearing - 0.5 * Math.PI;
+                var p1 = p0 + Math.PI - 0.8;
+                var p2 = p0 + Math.PI + 0.8;
+                tctx.moveTo(16 + Math.cos(p0) * 16, 16 - Math.sin(p0) * 16);
+                tctx.lineTo(16 + Math.cos(p1) * 16, 16 - Math.sin(p1) * 16);
+                tctx.lineTo(16, 16);
+                tctx.lineTo(16 + Math.cos(p2) * 16, 16 - Math.sin(p2) * 16);
+                tctx.fill();
+            }
+            function init() {
+                code = "";
+                dictionary = {};
+                data = [];
+                bearing = Math.PI;
+                x = 320, y = 320;
+                r = 255, g = 0, b = 0;
+                num = false;
+                frame = true;
+                var canvas = getCanvas();
+                var ctx = canvas.getContext('2d');
+                ctx.fillRect(0, 0, 640, 640);
+                ctx.lineWidth = thickness;
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+            }
+            function draw(source) {
+                if (source == last)
+                    return; // no change
+                var orig = source;
+                if (
+                    code.length == 0 && // not in progress
+                    last.length != 0 && // not initial call
+                    last.substr(last.length - 1) != ")" && // not closing quotation
+                    source.indexOf(last) == 0) // starts with last
+                    source = source.substr(last.length); // continue from where we left off
+                else
+                    init(); // new beginning
+                var backtrack = (last.indexOf(source) == 0);
+                if (walk)
+                    source = source.replace(/f/g, "(1f)wx").replace(/m/g, "(1m)wx"); // break into single steps
+                code = source;
+                var canvas = getCanvas();
+                var savedDelay = delay;
+                var savedWalk = walk;
+                if (backtrack) {
+                    // revert by playing forward fast
+                    delay = 0;
+                    walk = false;
+                }
+                last = orig;
+                step();
+                delay = savedDelay;
+                walk = savedWalk;
+            }
+            function step() {
+                // hngcfmlrx,()ju0123546789a-*vdwoib
+                function stepForward() {
+                    var step = data.pop() * thickness;
+                    x += Math.sin(bearing) * step;
+                    y += Math.cos(bearing) * step;
+                }
+                function nextRainbow() {
+                    if (r >= 255 && b <= 0 && g < 255) g += 5;
+                    else if (g >= 255 && b <= 0 && r > 0) r -= 5;
+                    else if (r <= 0 && g >= 255 && b < 255) b += 5;
+                    else if (r <= 0 && b >= 255 && g > 0) g -= 5;
+                    else if (g <= 0 && b >= 255 && r < 255) r += 5;
+                    else if (r >= 255 && g <= 0 && b > 0) b -= 5;
+                }
+                while (code.length > 0) {
+                    count++;
+                    if (count > 1000000) {
+                        alert("Infinite loop?");
+                        count = 0;
+                        return;
+                    }
+                    var c = code[0];
+                    code = code.substr(1);
+                    var wasDigit = false;
+                    switch (c) {
+                        case 'h': // home
+                            x = y = 320;
+                            break;
+                        case 'n': // north
+                            bearing = Math.PI;
+                            break;
+                        case 'g': // go to
+                            y = data.pop();
+                            x = data.pop();
+                            break;
+                        case 'c': // clear
+                            frame = true;
+                            window.setTimeout(step, 0); // give UI a chance to refresh
+                            return; // bail until timeout
+                        case 'f': // forward
+                            var canvas = document.getElementById('canvas');
+                            var ctx = canvas.getContext('2d');
+                            if (frame) {
+                                count = 0;
+                                ctx.fillRect(0, 0, 640, 640);
+                                frame = false;
+                            }
+                            ctx.beginPath();
+                            ctx.moveTo(x, y);
+                            stepForward();
+                            ctx.lineTo(x, y);
+                            ctx.strokeStyle = "rgb(" + r + "," + g + "," + b + ")";
+                            ctx.stroke();
+                            nextRainbow();
+                            break;
+                        case 'm': // move forward (without drawing)
+                            stepForward();
+                            break;
+                        case 'l': // left
+                            var deg = data.pop() / 180 * Math.PI;
+                            bearing += deg;
+                            break;
+                        case 'r': // right
+                            var deg = data.pop() / 180 * Math.PI;
+                            bearing -= deg;
+                            break;
+                        case 'x': // repeat
+                            var times = data.pop();
+                            var quote = data.pop();
+                            for (var i = 0; i < times; i++) {
+                                code = quote + code;
+                            }
+                            break;
+                        case ',': // number separator
+                            num = false;
+                            break;
+                        case '(': // quote
+                            var depth = 1;
+                            var quote = "";
+                            for (var i = 0; i < code.length; i++) {
+                                var c = code[i];
+                                if (c == ')') {
+                                    depth--;
+                                    if (depth == 0) {
+                                        data.push(quote);
+                                        break;
+                                    }
+                                }
+                                else if (c == '(')
+                                    depth++;
+                                quote += c;
+                            }
+                            code = code.substr(i + 1);
+                            break;
+                        case 'j': // join
+                            var quote = data.pop();
+                            data.push(data.pop() + "," + quote);
+                            break;
+                        case 'u': // uncons
+                            var quote = data.pop();
+                            data.push(quote.substr(0, 1));
+                            data.push(quote.substr(1));
+                            break;
+                        case '0': // decimal digits
+                        case '1':
+                        case '2':
+                        case '3':
+                        case '4':
+                        case '5':
+                        case '6':
+                        case '7':
+                        case '8':
+                        case '9':
+                            var n = (num ? data.pop() : 0);
+                            var digit = c.charCodeAt(0) - 48;
+                            data.push(n * 10 + digit);
+                            wasDigit = true;
+                            break;
+                        case 'a': // add
+                            data.push(data.pop() + data.pop());
+                            break;
+                        case '-': // subtract
+                            var z = data.pop();
+                            data.push(data.pop() - z);
+                            break;
+                        case '*': // multiply
+                            data.push(data.pop() * data.pop());
+                            break;
+                        case 'v': // divide
+                            var z = data.pop();
+                            data.push(Math.floor(data.pop() / z));
+                            break;
+                        case 'd': // dup
+                            var z = data.pop();
+                            data.push(z);
+                            data.push(z);
+                            break;
+                        case 'w': // swap
+                            var fst = data.pop();
+                            var snd = data.pop();
+                            data.push(fst);
+                            data.push(snd);
+                            break;
+                        case 'o': // drop
+                            data.pop();
+                            break;
+                        case 'i': // dip
+                            var quote = data.pop();
+                            var top = data.pop();
+                            code = quote + "," + top + "," + code;
+                            break;
+                        case 'b': // debug
+                            document.getElementById("debug").innerHTML = "Data: '" + data + "'<br />Code: '" + code + "'<br /><a href='javascript:step()'>Go</a>";
+                            return;
+                        default:
+                            var def = dictionary[c];
+                            if (!def) {
+                                def = data.pop();
+                                dictionary[c] = def;
+                            } else {
+                                code = def + "," + code; // comma added to delimit quoted numbers
+                            }
+                            break;
+                    }
+                    num = wasDigit;
+                    if (walk || delay > 0) {
+                        if (showTurtle)
+                            turtle();
+                        window.setTimeout(step, delay);
+                        break;
+                    }
+                }
+            }
+            function parseProgram(source) {
+                var html = "";
+                var number = false;
+                var nesting = 0;
+                var empty = true;
+                var defined = "";
+                for (var i = 0; i < source.length; i++) {
+                    switch (source[i]) {
+                        case 'h':
+                            if (number) { html += '</span>'; number = false; }
+                            html += '<span title="Home" class="move">?</span>';
+                            empty = false;
+                            break;
+                        case 'n':
+                            if (number) { html += '</span>'; number = false; }
+                            html += '<span title="North" class="direction">?</span>';
+                            empty = false;
+                            break;
+                        case 'g':
+                            if (number) { html += '</span>'; number = false; }
+                            html += '<span title="Go" class="move">?</span>';
+                            empty = false;
+                            break;
+                        case 'c':
+                            if (number) { html += '</span>'; number = false; }
+                            html += '<span title="Clear" class="animate">¦</span>';
+                            empty = false;
+                            break;
+                        case 'f':
+                            if (number) { html += '</span>'; number = false; }
+                            html += '<span title="Forward" class="move">?</span>';
+                            empty = false;
+                            break;
+                        case 'm':
+                            if (number) { html += '</span>'; number = false; }
+                            html += '<span title="Move" class="move">?</span>';
+                            empty = false;
+                            break;
+                        case 'l':
+                            if (number) { html += '</span>'; number = false; }
+                            html += '<span title="Left" class="direction">?</span>';
+                            empty = false;
+                            break;
+                        case 'r':
+                            if (number) { html += '</span>'; number = false; }
+                            html += '<span title="Right" class="direction">?</span>';
+                            empty = false;
+                            break;
+                        case 'x':
+                            if (number) { html += '</span>'; number = false; }
+                            html += '<span title="Repeat" class="animate">?</span>';
+                            empty = false;
+                            break;
+                        case 'a':
+                            if (number) { html += '</span>'; number = false; }
+                            html += '<span title="Add" class="math">+</span>';
+                            empty = false;
+                            break;
+                        case '-':
+                            if (number) { html += '</span>'; number = false; }
+                            html += '<span title="Subtract" class="math">-</span>';
+                            empty = false;
+                            break;
+                        case '*':
+                            if (number) { html += '</span>'; number = false; }
+                            html += '<span title="Multiply" class="math">×</span>';
+                            empty = false;
+                            break;
+                        case 'v':
+                            if (number) { html += '</span>'; number = false; }
+                            html += '<span title="Divide" class="math">÷</span>';
+                            empty = false;
+                            break;
+                        case 'j':
+                            if (number) { html += '</span>'; number = false; }
+                            html += '<span title="Join" class="compose">?</span>';
+                            empty = false;
+                            break;
+                        case 'u':
+                            if (number) { html += '</span>'; number = false; }
+                            html += '<span title="Unjoin" class="compose">?</span>';
+                            empty = false;
+                            break;
+                        case 'd':
+                            if (number) { html += '</span>'; number = false; }
+                            html += '<span title="Dup" class="stack">?</span>';
+                            empty = false;
+                            break;
+                        case 'w':
+                            if (number) { html += '</span>'; number = false; }
+                            html += '<span title="Swap" class="stack">?</span>';
+                            empty = false;
+                            break;
+                        case 'o':
+                            if (number) { html += '</span>'; number = false; }
+                            html += '<span title="Drop" class="stack">?</span>';
+                            empty = false;
+                            break;
+                        case 'i':
+                            if (number) { html += '</span>'; number = false; }
+                            html += '<span title="Dip" class="stack">?</span>';
+                            empty = false;
+                            break;
+                        case '0':
+                        case '1':
+                        case '2':
+                        case '3':
+                        case '4':
+                        case '5':
+                        case '6':
+                        case '7':
+                        case '8':
+                        case '9':
+                            if (!number) {
+                                html += '<span class="number">';
+                                number = true;
+                            }
+                            html += source[i];
+                            empty = false;
+                            break;
+                        case ',':
+                            if (number) {
+                                html += '</span>';
+                                number = false;
+                            }
+                            empty = false;
+                            break;
+                        case '(':
+                            if (number) { html += '</span>'; number = false; }
+                            html += '<span class="container">';
+                            nesting++;
+                            empty = true;
+                            break;
+                        case ')':
+                            if (number) { html += '</span>'; number = false; }
+                            if (empty) html += "&nbsp;";
+                            html += '</span>';
+                            nesting--;
+                            break;
+                        case 'b':
+                            if (number) { html += '</span>'; number = false; }
+                            html += '<span title="Debug" class="debug"></span>';
+                            empty = false;
+                            break;
+                        default:
+                            if (number) { html += '</span>'; number = false; }
+                            var w = source[i];
+                            if (defined.indexOf(w) == -1) {
+                                html += " ? " + source[i] + "<br />";
+                                defined += w;
+                            }
+                            else {
+                                html += '<span class="user">' + w + '</span>';
+                            }
+                            empty = false;
+                            break;
+                    }
+                }
+                if (number) html += '</span>';
+                for (var j = 0; j < nesting; j++) {
+                    if (empty) {
+                        html += "&nbsp;";
+                        empty = false;
+                    }
+                    html += '</span>';
+                }
+                return html;
+            }
+            function update(source) {
+                document.getElementById('link').href = "?" + source;
+                document.getElementById('program').innerHTML = parseProgram(source);
+                draw(source);
+            }
+        </script>
+    </head>
+    <body onload="update(document.getElementById('input').value = window.location.search.substr(1));">
+        <div style="height:640px">
+            <canvas id="canvas" width="640" height="640"></canvas>
+            <canvas id="turtle" width="32" height="32"></canvas>
+        </div>
+        <div id="program" class="words"></div>
+        <p>
+            <input id="input" type="text" style="width:640px" onkeyup="update(this.value)" />
+            <a target="_blank" id="link">Permalink</a>
+        </p>
+        <input id="chkShowTurtle" checked="checked" type="checkbox" onchange="toggleTurtle(this.checked)" /><label for="chkShowTurtle">Show Turtle</label>
+        <p id="debug"></p>
+        <h2>Demos</h2>
+        <a href="?(50f110r)40x">Test</a>
+        <a href="?25f90r25f90r25f90r25f">Square (redundant)</a>
+        <a href="?(25f90r)4x">Square (refactored)</a>
+        <a href="?(45l25m90r25m(90r50f)4x44l)S(hSc)1000x">Square (Animated!)</a>
+        <a href="?140,480g((f90r)j4x)S100(10-dS)10x">Squares (decreasing size)</a>
+        <a href="?0,640g((f90r)j4x)S161(1-dS)161x">Squares (rainbow)</a>
+        <a href="?170,520g(100f120r)3x">Triangle</a>
+        <a href="?90,320g(10f10r)36x">Circle</a>
+        <a href="?90l60m90r(1f2m3r)120x">Dotted Circle</a>
+        <a href="?20S((240Svf360Svr)Sx10r)36x">Spirograph 1</a>
+        <a href="?400,230g((32f89r)4x7r)120x">Spirograph 2</a>
+        <a href="?((9f10r)9x)A(90r)R((AR)2x)P(P60r)6x">6-Pointed Flower</a>
+        <a href="?((9f10r)9x)A(90r)R((AR)2x)P(P30r)12x">12-Pointed Flower</a>
+        <a href="?((6f10r)9x)A((3f10l)9x)B((AB180r)2x)Y(Y20r)18x">Sun</a>
+        <a href="?50m((25f10r)9x)A(90r)R(ARA)P(((P)4x)F45dXm(FXr)2xRX8*fRPXf">Flower</a>
+        <a href="?0(1adf89r)180x">Galaxy</a>
+        <a href="?(320dg0(1adf89r)220x1lc)1000x">Galaxy (Animated!)</a>
+        <a href="?160S0,640gS(1-df91r)S2*x">Spiral Flower</a>
+        <a href="?55L40S(hnadr)M(m10m10f)N(0(6MLN)60x(30MSN)12xo)F(h80m95r(14f10r)36xhnwrf)H0(F1adLHd12vSHc)4320x">Clock</a>
+        <h2>Usage</h2>
+        <table cellspacing="0">
+            <tr>
+                <td>h</td>
+                <td>Home</td>
+                <td>Reset x,y to 160,160 [h]</td>
+            </tr>
+            <tr>
+                <td>n</td>
+                <td>North</td>
+                <td>Reset bearing [n]</td>
+            </tr>
+            <tr>
+                <td>g</td>
+                <td>Go</td>
+                <td>Sets x,y from stack [10,20g]</td>
+            </tr>
+            <tr>
+                <td>c</td>
+                <td>Clear</td>
+                <td>Clears canvas [c] (useful for animation)</td>
+            </tr>
+            <tr>
+                <td>f</td>
+                <td>Forward</td>
+                <td>Draws forward n pixels [10f]</td>
+            </tr>
+            <tr>
+                <td>m</td>
+                <td>Move</td>
+                <td>Moves forward n pixels [10m]</td>
+            </tr>
+            <tr>
+                <td>l</td>
+                <td>Left</td>
+                <td>Turn bearing left n degrees [90l]</td>
+            </tr>
+            <tr>
+                <td>r</td>
+                <td>Right</td>
+                <td>Turn bearing right n degrees [90r]</td>
+            </tr>
+            <tr>
+                <td>x</td>
+                <td>Repeat</td>
+                <td>Repeats quotation n times [(100f90r)4x]</td>
+            </tr>
+            <tr>
+                <td>a</td>
+                <td>Add</td>
+                <td>Adds two numbers [4,2a]</td>
+            </tr>
+            <tr>
+                <td>-</td>
+                <td>Subtract</td>
+                <td>Subtracts two numbers [4,2-]</td>
+            </tr>
+            <tr>
+                <td>*</td>
+                <td>Multiply</td>
+                <td>Multiplies two numbers [4,2*]</td>
+            </tr>
+            <tr>
+                <td>v</td>
+                <td>Divide</td>
+                <td>Divides two numbers [4,2v]</td>
+            </tr>
+            <tr>
+                <td>j</td>
+                <td>Join</td>
+                <td>Prepends head onto quotation [10(f90r)c]</td>
+            </tr>
+            <tr>
+                <td>u</td>
+                <td>Unjoin</td>
+                <td>Separates head from tail [(10f90r)u]</td>
+            </tr>
+            <tr>
+                <td>d</td>
+                <td>Dup</td>
+                <td>Duplicates top stack value [u]</td>
+            </tr>
+            <tr>
+                <td>w</td>
+                <td>Swap</td>
+                <td>Swaps top two stack values [w]</td>
+            </tr>
+            <tr>
+                <td>o</td>
+                <td>Drop</td>
+                <td>Discards top stack value [o]</td>
+            </tr>
+            <tr>
+                <td>i</td>
+                <td>Dip</td>
+                <td>Applies quote below next value [10,20(f)i]</td>
+            </tr>
+            <tr>
+                <td colspan="3">Parenthesis surround quotations [(100f90r)].</td>
+            </tr>
+            <tr>
+                <td colspan="3">Digits [0123456789] build decimal numbers. Commas separate adjacent numbers.</td>
+            </tr>
+            <tr>
+                <td colspan="3">Define unused characters by following quotation. [(90r)R] defines 'R' as substitution for '90r'.</td>
+            </tr>
+            <tr>
+                <td colspan="3">Canvas is 320x320. Turtle begins at 160,160 bearing North.</td>
+            </tr>
+    </table>
+    </body>
+</html>

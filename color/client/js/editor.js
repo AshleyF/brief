@@ -21,7 +21,7 @@ var editor = (function() {
         if (cached) {
             callback(cached);
         } else {
-            $.getJSON('load?name=' + name, function(data) {
+            $.getJSON('../data/' + name + '.js', function(data) {
                 addCachedCode(name, data, curX);
                 callback({ code: data, cursor: 0 });
             });
@@ -53,17 +53,18 @@ var editor = (function() {
     }
 
     var saveRemote = function() {
-        var name = fileStack[0];
-        var data = _.map(code, function (w) { return { kind: w.kind, value: w.value }; });
-        addCachedCode(name, data, curX);
-        $.ajax({
-            type: 'POST',
-            data: JSON.stringify(data),
-            contentType: 'application/json',
-            url: 'store?name=' + name,
-            success: function (data, status) {
-                alert('Stored: ' + data + ' (' + status + ')');
-            }});
+	alert('Sorry, saving is disabled at the moment');
+        // var name = fileStack[0];
+        // var data = _.map(code, function (w) { return { kind: w.kind, value: w.value }; });
+        // addCachedCode(name, data, curX);
+        // $.ajax({
+        //     type: 'POST',
+        //     data: JSON.stringify(data),
+        //     contentType: 'application/json',
+        //     url: 'store?name=' + name,
+        //     success: function (data, status) {
+        //         alert('Stored: ' + data + ' (' + status + ')');
+        //     }});
     }
 
     var back = function() {

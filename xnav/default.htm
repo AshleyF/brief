@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xml:lang="en-us" lang="en-us" xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>XNav Demo</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <link rel="SHORTCUT ICON" href="favicon.ico" type="image/x-icon" /-->
+        <link type="text/css" rel="stylesheet" href="xnav.css" />
+        <script type="text/javascript" src="xnav.js"></script>
+    </head>
+    <body onLoad="preload()">
+        <h1>XNav Demo</h1>
+        <div>
+            <img id="xnav" alt="XNav" src="images\upper_letters.png" width="240" height="320" onmousedown="down()" onmouseup="up()" onmousemove="move()" ondrag="event.returnValue=false" ontouchstart="touchstart(event)" ontouchmove="touchmove(event)" ontouchend="touchend(event)" />
+        </div>
+        <h2 id="text" style="padding:0;margin:0;margin-top:-320px;margin-bottom:320px"></h2>
+        <h3>Touch Phone Demo</h3>
+        <p>A nice touch phone (e.g. WM7, iPhone, Android) demo version is <a href="iphone.htm">available here</a>.</p>
+        <h3>Silverlight Demo</h3>
+        <p>An experimental Silverlight version is <a href="SL/">available here</a>.</p>
+	<h3>YouTube Demo</h3>
+	<p>Here is a <a href="http://youtu.be/l08mpg1A3Qg">video demo of it</a>.</p>
+        <h3>What is it?</h3>
+        <p>XNav is a fast one-handed (one-thumbed) text input system on a touch screen or capacitive sensitive surface. However, this demo is meant for use with a Tablet pen or mouse. For more information, read this <a href="http://download.microsoft.com/download/d/6/b/d6bde980-5568-4926-8c71-dea63befed64/xnav.doc">nice two-pager</a>.</p>
+        <p>Move your mouse (or hover your pen) around the "flower". No need to hold down the mouse button. On an iPhone, glide your thumb across the screen.</p>
+        <h3>How do I use it?</h3>
+        <p>Each stroke starts and ends in the center (5); making it easy to stay oriented (even without looking). The alphabetical arrangement makes learning the system easy but it is actually a carefully planned layout. Most common letters and space/backspace are quick strokes from center to a petal and back. For example, 'e' is just a quick up/down stroke (5-2-5).</p>
+        <p>Less common characters (in English-optimized <a href="http://en.wikipedia.org/wiki/Etaoin_shrdlu">ETAOIN SHRDLU</a> order) are sweeping strokes through two or three petals. For example, 'b' is 5-1-2-5, 'c' is 5-1-2-3-5 (or the somewhat forgiving 5-1-3-5 if you overshoot it a bit).</p>
+        <h3><img src="frequency.png" width="670" height="421" /></h3>
+        <p>Soon enough, you stop thinking on a per-character basis and get used to the "shape" of whole words and common prefixes and suffixes. For example, here is my name:</p>
+        <div><img src="ashley_small.png" alt="ashley" width="95" height="95" /></div>
+        <p>You get to the point that words like "the" and endings like "ing" become single forms.</p>
+        <h3>What are the advanced features?</h3>
+        <p>You can switch to Caps mode by swiping 5-8-5. It will switch back to lowercase after you enter a character. If you want to lock it in Caps mode, swipe 5-8-5 twice, then once more to unlock it. There are also two symbol modes (5-6-3-5 and 5-8-9-5).</p>
+        <p>It's not necessary to switch to symbol mode to get numbers (although you can). Instead, just tap/click the petals. The idea is that XNav may actually be a capacitive sensor under the keys on a regular 12-key phone on which you dial as usual or input text by gliding your thumb over the keys.</p>
+        <h3>I want it!</h3>
+        <p>You want to make a Windows Mobile based device with an XNav input system? Great, <a href="mailto:ashleyf@microsoft.com">lets do it</a>!</p>
+        <p class="highlight">Note: this is Microsoft and NYU Intellectual Property (<a href="http://www.microsoft.com/about/legal/intellectualproperty/search/details.mspx?ip_id=IDAEI4AE&techType=&ipCat=Any&feeStructure=Any&keywords=&ipVenture=true">see details</a>). I first saw it in a slick demo done by <a href="http://www.johnsangiovanni.com">John SanGiovanni</a> who has now taken some of his cool UI ideas to <a href="http://www.zenzui.com">ZenZui</a>.</p>
+        <script type="text/javascript">
+            var _gaq = _gaq || [];
+            _gaq.push(['_setAccount', 'UA-16821925-1']); // nthoeu: UA-16821925-2
+            _gaq.push(['_trackPageview']);
+            (function () {
+                var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+                ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+                var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+            })();
+        </script>
+    </body>
+</html>

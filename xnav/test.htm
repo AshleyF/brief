@@ -1,0 +1,29 @@
+<meta name="viewport" content="width=240" />
+
+<script>
+
+function touchstart(event)
+{
+    document.getElementById("test").innerHTML = "Start: " + event.target.y;
+
+}
+
+function touchmove(event)
+{
+    var touch = event.targetTouches[0];
+    var x = touch.clientX - event.target.x;
+    var y = touch.clientY - event.target.y;
+    document.getElementById("test").innerHTML = "Move: " + x + ", " + y;
+    event.preventDefault();
+}
+
+function touchend(event)
+{
+    document.getElementById("test").innerHTML = "End";
+}
+
+</script>
+<body style="margin:0">
+<h4 id="test">Test0</h4>
+<img src="key.png" ontouchstart="touchstart(event)" ontouchmove="touchmove(event)" ontouchend="touchend(event)" />
+</body>

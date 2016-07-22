@@ -15,7 +15,7 @@ void delayMillis()
 void setup()
 {
     brief::setup();
-    reflectaFrames::setup(9600);
+    reflectaFrames::setup(19200);
 
     // Bind extended function to a custom instruction (100)
     // In the interactive: 100 'delay instruction

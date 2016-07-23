@@ -169,7 +169,7 @@ let rec rep line =
                             | 2 -> (int16 d.[0] <<< 8) ||| int16 d.[1]
                             | _ -> failwith "Invalid event data."
                         match id with
-                        | id when id = dotEventId -> data |> toInt |> printfn "%i"
+                        | id when id = dotEventId -> data |> toInt |> printf "\b\b%i\n> "
                         | 0xFFuy -> printfn "Boot event"
                         | 0xFCuy ->
                             printfn "VM Error: %s"

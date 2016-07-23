@@ -284,22 +284,20 @@ namespace brief
 
     void event(uint8_t id, int16_t val) // helper to send simple scaler events
     {
-        push(val);
         push(id);
-        if (val == 0)
+        eventHeader();
+        if (val != 0)
         {
-            eventHeader();
-            pop(); // zero value implied
-        }
-        else if (val >= INT8_MIN && val <= INT8_MAX)
-        {
-            eventHeader();
-            eventBody8();
-        }
-        else
-        {
-            eventHeader();
-            eventBody16();
+            if (val >= INT8_MIN && val <= INT8_MAX)
+            {
+                push(val);
+                eventBody8();
+            }
+            else
+            {
+                push(val);
+                eventBody16();
+            }
         }
         eventFooter();
     }
@@ -332,7 +330,9 @@ namespace brief
 
     void eventOp() // send event up to PC containing top stack value
     {
-        event(pop(), pop());
+        int8_t id = pop();
+        int16_t val = pop();
+        event(id, val);
     }
 
 /*  Memory fetch/store instructions. Fetches take an address from the stack and push back the
@@ -793,6 +793,7 @@ namespace brief
 
         Brief words (addresses/quotations) may be hooked to respond to Wire events. */
 
+    /*
     void wireBegin()
     {
         Wire.begin(); // join bus as master (slave not supported)
@@ -861,6 +862,7 @@ namespace brief
         onRequestWord = pop();
         Wire.onRequest(wireOnRequest);
     }
+    */
 
     /*  Brief word addresses (or quotations) may be set to run upon interrupts.  For more info on
         the argument values and behavior, see:
@@ -943,6 +945,7 @@ namespace brief
 
         We keep up to MAX_SERVOS (48) servo instances attached. */
 
+    /*
     Servo servos[MAX_SERVOS];
 
     void servoAttach()
@@ -960,6 +963,7 @@ namespace brief
     {
         servos[pop()].writeMicroseconds(pop());
     }
+    */
 
     // A couple of stragglers...
 
@@ -1052,22 +1056,10 @@ namespace brief
         bind(59, digitalWrite);
         bind(60, analogRead);
         bind(61, analogWrite);
-        bind(62, wireBegin);
-        bind(63, wireRequestFrom);
-        bind(64, wireAvailable);
-        bind(65, wireRead);
-        bind(66, wireBeginTransmission);
-        bind(67, wireWrite);
-        bind(68, wireEndTransmission);
-        bind(69, wireSetOnReceive);
-        bind(70, wireSetOnRequest);
-        bind(71, attachISR);
-        bind(72, detachISR);
-        bind(73, servoAttach);
-        bind(74, servoDetach);
-        bind(75, servoWriteMicros);
-        bind(76, milliseconds);
-        bind(77, pulseIn);
+        bind(62, attachISR);
+        bind(63, detachISR);
+        bind(64, milliseconds);
+        bind(65, pulseIn);
 
         for (int16_t i = 0; i < MAX_INTERRUPTS; i++)
         {

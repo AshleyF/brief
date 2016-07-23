@@ -43,11 +43,7 @@ type Instruction =
     | PinMode
     | DigitalWrite | DigitalRead
     | AnalogWrite | AnalogRead
-    | WireBegin | WireRequestFrom | WireAvailable | WireRead
-    | WireBeginTransmission | WireWrite | WireEndTransmission
-    | WireSetOnReceive | WireSetOnRequest
     | AttachISR | DetachISR
-    | ServoAttach | ServoDetach | ServoWriteMicros
     | Milliseconds
     | PulseIn
     | Word of int16 * string
@@ -429,22 +425,10 @@ let initDictionary dict address pending =
          DigitalWrite,          "digitalWrite",          59  // val pin     -
          AnalogRead,            "analogRead",            60  // pin         - val
          AnalogWrite,           "analogWrite",           61  // val pin     -
-         WireBegin,             "wireBegin",             62  //             -
-         WireRequestFrom,       "wireRequestFrom",       63  // n dev       -
-         WireAvailable,         "wireAvailable",         64  //             - n
-         WireRead,              "wireRead",              65  //             - val
-         WireBeginTransmission, "wireBeginTransmission", 66  // dev         -
-         WireWrite,             "wireWrite",             67  // val         -
-         WireEndTransmission,   "wireEndTransmission",   68  //             -
-         WireSetOnReceive,      "wireSetOnReceive",      69  // addr        -
-         WireSetOnRequest,      "wireSetOnRequest",      70  // addr        -
-         AttachISR,             "attachISR",             71  // addr i mode -
-         DetachISR,             "detachISR",             72  // i           -
-         ServoAttach,           "servoAttach",           73  // pin         -
-         ServoDetach,           "servoDetach",           74  // pin         -
-         ServoWriteMicros,      "servoWriteMicros",      75  // val pin     -
-         Milliseconds,          "milliseconds",          76  //             - millis
-         PulseIn,               "pulseIn",               77] // val pin     - duration
+         AttachISR,             "attachISR",             62  // addr i mode -
+         DetachISR,             "detachISR",             63  // i           -
+         Milliseconds,          "milliseconds",          64  //             - millis
+         PulseIn,               "pulseIn",               65] // val pin     - duration
 
     let library (w, d) = lazyCompile dict d address pending |> define dict None w None
     List.iter library

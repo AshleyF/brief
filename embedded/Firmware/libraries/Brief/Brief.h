@@ -4,21 +4,21 @@
    and for running real time control loops. */
 
 #define __STDC_LIMIT_MACROS
-#include <Arduino.h>
-#include <Servo.h>
-#include <Reflecta.h>
-#include <Wire.h>
+//#include <Arduino.h>
+//#include <Servo.h>
+#include <ReflectaFramesSerial.h>
+//#include <Wire.h>
 
 #ifndef BRIEF_H
 #define BRIEF_H
 
-#define MEM_SIZE          1024 // dictionary and local/args space
-#define DATA_STACK_SIZE   8    // evaluation stack elements (int32s)
-#define RETURN_STACK_SIZE 8    // return and locals stack elements (int32s)
+#define MEM_SIZE          512  // dictionary and local/args space
+#define DATA_STACK_SIZE   4    // evaluation stack elements (int32s)
+#define RETURN_STACK_SIZE 4    // return and locals stack elements (int32s)
 
 #define MAX_PRIMITIVES    128  // max number of primitive (7-bit) instructions
 #define MAX_INTERRUPTS    6    // max number of ISR words
-#define MAX_SERVOS        48   // max number of servos
+//#define MAX_SERVOS        48   // max number of servos
 
 #define BOOT_EVENT_ID     0xFF // event sent upon 'setup' (not reset)
 #define VM_EVENT_ID       0xFC // event sent upon VM error
@@ -52,4 +52,4 @@ namespace brief
     void exec(int16_t address); // execute code at given address
 }
 
-#endif BRIEF_H
+#endif // BRIEF_H

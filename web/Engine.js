@@ -63,8 +63,9 @@ var Brief = new function () {
     }
 
     function compile(quote) {
+        alert(quote);
         return function () {
-            for (var i = 0; i < quote.length; i++) {
+            for (var i = quote.length; i >= 0; i--) { // back-to-front
                 var w = quote[i];
                 if (typeof (w) == "function")
                     w();
@@ -159,7 +160,7 @@ var Brief = new function () {
         var word = function () {
             var len = f.length;
             assertStack(len);
-            var args = context.Stack.slice(0, len).reverse(); // TODO: more efficient that slice/reverse
+            var args = context.Stack.slice(0, len).reverse(); // TODO: something more efficient that slice/reverse
             context.Stack = context.Stack.slice(len);
             var result = f.apply(null, args);
             if (result) {

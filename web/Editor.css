@@ -27,61 +27,57 @@ span {
 }
 
 .list {
-    background: #555;
+    background: #333;
 }
 
 .list .list 
 {
-    background: #999;
+    background: #555;
 }
 
 .list .list .list 
 {
-    background: #555;
+    background: #333;
 }
 
 .list .list .list .list 
 {
-    background: #999;
+    background: #555;
 }
 
 .list .list .list .list .list 
 {
-    background: #555;
+    background: #333;
 }
 
 .primitive
 {
-    background: #080;
+    color: #0A0;
 }
 
 .secondary
 {
-    background: #00F;
+    color: #00F;
 }
 
 .number 
 {
-    background: #DDD;
-    color: #000;
+    color: #999;
 }
 
 .string 
 {
-    background: #FF0;
-    color: #000;
+    color: #FF0;
 }
 
 .boolean
 {
-    background: #F0F;
+    color: #F0F;
 }
 
 .unknown
 {
-    border-color: #F00;
-    background: #FFF;
-    color: #000;
+    color: #F00;
 }
 
 .complete

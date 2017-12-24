@@ -80,20 +80,10 @@ int main(int argc, char** argv)
 			perror("Dequeue buffer failed.");
 			return 1;
 		}
-		// for (int b = 0; b < 1000; b++)
-		// {
-		// 	printf("%x ", buffer[b]);
-		// }
-		// printf("\n\n");
 		unsigned int i = 0;
 		while (1)
 		{
-			// printf("Bytes %i: ", i);
-			// for (int x = 0; x < 16; x++)
-			// {
-			// 	printf("%x ", buffer[i + x]);
-			// }
-			// printf("\n");
+			// decode enough to find length (https://en.wikipedia.org/wiki/JPEG)
 			if (buffer[i] != 0xFF)
 			{
 				perror("JPEG decode failed (expected 0xFF)\n");
@@ -105,16 +95,6 @@ int main(int argc, char** argv)
 				case 0xD8: // start of image (SOI)
 					i += 2;
 					break;
-				// case 0xD0:
-				// case 0xD1:
-				// case 0xD2:
-				// case 0xD3:
-				// case 0xD4:
-				// case 0xD5:
-				// case 0xD6:
-				// case 0xD7: // restart
-				// 	i += 2;
-				// 	break;
 				case 0xDA: // start of scan (SOS)
 					i += 2 + buffer[i + 2] * 256 + buffer[i + 3];
 					while (1)

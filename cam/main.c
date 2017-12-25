@@ -59,6 +59,7 @@ void process(int fd, struct sockaddr_in *clientaddr, unsigned char* frame, int l
     unsigned char buf[MAXLINE];
     sprintf(buf, "HTTP/1.1 200 OK\r\n");
     sprintf(buf + strlen(buf), "Content-Type: image/jpeg\r\n");
+    sprintf(buf + strlen(buf), "Refresh: 0\r\n");
     // sprintf(buf + strlen(buf), "Content-Type: text/plain\r\n");
 	// length = 5;
     // sprintf(buf + strlen(buf), "Content-Length: %i\r\n", length);
@@ -109,6 +110,7 @@ int main(int argc, char** argv)
 		printf("Got frame! (len=%i)\n", length);
 
         process(connfd, &clientaddr, frame, length);
+        shutdown(connfd, SHUT_WR);
         close(connfd);
     }
 

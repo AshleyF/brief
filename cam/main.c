@@ -54,22 +54,31 @@ int main(int argc, char** argv)
 		perror("Request buffers returned incorrect number of buffers");
 		return 1;
 	}
-	printf("COUNT: %i", req.count);
 
 	// query buffer
-	struct v4l2_buffer buf = {0};
-	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	buf.memory = V4L2_MEMORY_MMAP;
-	buf.index = 0;
-	if (-1 == ioctl(fd, VIDIOC_QUERYBUF, &buf))
+	struct v4l2_buffer info[BUF_COUNT];
+	unsigned char* buffer[BUF_COUNT];
+	for (int i = 0; i < BUF_COUNT; i++)
 	{
-		perror("Query buffer failed");
-		return 1;
+		info[i].type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		info[i].memory = V4L2_MEMORY_MMAP;
+		info[i].index = i;
+		if (-1 == ioctl(fd, VIDIOC_QUERYBUF, &info[i]))
+		{
+			perror("Query buffer failed");
+			return 1;
+		}
+		buffer[i] = mmap(NULL, info[i].length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, info[i].m.offset);
+		if (-1 == ioctl(fd, VIDIOC_QBUF, &info[i]))
+		{
+			perror("Enqueue buffer failed.");
+			return 1;
+		}
 	}
-	unsigned char* buffer;
-	buffer = mmap(NULL, buf.length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, buf.m.offset);
 
 	// capture
+	struct v4l2_buffer buf = {0};
+	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	if (-1 == ioctl(fd, VIDIOC_STREAMON, &buf.type))
 	{
 		perror("Stream on failed");
@@ -77,38 +86,35 @@ int main(int argc, char** argv)
 	}
 	while (1)
 	{
-		if (-1 == ioctl(fd, VIDIOC_QBUF, &buf))
-		{
-			perror("Enqueue buffer failed.");
-			return 1;
-		}
 		if (-1 == ioctl(fd, VIDIOC_DQBUF, &buf))
 		{
 			perror("Dequeue buffer failed.");
 			return 1;
 		}
+
+		unsigned char* bytes = buffer[buf.index];
 		unsigned int i = 0;
 		while (1)
 		{
 			// decode enough to find length (https://en.wikipedia.org/wiki/JPEG)
-			if (buffer[i] != 0xFF)
+			if (bytes[i] != 0xFF)
 			{
 				perror("JPEG decode failed (expected 0xFF)\n");
 				return 1;
 			}
 			int length = 0;
-			switch (buffer[i + 1])
+			switch (bytes[i + 1])
 			{
 				case 0xD8: // start of image (SOI)
 					i += 2;
 					break;
 				case 0xDA: // start of scan (SOS)
-					i += 2 + buffer[i + 2] * 256 + buffer[i + 3];
+					i += 2 + bytes[i + 2] * 256 + bytes[i + 3];
 					while (1)
 					{
-						if (buffer[i] == 0xFF)
+						if (bytes[i] == 0xFF)
 						{
-							switch (buffer[i + 1])
+							switch (bytes[i + 1])
 							{
 								case 0xD0:
 								case 0xD1:
@@ -144,14 +150,19 @@ int main(int argc, char** argv)
 					i += 2;
 					break;
 				default: // variable size
-					i += 2 + buffer[i + 2] * 256 + buffer[i + 3];
+					i += 2 + bytes[i + 2] * 256 + bytes[i + 3];
 					break;
 			}
 			if (length)
 			{
-				printf("Got frame! %i\n", length);
+				printf("Got frame! %i (%i)\n", length, buf.index);
 				break;
 			}
+		}
+		if (-1 == ioctl(fd, VIDIOC_QBUF, &buf))
+		{
+			perror("Enqueue buffer failed.");
+			return 1;
 		}
 	}
 }

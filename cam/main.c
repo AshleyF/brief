@@ -39,8 +39,9 @@ int main(int argc, char** argv)
 	}
 
 	// request buffers
+	const int BUF_COUNT = 3;
 	struct v4l2_requestbuffers req = {0};
-	req.count = 1;
+	req.count = BUF_COUNT;
 	req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	req.memory = V4L2_MEMORY_MMAP;
 	if (ioctl(fd, VIDIOC_REQBUFS, &req))
@@ -48,6 +49,12 @@ int main(int argc, char** argv)
 		perror("Request buffers failed.");
 		return 1;
 	}
+	if (req.count != BUF_COUNT)
+	{
+		perror("Request buffers returned incorrect number of buffers");
+		return 1;
+	}
+	printf("COUNT: %i", req.count);
 
 	// query buffer
 	struct v4l2_buffer buf = {0};

@@ -84,11 +84,12 @@ int camInit(const char* device)
 	return 1;
 }
 
-int camFrame(unsigned char* frame, int* length)
+int camFrame(unsigned char** frame, int* length)
 {
 	// reenque buffer
 	if (buf.index != -1)
 	{
+		printf("ENQUEUE\n");
 		if (-1 == ioctl(fd, VIDIOC_QBUF, &buf))
 		{
 			perror("Enqueue buffer failed.");
@@ -97,13 +98,14 @@ int camFrame(unsigned char* frame, int* length)
 	}
 
 	// dequeue buffer
+	printf("DEQUEUE\n");
 	if (-1 == ioctl(fd, VIDIOC_DQBUF, &buf))
 	{
 		perror("Dequeue buffer failed.");
 		return 0;
 	}
 
-	frame = buffer[buf.index];
+	*frame = buffer[buf.index];
 	*length = buf.bytesused;
 	return 1;
 }

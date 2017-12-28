@@ -121,7 +121,7 @@ void process(int conn) {
 		sprintf(buf + strlen(buf), "Content-Type: text/html\r\n");
 		// sprintf(buf + strlen(buf), "Content-Length: %i\r\n", length);
 		sprintf(buf + strlen(buf), "\r\n");
-		sprintf(buf + strlen(buf), "<h1>Camera Test</h1><img onload='frame()' id='camera' /><script>\nvar camera = document.getElementById('camera');\nvar i = 0;\nfunction frame()\n{\ncamera.src = 'http://localhost/frame.jpg' + (i++);\n}\nframe();\n</script>");
+		sprintf(buf + strlen(buf), "<h1>Camera Test</h1><img onload='frame()' id='camera' /><script>\nvar camera = document.getElementById('camera');\nvar i = 0;\nfunction frame()\n{\ncamera.src = 'frame.jpg?n=' + (i++);\n}\nframe();\n</script>");
 		write(conn, buf, strlen(buf));
 	}
 	else

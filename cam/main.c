@@ -6,7 +6,12 @@
 
 void process(int conn, unsigned char* frame, int length) {
     printf("Accept request, conn is %d\n", conn);
-    unsigned char buf[1024];
+
+	const int MAXLINE = 1024;
+    unsigned char buf[MAXLINE];
+	int foo = read(conn, buf, MAXLINE);
+	printf("TEST: %s", buf);
+
     sprintf(buf, "HTTP/1.1 200 OK\r\n");
     sprintf(buf + strlen(buf), "Content-Type: image/jpeg\r\n");
     // sprintf(buf + strlen(buf), "Content-Length: %i\r\n", length);

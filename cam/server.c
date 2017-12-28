@@ -14,11 +14,14 @@ int serverInit(int port)
     serveraddr.sin_family = AF_INET;
     serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
     serveraddr.sin_port = htons((unsigned short)port);
-    if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) return -1;
-    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const void*)&opt , sizeof(int)) < 0) return -1; // no "Address already in use" error from bind.
-    if (setsockopt(fd, 6 /* TCP */, TCP_CORK, (const void*)&opt , sizeof(int)) < 0) return -1;
-    if (bind(fd, (struct sockaddr*)&serveraddr, sizeof(serveraddr)) < 0) return -1; // fd endpoint for all port requests (any IP address)
-    if (listen(fd, 1024) < 0) return -1; // accepting connection requests
+    if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0 ||
+		(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const void*)&opt , sizeof(int)) < 0) || // no "Address already in use" error from bind.
+		(setsockopt(fd, 6 /* TCP */, TCP_CORK, (const void*)&opt , sizeof(int)) < 0) ||
+		(bind(fd, (struct sockaddr*)&serveraddr, sizeof(serveraddr)) < 0) || // fd endpoint for all port requests (any IP address)
+		(listen(fd, 1024) < 0)) // accepting connection requests
+	{
+		return -1;
+	}
     if (fd <= 0)
 	{
         exit(fd);

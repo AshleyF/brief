@@ -1,3 +1,11 @@
+#include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <linux/videodev2.h> // apt-get install libv4l-dev
+
 #include "camera.h"
 
 int fd;
@@ -89,7 +97,6 @@ int camFrame(unsigned char** frame, int* length)
 	// reenque buffer
 	if (buf.index != -1)
 	{
-		printf("ENQUEUE\n");
 		if (-1 == ioctl(fd, VIDIOC_QBUF, &buf))
 		{
 			perror("Enqueue buffer failed.");
@@ -98,7 +105,6 @@ int camFrame(unsigned char** frame, int* length)
 	}
 
 	// dequeue buffer
-	printf("DEQUEUE\n");
 	if (-1 == ioctl(fd, VIDIOC_DQBUF, &buf))
 	{
 		perror("Dequeue buffer failed.");

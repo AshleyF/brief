@@ -2,73 +2,39 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <openssl/sha.h>
 #include "camera.h"
 #include "server.h"
-
-const int MAXLINE = 1024;
-
-int len = 0;
-unsigned char* next;
-
-unsigned char* readLine(int fd, unsigned char* buf)
-{
-	if (len <= 0)
-	{
-		// fill buffer
-		len = read(fd, buf, MAXLINE);
-		if (len == 0)
-		{
-			perror("Unable to read from socket.");
-			exit(-1);
-		}
-		next = buf;
-	}
-
-	// find terminator
-	for (int i = 0; i < len; i++)
-	{
-		if (next[i] == '\r')
-		{
-			// found - replace with '\0' and update `next`/`len`
-			next[i] = '\0';
-			unsigned char* line = next;
-			i += 2;
-			next += i;
-			len -= i;
-			return line;
-		}
-	}
-
-	if (len >= MAXLINE)
-	{
-		perror("HTTP header exceeds buffer or is underminated.");
-		exit(-1);
-	}
-
-	// not found - shift remaining data and fill remaining buffer
-	for (int i = 0; i < len; i++)
-	{
-		buf[i] = next[i];
-	}
-	next = buf;
-	len += read(fd, buf + len, MAXLINE - len);
-	return readLine(fd, buf);
-}
-
-int startsWith(unsigned char* prefix, unsigned char* str)
-{
-	size_t len = strlen(prefix);
-	return len > strlen(str) ? 0 : strncmp(prefix, str, len) == 0;
-}
+#include "utility.h"
 
 void process(int conn) {
-    printf("Accept request, conn is %d\n", conn);
+    // printf("Accept request, conn is %d\n", conn);
 
 	unsigned char buf[MAXLINE];
-	len = 0;
+	resetLine();
 	unsigned char* line = readLine(conn, buf);
-	printf("REQUEST: %s\n", line);
-	if (startsWith("GET /frame.jpg", line))
+	// printf("REQUEST: %s\n", line);
+	if (startsWith("GET / ", line))
+	{
+		sprintf(buf, "HTTP/1.1 200 OK\r\n");
+		sprintf(buf + strlen(buf), "Content-Type: text/html\r\n");
+		sprintf(buf + strlen(buf), "\r\n");
+		sprintf(buf + strlen(buf), "<h1>Camera Test</h1><img onload='frame()' id='camera' /><script>\nvar camera = document.getElementById('camera');\nvar i = 0;\nfunction frame()\n{\ncamera.src = 'frame.jpg?n=' + (i++);\n}\nframe();\n</script>");
+		/* sprintf(buf + strlen(buf), "<h1>Socket Test</h1><script>\n"
+		                           "alert('Opening socket');\n"
+                                   "var ws = new WebSocket('ws://' + location.hostname + '/socket');\n"
+                                   "ws.onopen = function() { alert('Open'); }\n"
+                                   "ws.onclose = function() { alert('Close'); }\n"
+                                   "ws.onerror = function(error) { alert('Error: ' + error); }\n"
+                                   "ws.onmessage = function(message) {\n"
+                                   "  var reply = prompt('Message: ' + message.data);\n"
+                                   "  ws.send(reply);\n"
+                                   "}\n"
+		                           "</script>");
+		// */
+		write(conn, buf, strlen(buf));
+	}
+	else if (startsWith("GET /frame.jpg", line))
 	{
 		unsigned char* frame;
 		int length = 0;
@@ -80,23 +46,31 @@ void process(int conn) {
 			write(conn, buf, strlen(buf));
 			return;
 		}
-		printf("Got frame! (len=%i)\n", length);
 
 		sprintf(buf, "HTTP/1.1 200 OK\r\n");
 		sprintf(buf + strlen(buf), "Content-Type: image/jpeg\r\n");
-		// sprintf(buf + strlen(buf), "Content-Length: %i\r\n", length);
 		sprintf(buf + strlen(buf), "\r\n");
 		write(conn, buf, strlen(buf));
 		write(conn, frame, length);
 	}
-	else if (startsWith("GET / ", line))
+	else if (startsWith("GET /socket ", line))
 	{
-		sprintf(buf, "HTTP/1.1 200 OK\r\n");
-		sprintf(buf + strlen(buf), "Content-Type: text/html\r\n");
-		// sprintf(buf + strlen(buf), "Content-Length: %i\r\n", length);
-		sprintf(buf + strlen(buf), "\r\n");
-		sprintf(buf + strlen(buf), "<h1>Camera Test</h1><img onload='frame()' id='camera' /><script>\nvar camera = document.getElementById('camera');\nvar i = 0;\nfunction frame()\n{\ncamera.src = 'frame.jpg?n=' + (i++);\n}\nframe();\n</script>");
-		write(conn, buf, strlen(buf));
+		printf("SOCKET\n");
+		while (line[0] != '\0')
+		{
+			line = readLine(conn, buf);
+			printf("LINE: %s\n", line);
+			unsigned char* header = "Sec-WebSocket-Key: ";
+			if (startsWith(header, line))
+			{
+				line += strlen(header);
+				printf("KEY: %s", line);
+				size_t length = sizeof(line);
+				unsigned char hash[1024];
+				SHA1(line, length, hash);
+				printf("HASH: %s", hash);
+			}
+		}
 	}
 	else
 	{
@@ -104,16 +78,6 @@ void process(int conn) {
 		sprintf(buf + strlen(buf), "\r\n");
 		write(conn, buf, strlen(buf));
 	}
-	/*
-	for (int i = 0; i < 20; i++)
-	{
-		unsigned char* line = readLine(conn, buf);
-		printf("LINE %i: %s (LEN=%i, %i)\n", i, line, len, line[0]);
-		if (line[0] == '\0') break;
-	}
-	printf("END\n");
-	*/
-
 }
 
 int main(int argc, char** argv)

@@ -90,14 +90,14 @@ void process(int conn)
 					if (!camFrame(&frame, &frameLen)) break;
 					buf[0] = 2 | 0x80; // binary, final (TODO: assumed)
 					buf[1] = 127; // indicate 64-bit (TODO: assumed)
-					buf[2] = (long)frameLen >> 56;
-					buf[3] = (long)frameLen >> 48;
-					buf[4] = (long)frameLen >> 40;
-					buf[5] = (long)frameLen >> 32;
-					buf[6] = (long)frameLen >> 24;
-					buf[7] = (long)frameLen >> 16;
-					buf[8] = (long)frameLen >> 8;
-					buf[9] = (long)frameLen;
+					buf[2] = (long long)frameLen >> 56;
+					buf[3] = (long long)frameLen >> 48;
+					buf[4] = (long long)frameLen >> 40;
+					buf[5] = (long long)frameLen >> 32;
+					buf[6] = (long long)frameLen >> 24;
+					buf[7] = (long long)frameLen >> 16;
+					buf[8] = (long long)frameLen >> 8;
+					buf[9] = (long long)frameLen;
 					printf("B0=%i B1=%i B2=%i B3=%i B4=%i B5=%i B6=%i B7=%i\n", buf[2], buf[3], buf[4], buf[5], buf[6], buf[7], buf[8], buf[9]);
 					write(conn, buf, 10);
 					// TODO: support masking? (currently, mask bit always 0 - otherwise, send 4 bytes here)

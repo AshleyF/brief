@@ -15,6 +15,7 @@ void process(int conn)
 	int frameLen = 0;
 	resetLine();
 	unsigned char* line = readLine(conn, buf);
+	printf("Request: %s\n", line);
 	if (startsWith("GET /old ", line))
 	{
 		sprintf(buf, "HTTP/1.1 200 OK\r\n");
@@ -37,7 +38,6 @@ void process(int conn)
 								   "  document.getElementById('camera').src = (window.URL || window.webkitURL).createObjectURL(message.data);\n"
                                    "}\n"
 		                           "</script>");
-		// */
 		write(conn, buf, strlen(buf));
 	}
 	else if (startsWith("GET /frame.jpg", line))
@@ -59,24 +59,19 @@ void process(int conn)
 	}
 	else if (startsWith("GET /socket ", line))
 	{
-		printf("SOCKET\n");
 		while (line[0] != '\0')
 		{
 			line = readLine(conn, buf);
-			// printf("LINE: %s\n", line);
 			unsigned char* header = "Sec-WebSocket-Key: ";
 			if (startsWith(header, line))
 			{
 				line += strlen(header);
-				printf("KEY: %s\n", line);
 				unsigned char accept[MAXLINE];
 				strcpy(accept, line);
 				strcpy(accept + strlen(accept), "258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
-				printf("ACCEPT: %s\n", accept);
 				unsigned char hash[MAXLINE];
 				SHA1(accept, strlen(accept), hash);
 				base64Encode(hash, 20, accept, MAXLINE);
-				printf("HASH: %s\n", accept);
 				sprintf(buf, "HTTP/1.1 101 Switching Protocols\r\n");
 				sprintf(buf + strlen(buf), "Upgrade: websocket\r\n");
 				sprintf(buf + strlen(buf), "Connection: Upgrade\r\n");
@@ -86,7 +81,6 @@ void process(int conn)
 
 				while (1)
 				{
-					printf("FRAME (len=%i)\n", frameLen);
 					if (!camFrame(&frame, &frameLen)) break;
 					buf[0] = 2 | 0x80; // binary, final (TODO: assumed)
 					buf[1] = 127; // indicate 64-bit (TODO: assumed)
@@ -98,7 +92,6 @@ void process(int conn)
 					buf[7] = (long long)frameLen >> 16;
 					buf[8] = (long long)frameLen >> 8;
 					buf[9] = (long long)frameLen;
-					printf("B0=%i B1=%i B2=%i B3=%i B4=%i B5=%i B6=%i B7=%i\n", buf[2], buf[3], buf[4], buf[5], buf[6], buf[7], buf[8], buf[9]);
 					write(conn, buf, 10);
 					// TODO: support masking? (currently, mask bit always 0 - otherwise, send 4 bytes here)
 					write(conn, frame, frameLen);

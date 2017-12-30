@@ -8,9 +8,9 @@
 
 #include "camera.h"
 
-int fd;
-unsigned char* buffer[BUF_COUNT];
-struct v4l2_buffer buf = {0};
+static int fd;
+static unsigned char* buffer[BUF_COUNT];
+static struct v4l2_buffer buf = {0};
 
 int camInit(const char* device)
 {

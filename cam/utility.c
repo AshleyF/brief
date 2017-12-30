@@ -5,8 +5,8 @@
 #include <openssl/sha.h>
 #include "utility.h"
 
-int len = 0;
-unsigned char* next;
+static int len = 0;
+static unsigned char* next;
 
 void resetLine()
 {

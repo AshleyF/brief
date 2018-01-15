@@ -92,7 +92,7 @@ int camInit(const char* device)
 	return 1;
 }
 
-int camFrame(unsigned char** frame, int* length)
+int camFrame(unsigned char **frame, int *length)
 {
 	// reenque buffer
 	if (buf.index != -1)

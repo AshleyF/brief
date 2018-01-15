@@ -11,10 +11,10 @@ unsigned char buf[MAXLINE];
 
 void process(int conn)
 {
-	unsigned char* frame;
+	unsigned char *frame;
 	int frameLen = 0;
 	resetLine();
-	unsigned char* line = readLine(conn, buf);
+	unsigned char *line = readLine(conn, buf);
 	printf("Request: %s\n", line);
 	if (startsWith("GET /old ", line))
 	{
@@ -62,7 +62,7 @@ void process(int conn)
 		while (line[0] != '\0')
 		{
 			line = readLine(conn, buf);
-			unsigned char* header = "Sec-WebSocket-Key: ";
+			unsigned char *header = "Sec-WebSocket-Key: ";
 			if (startsWith(header, line))
 			{
 				line += strlen(header);
@@ -109,7 +109,7 @@ void process(int conn)
 	}
 }
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
 	printf("V4L2 Camera Test\n");
 

@@ -6,14 +6,14 @@
 #include "utility.h"
 
 static int len = 0;
-static unsigned char* next;
+static unsigned char *next;
 
 void resetLine()
 {
 	len = 0;
 }
 
-unsigned char* readLine(int fd, unsigned char* buf)
+unsigned char* readLine(int fd, unsigned char *buf)
 {
 	if (len <= 0)
 	{
@@ -34,7 +34,7 @@ unsigned char* readLine(int fd, unsigned char* buf)
 		{
 			// found - replace with '\0' and update `next`/`len`
 			next[i] = '\0';
-			unsigned char* line = next;
+			unsigned char *line = next;
 			i += 2;
 			next += i;
 			len -= i;
@@ -58,17 +58,17 @@ unsigned char* readLine(int fd, unsigned char* buf)
 	return readLine(fd, buf);
 }
 
-int startsWith(unsigned char* prefix, unsigned char* str)
+int startsWith(unsigned char *prefix, unsigned char *str)
 {
 	size_t len = strlen(prefix);
 	return len > strlen(str) ? 0 : strncmp(prefix, str, len) == 0;
 }
 
-void base64Encode(unsigned char* src, size_t srcLen, unsigned char* dest, size_t destLen)
+void base64Encode(unsigned char *src, size_t srcLen, unsigned char *dest, size_t destLen)
 {
 	const unsigned char table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-    const unsigned char* end = src + srcLen;
+    const unsigned char *end = src + srcLen;
     while (end - src >= 3)
 	{
         *dest++ = table[src[0] >> 2];

@@ -63,7 +63,6 @@ var Brief = new function () {
     }
 
     function compile(quote) {
-        alert(quote);
         return function () {
             for (var i = quote.length; i >= 0; i--) { // back-to-front
                 var w = quote[i];

@@ -115,6 +115,18 @@ namespace dotnet
 			}
 		}
 
+		public static unsafe void Write(void *handle, short[] buffer, int size)
+		{
+			// TODO: support other formats?
+			fixed (void* pBuffer = buffer)
+			{
+				if (Write(handle, pBuffer, (ulong)size) != size)
+				{
+					throw new ArgumentException("Write failed.");
+				}
+			}
+		}
+
 		public static unsafe void Close(void *handle)
 		{
 			if (CloseHandle(handle) != 0)
@@ -162,6 +174,9 @@ namespace dotnet
 		[DllImport("asound", EntryPoint="snd_pcm_readi")]
 		private static unsafe extern long Read(void *handle, void* buffer, ulong blockSize);
 
+		[DllImport("asound", EntryPoint="snd_pcm_writei")]
+		private static unsafe extern long Write(void *handle, void* buffer, ulong blockSize);
+
 		[DllImport("asound", EntryPoint="snd_pcm_close")]
 		private static unsafe extern int CloseHandle(void *handle);
 	}
@@ -172,39 +187,75 @@ namespace dotnet
         {
 			try
 			{
+				// record
+
 				Console.WriteLine("ALSA Test App");
 				var device = "plughw:0,0";
-				var handle = LinuxAudioInterop.Open(device, true);
+
+				var recHandle = LinuxAudioInterop.Open(device, true);
 				Console.WriteLine("Opened");
-				var param = LinuxAudioInterop.HardwareParamsMalloc();
+				var recParam = LinuxAudioInterop.HardwareParamsMalloc();
 				Console.WriteLine("Params");
-				LinuxAudioInterop.HardwareParamsInit(handle, param);
+				LinuxAudioInterop.HardwareParamsInit(recHandle, recParam);
 				Console.WriteLine("Params initialized");
-				LinuxAudioInterop.HardwareParamsSetAccess(handle, param, true);
+				LinuxAudioInterop.HardwareParamsSetAccess(recHandle, recParam, true);
 				Console.WriteLine("Params set access");
-				LinuxAudioInterop.HardwareParamsSetFormat(handle, param, LinuxAudioInterop.Format.Signed16LittleEndian);
+				LinuxAudioInterop.HardwareParamsSetFormat(recHandle, recParam, LinuxAudioInterop.Format.Signed16LittleEndian);
 				Console.WriteLine("Params set format");
-				LinuxAudioInterop.HardwareParamsSetRate(handle, param, 44100);
+				LinuxAudioInterop.HardwareParamsSetRate(recHandle, recParam, 44100);
 				Console.WriteLine("Params set rate");
-				LinuxAudioInterop.HardwareParamsSetChannels(handle, param, 1);
+				LinuxAudioInterop.HardwareParamsSetChannels(recHandle, recParam, 1);
 				Console.WriteLine("Params set channels");
-				LinuxAudioInterop.HardwareSetParams(handle, param);
+				LinuxAudioInterop.HardwareSetParams(recHandle, recParam);
 				Console.WriteLine("Set params");
-				LinuxAudioInterop.HardwareFreeParams(param);
+				LinuxAudioInterop.HardwareFreeParams(recParam);
 				Console.WriteLine("Free params");
-				LinuxAudioInterop.Prepare(handle);
+				LinuxAudioInterop.Prepare(recHandle);
 				Console.WriteLine("Prepare handle");
 
 				const int blockSize = 128;
 				var buf = new short[blockSize * 2];
 
-				for (var i = 0; i < 1000; i++)
+				const int numBlocks = 1000;
+				var recorded = new short[numBlocks][];
+				for (var i = 0; i < numBlocks; i++)
 				{
-					LinuxAudioInterop.Read(handle, buf, blockSize);
+					LinuxAudioInterop.Read(recHandle, buf, blockSize);
+					recorded[i] = (short[])buf.Clone();
 					Console.WriteLine($"Read buffer: {buf[0]}");
 				}
 
-				LinuxAudioInterop.Close(handle);
+				LinuxAudioInterop.Close(recHandle);
+
+				// playback
+
+				var playHandle = LinuxAudioInterop.Open(device, false);
+				Console.WriteLine("Opened");
+				var playParam = LinuxAudioInterop.HardwareParamsMalloc();
+				Console.WriteLine("Params");
+				LinuxAudioInterop.HardwareParamsInit(playHandle, playParam);
+				Console.WriteLine("Params initialized");
+				LinuxAudioInterop.HardwareParamsSetAccess(playHandle, playParam, true);
+				Console.WriteLine("Params set access");
+				LinuxAudioInterop.HardwareParamsSetFormat(playHandle, playParam, LinuxAudioInterop.Format.Signed16LittleEndian);
+				Console.WriteLine("Params set format");
+				LinuxAudioInterop.HardwareParamsSetRate(playHandle, playParam, 44100);
+				Console.WriteLine("Params set rate");
+				LinuxAudioInterop.HardwareParamsSetChannels(playHandle, playParam, 1);
+				Console.WriteLine("Params set channels");
+				LinuxAudioInterop.HardwareSetParams(playHandle, playParam);
+				Console.WriteLine("Set params");
+				LinuxAudioInterop.HardwareFreeParams(playParam);
+				Console.WriteLine("Free params");
+				LinuxAudioInterop.Prepare(playHandle);
+				Console.WriteLine("Prepare handle");
+				for (var i = 0; i < numBlocks; i++)
+				{
+					LinuxAudioInterop.Write(playHandle, recorded[i], blockSize);
+					Console.WriteLine($"Write buffer: {recorded[i][0]}");
+				}
+
+				LinuxAudioInterop.Close(playHandle);
 				Console.WriteLine("Close handle");
 			}
 			catch (Exception ex)

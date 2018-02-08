@@ -103,7 +103,7 @@ namespace dotnet
 			}
 		}
 
-		public static unsafe void Read(void *handle, short[] buffer, int size)
+		public static unsafe void Read(void *handle, byte[] buffer, int size)
 		{
 			// TODO: support other formats?
 			fixed (void* pBuffer = buffer)
@@ -115,7 +115,7 @@ namespace dotnet
 			}
 		}
 
-		public static unsafe void Write(void *handle, short[] buffer, int size)
+		public static unsafe void Write(void *handle, byte[] buffer, int size)
 		{
 			// TODO: support other formats?
 			fixed (void* pBuffer = buffer)
@@ -214,14 +214,14 @@ namespace dotnet
 				Console.WriteLine("Prepare handle");
 
 				const int blockSize = 128;
-				var buf = new short[blockSize * 2];
+				var buf = new byte[blockSize * 2];
 
 				const int numBlocks = 1000;
-				var recorded = new short[numBlocks][];
+				var recorded = new byte[numBlocks][];
 				for (var i = 0; i < numBlocks; i++)
 				{
 					LinuxAudioInterop.Read(recHandle, buf, blockSize);
-					recorded[i] = (short[])buf.Clone();
+					recorded[i] = (byte[])buf.Clone();
 					Console.WriteLine($"Read buffer: {buf[0]}");
 				}
 

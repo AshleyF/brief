@@ -89,10 +89,7 @@ namespace dotnet
 
 		public static unsafe void HardwareFreeParams(void *param)
 		{
-			if (HardwareParamsFree(param) != 0)
-			{
-				throw new ArgumentException("Hardware free params failed.");
-			}
+			HardwareParamsFree(param);
 		}
 
 		public static unsafe void Prepare(void *handle)

@@ -6,9 +6,11 @@
 #define blockSize 128
 
 short bufs[nBlocks][blockSize * 2];
-const char* device = "plughw:0,0";
+const char* recdevice = "plughw:0,0";
+const char* playdevice = "plughw:0,0";
 int rate = 44100;
 int *pRate = &rate;
+const int channels = 2;
 
 void capture()
 {
@@ -18,9 +20,9 @@ void capture()
 	snd_pcm_t *capture_handle;
 	snd_pcm_hw_params_t *hw_params;
 
-	if ((err = snd_pcm_open (&capture_handle, device, SND_PCM_STREAM_CAPTURE, 0)) < 0) {
-		fprintf (stderr, "cannot open audio device %s (%s)\n", 
-		device,
+	if ((err = snd_pcm_open (&capture_handle, recdevice, SND_PCM_STREAM_CAPTURE, 0)) < 0) {
+		fprintf (stderr, "cannot open audio recdevice %s (%s)\n", 
+		recdevice,
 		snd_strerror (err));
 		exit (1);
 	}
@@ -55,7 +57,7 @@ void capture()
 		exit (1);
 	}
 
-	if ((err = snd_pcm_hw_params_set_channels (capture_handle, hw_params, 2)) < 0) {
+	if ((err = snd_pcm_hw_params_set_channels (capture_handle, hw_params, channels)) < 0) {
 		fprintf (stderr, "cannot set channel count (%s)\n",
 		snd_strerror (err));
 		exit (1);
@@ -67,7 +69,7 @@ void capture()
 		exit (1);
 	}
 
-	snd_pcm_hw_params_free (hw_params);
+	// snd_pcm_hw_params_free (hw_params);
 
 	if ((err = snd_pcm_prepare (capture_handle)) < 0) {
 		fprintf (stderr, "cannot prepare audio interface for use (%s)\n",
@@ -91,7 +93,7 @@ void capture()
 		// printf("Buf %i: %i %i %i %i %i %i ...\n", i, buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
 	}
 
-	snd_pcm_close (capture_handle);
+	// snd_pcm_close (capture_handle);
 }
 
 void playback()
@@ -103,9 +105,9 @@ void playback()
 	snd_pcm_t *playback_handle;
 	snd_pcm_hw_params_t *hw_params;
 
-	if ((err = snd_pcm_open (&playback_handle, device, SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
-		fprintf (stderr, "cannot open audio device %s (%s)\n", 
-		device,
+	if ((err = snd_pcm_open (&playback_handle, playdevice, SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
+		fprintf (stderr, "cannot open audio playdevice %s (%s)\n", 
+		playdevice,
 		snd_strerror (err));
 		exit (1);
 	}
@@ -140,7 +142,7 @@ void playback()
 		exit (1);
 	}
 
-	if ((err = snd_pcm_hw_params_set_channels (playback_handle, hw_params, 2)) < 0) {
+	if ((err = snd_pcm_hw_params_set_channels (playback_handle, hw_params, channels)) < 0) {
 		fprintf (stderr, "cannot set channel count (%s)\n",
 		snd_strerror (err));
 		exit (1);
@@ -152,7 +154,7 @@ void playback()
 		exit (1);
 	}
 
-	snd_pcm_hw_params_free (hw_params);
+	// snd_pcm_hw_params_free (hw_params);
 
 	if ((err = snd_pcm_prepare (playback_handle)) < 0) {
 		fprintf (stderr, "cannot prepare audio interface for use (%s)\n",

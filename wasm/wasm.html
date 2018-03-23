@@ -1,0 +1,19 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>Hello WASM World!</title>
+        <style>body { background: black; color: white; }</style>
+    </head>
+    <body>
+        <h1>Hello WASM World!</h1>
+        <p>The answer to the ultimate question is <b id="display">...</b>!</p>
+        <script type="text/javascript">
+            function run(wasm) {
+                var instance = new WebAssembly.Instance(new WebAssembly.Module(new Uint8Array(wasm)));
+                document.getElementById('display').innerText = instance.exports.main();
+            }
+        </script>
+        <script type="text/javascript" src="main.js"></script>
+    </body>
+</html>

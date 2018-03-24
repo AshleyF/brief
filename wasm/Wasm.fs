@@ -28,7 +28,7 @@ type Section =
     | Type of FuncType seq
     | Import of ImportEntry seq
     | Function of int seq // indices into Types (TODO: higher level?)
-    // | Table
+    | Table of ResizableLimits
     // | Memory
     // | Global
     // | Export
@@ -118,6 +118,10 @@ let resizable (limits: ResizableLimits) = seq {
         yield 0uy
         yield! init }
 
+let tableType limits = seq {
+    yield 0x70uy // anyfunc (only elem_type currently supported)
+    yield! resizable limits }
+
 let importEntry (entry: ImportEntry) = seq {
     let name (n: ImportName) = seq {
         yield! stringUtf8 n.Module
@@ -130,8 +134,7 @@ let importEntry (entry: ImportEntry) = seq {
     | ImportEntry.Table (n, r) ->
         yield! name n
         yield 1uy // Table external_kind
-        yield 0x70uy // anyfunc (only elem_type currently supported)
-        yield! resizable r
+        yield! tableType r
     | ImportEntry.Memory (n, r) ->
         yield! name n
         yield 2uy // Memory external_kind
@@ -154,12 +157,19 @@ let functionSection indices = seq {
         yield! Seq.map (uint32 >> varuint32) indices |> Seq.concat } // types
     yield! section 3uy payload }
 
+let tableSection limits = seq {
+    let payload = seq {
+        yield 1uy // currently no more than 1 table supported (omit section for 0)
+        yield! tableType limits } // entries
+    yield! section 4uy payload }
+
 let wasm sections = seq { // TODO: test
     let section = function
         | Todo (id, bytes) -> section id bytes
         | Type types -> typeSection types
         | Import entries -> importSection entries
         | Function indices -> functionSection indices
+        | Table limits -> tableSection limits
         | Custom (name, bytes) -> customSection name bytes
     yield! moduleHeader
     yield! sections |> Seq.map section |> Seq.concat }

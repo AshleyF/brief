@@ -59,6 +59,8 @@ let testSections () =
     test "Type section" (typeSection [{ Parameters = []; Returns = Some I32 }]) [1uy; 5uy; 1uy; 96uy; 0uy; 1uy; 127uy]
     test "Import section" (importSection [ImportEntry.Function ({ Module = "abc"; Field = "def"}, 123); ImportEntry.Memory ({ Module = "abc"; Field = "def"}, (10, None))]) [2uy; 22uy; 2uy; 3uy; 97uy; 98uy; 99uy; 3uy; 100uy; 101uy; 102uy; 0uy; 123uy; 3uy; 97uy; 98uy; 99uy; 3uy; 100uy; 101uy; 102uy; 2uy; 0uy; 10uy]
     test "Function section" (functionSection [1; 2; 3]) [3uy; 4uy; 3uy; 1uy; 2uy; 3uy]
+    test "Table section (no max)" (tableSection (10, None)) [4uy; 4uy; 1uy; 112uy; 0uy; 10uy]
+    test "Table section (with max)" (tableSection (10, Some 20)) [4uy; 5uy; 1uy; 112uy; 1uy; 10uy; 20uy]
     test "Custom section" (customSection "test" [1uy; 2uy; 3uy]) [0uy; 8uy; 4uy; 116uy; 101uy; 115uy; 116uy; 1uy; 2uy; 3uy]
 
 let testAll () =

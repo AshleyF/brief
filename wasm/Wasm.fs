@@ -29,7 +29,7 @@ type Section =
     | Import of ImportEntry seq
     | Function of int seq // indices into Types (TODO: higher level?)
     | Table of ResizableLimits
-    // | Memory
+    | Memory of ResizableLimits
     // | Global
     // | Export
     // | Start
@@ -163,6 +163,12 @@ let tableSection limits = seq {
         yield! tableType limits } // entries
     yield! section 4uy payload }
 
+let memorySection limits = seq {
+    let payload = seq {
+        yield 1uy // currently no more than 1 table supported (omit section for 0)
+        yield! resizable limits } // entries
+    yield! section 5uy payload }
+
 let wasm sections = seq { // TODO: test
     let section = function
         | Todo (id, bytes) -> section id bytes
@@ -170,6 +176,7 @@ let wasm sections = seq { // TODO: test
         | Import entries -> importSection entries
         | Function indices -> functionSection indices
         | Table limits -> tableSection limits
+        | Memory limits -> memorySection limits
         | Custom (name, bytes) -> customSection name bytes
     yield! moduleHeader
     yield! sections |> Seq.map section |> Seq.concat }

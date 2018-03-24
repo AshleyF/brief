@@ -9,9 +9,7 @@ let test name result expected =
 
 let testfail name fn =
     printfn "%s -> failure (as expected)" name
-    let mutable failed = false
-    try fn () |> ignore with _ -> failed <- true
-    if not failed then failwith "Test failure (expected failure)"
+    try fn () |> ignore; failwith "Test failure (expected failure)" with _-> ()
 
 let testVarInt () =
     test "Type varuint1 0" (varuint1 0) [0uy]
@@ -44,13 +42,29 @@ let testVarInt () =
 let testHeader () =
     test "Module header" moduleHeader [0x00uy; 0x61uy; 0x73uy; 0x6duy; 0x01uy; 0x00uy; 0x00uy; 0x00uy]
 
+let testResizableLimits () =
+    test "Initial limit" (resizable (10, None)) [0uy; 10uy]
+    test "Maximum limit" (resizable (20, (Some 100))) [1uy; 20uy; 100uy]
+
+let testImportEntry () =
+    test "Function import entry" (importEntry (ImportEntry.Function ({ Module = "abc"; Field = "def"}, 123))) [3uy; 97uy; 98uy; 99uy; 3uy; 100uy; 101uy; 102uy; 0uy; 123uy]
+    test "Table (no max) import entry" (importEntry (ImportEntry.Table ({ Module = "abc"; Field = "def"}, (10, None)))) [3uy; 97uy; 98uy; 99uy; 3uy; 100uy; 101uy; 102uy; 1uy; 112uy; 0uy; 10uy]
+    test "Table (with max) import entry" (importEntry (ImportEntry.Table ({ Module = "abc"; Field = "def"}, (10, Some 20)))) [3uy; 97uy; 98uy; 99uy; 3uy; 100uy; 101uy; 102uy; 1uy; 112uy; 1uy; 10uy; 20uy]
+    test "Memory (no max) import entry" (importEntry (ImportEntry.Memory ({ Module = "abc"; Field = "def"}, (10, None)))) [3uy; 97uy; 98uy; 99uy; 3uy; 100uy; 101uy; 102uy; 2uy; 0uy; 10uy]
+    test "Memory (with max) import entry" (importEntry (ImportEntry.Memory ({ Module = "abc"; Field = "def"}, (10, Some 20)))) [3uy; 97uy; 98uy; 99uy; 3uy; 100uy; 101uy; 102uy; 2uy; 1uy; 10uy; 20uy]
+    test "Global import entry" (importEntry (ImportEntry.Global ({ Module = "abc"; Field = "def"}, I32, true))) [3uy; 97uy; 98uy; 99uy; 3uy; 100uy; 101uy; 102uy; 3uy; 127uy; 1uy]
+
 let testSections () =
-    test "Section" (section Section.Data [1uy; 2uy; 3uy]) [11uy; 3uy; 1uy; 2uy; 3uy]
+    test "Section" (section 11uy [1uy; 2uy; 3uy]) [11uy; 3uy; 1uy; 2uy; 3uy]
+    test "Type section" (typeSection [{ Parameters = []; Returns = Some I32 }]) [1uy; 5uy; 1uy; 96uy; 0uy; 1uy; 127uy]
+    test "Import section" (importSection [ImportEntry.Function ({ Module = "abc"; Field = "def"}, 123); ImportEntry.Memory ({ Module = "abc"; Field = "def"}, (10, None))]) [2uy; 22uy; 2uy; 3uy; 97uy; 98uy; 99uy; 3uy; 100uy; 101uy; 102uy; 0uy; 123uy; 3uy; 97uy; 98uy; 99uy; 3uy; 100uy; 101uy; 102uy; 2uy; 0uy; 10uy]
+    test "Function section" (functionSection [1; 2; 3]) [3uy; 4uy; 3uy; 1uy; 2uy; 3uy]
     test "Custom section" (customSection "test" [1uy; 2uy; 3uy]) [0uy; 8uy; 4uy; 116uy; 101uy; 115uy; 116uy; 1uy; 2uy; 3uy]
-    test "Type section" (TypeSection [{ Parameters = []; Returns = Some Value.i32 }]) [1uy; 5uy; 1uy; 96uy; 0uy; 1uy; 127uy]
 
 let testAll () =
     printfn "Running tests..."
     testVarInt ()
     testHeader ()
+    testResizableLimits ()
+    testImportEntry ()
     testSections ()

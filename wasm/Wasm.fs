@@ -1,7 +1,46 @@
-﻿module Wasm
+﻿module Wasm // http://webassembly.org/docs/binary-encoding/
 
 open System
 open System.Text
+
+// --------------------------------------------------------------------------------
+
+type Value = I32 | I64 | F32 | F64 // value_type
+
+type FuncType = { // func_type
+    Parameters: Value seq
+    Returns: Value option } // future multiple supported: http://webassembly.org/docs/future-features/#multiple-return
+
+type ImportName = {
+    Module: string
+    Field: string }
+
+type ResizableLimits = int * int option
+
+type ImportEntry =
+    | Function of ImportName * int
+    | Table of ImportName * ResizableLimits // currently only anyfunc supported
+    | Memory of ImportName * ResizableLimits
+    | Global of ImportName * Value * bool
+
+type Section =
+    | Todo of byte * byte seq
+    | Type of FuncType seq
+    | Import of ImportEntry seq
+    | Function of int seq // indices into Types (TODO: higher level?)
+    // | Table
+    // | Memory
+    // | Global
+    // | Export
+    // | Start
+    // | Element
+    // | Code
+    // | Data
+    | Custom of string * byte seq
+
+type Module = Section seq
+
+// --------------------------------------------------------------------------------
 
 let rec leb128U (v: int64) = seq { // https://en.wikipedia.org/wiki/LEB128
     let b = v &&& 0x7fL |> byte
@@ -10,7 +49,7 @@ let rec leb128U (v: int64) = seq { // https://en.wikipedia.org/wiki/LEB128
         yield b ||| 0x80uy
         yield! leb128U v' }
 
-let varuint1 (v: int) = if v = 0 || v = 1 then v |> int64 |> leb128U else failwith "Out of range (varuint1)"
+let varuint1 (v: int) = if v = 0 || v = 1 then v |> int64 |> leb128U else failwith "Out of range (varuint1)" // TODO: still used?
 let varuint7 (v: int) = if v >= 0 && v <= 127 then v |> int64 |> leb128U else failwith "Out of range (varuint7)"
 let varuint32 (v: uint32) = v |> int64 |> leb128U
 
@@ -31,61 +70,98 @@ let moduleHeader =
      0x01uy; 0x00uy; 0x00uy; 0x00uy] // version
     |> List.toSeq
 
-type Section =
-    | Type = 1uy // function signature declarations
-    | Import = 2uy // import declarations
-    | Function = 3uy // function declarations
-    | Table = 4uy // indirect function table and other tables
-    | Memory = 5uy // memory attributes
-    | Global = 6uy // global declarations
-    | Export = 7uy // exports
-    | Start = 8uy // start function declaration
-    | Element = 9uy // elements section
-    | Code = 10uy // function bodies (code)
-    | Data = 11uy // data segments
+let value = function
+    | I32 -> 0x7fuy
+    | I64 -> 0x7euy
+    | F32 -> 0x7duy
+    | F64 -> 0x7cuy
 
-let section (id: Section) (payload: byte seq) = seq {
-    yield byte id
+let section (id: byte) (payload: byte seq) = seq {
+    yield id
     yield! varuint32 (Seq.length payload |> uint32)
     yield! payload }
 
-let customSection (name: string) (payload: byte seq) = seq {
-    let nameUtf8 = Encoding.UTF8.GetBytes(name)
-    let nameLen = nameUtf8.Length |> uint32
-    let nameLenVar = nameLen |> varuint32
-    let payloadLen = uint32 (Seq.length payload + (nameLen |> varuint32 |> Seq.length)) + nameLen
+let stringUtf8 (str: string) = seq {
+    let utf8 = Encoding.UTF8.GetBytes(str)
+    yield! utf8.Length |> uint32 |> varuint32
+    yield! utf8 }
+
+let customSection name (payload: byte seq) = seq {
+    let nameUtf8 = stringUtf8 name
+    let payloadLen = uint32 (Seq.length payload + Seq.length nameUtf8)
     yield 0uy // custom section type id
     yield! varuint32 payloadLen // payload_len
-    yield! varuint32 nameLen // name_len
-    yield! nameUtf8 // name
+    yield! nameUtf8 // name_len / name
     yield! payload } // payload_data
 
-type Value = // value_type
-    | i32 = 0x7fuy
-    | i64 = 0x7euy
-    | f32 = 0x7duy
-    | f64 = 0x7cuy
-
-type FuncType = { // func_type
-    Parameters: Value seq
-    Returns: Value option } // future multiple supported: http://webassembly.org/docs/future-features/#multiple-return
-
-let TypeSection types = seq {
+let typeSection types = seq {
     let funcType (func: FuncType) = seq { // func_type
         yield 0x60uy // func form
         yield! (Seq.length func.Parameters |> uint32 |> varuint32)
-        yield! (Seq.map byte func.Parameters)
+        yield! (Seq.map value func.Parameters)
         match func.Returns with
-        | Some r -> yield! [1uy; byte r]
+        | Some r -> yield! [1uy; value r] // future may support multiple: http://webassembly.org/docs/future-features/#multiple-return
         | None -> yield 0uy }
     let payload = seq {
-        yield Seq.length types |> byte // count
+        yield! Seq.length types |> uint32 |> varuint32 // count
         yield! Seq.map funcType types |> Seq.concat } // func_type*
-    yield! section Section.Type payload }
+    yield! section 1uy payload }
 
-// --------------------------------------------------------------------------------
+let resizable (limits: ResizableLimits) = seq {
+    let init = limits |> fst |> uint32 |> varuint32
+    match limits with
+    | initial, Some maximum ->
+        yield 1uy
+        yield! init
+        yield! maximum |> uint32 |> varuint32
+    | initial, None ->
+        yield 0uy
+        yield! init }
 
-type Block = Value option // block_type (None -> 0x40)
+let importEntry (entry: ImportEntry) = seq {
+    let name (n: ImportName) = seq {
+        yield! stringUtf8 n.Module
+        yield! stringUtf8 n.Field }
+    match entry with
+    | ImportEntry.Function (n, i) ->
+        yield! name n
+        yield 0uy // Function external_kind
+        yield! i |> uint32 |> varuint32
+    | ImportEntry.Table (n, r) ->
+        yield! name n
+        yield 1uy // Table external_kind
+        yield 0x70uy // anyfunc (only elem_type currently supported)
+        yield! resizable r
+    | ImportEntry.Memory (n, r) ->
+        yield! name n
+        yield 2uy // Memory external_kind
+        yield! resizable r
+    | ImportEntry.Global (n, v, m) ->
+        yield! name n
+        yield 3uy // Global external_kind
+        yield value v // content_type
+        yield if m then 1uy else 0uy } // mutability
 
-type Element = // elem_type
-    | anyfunc = 0x70
+let importSection imports = seq {
+    let payload = seq {
+        yield! Seq.length imports |> uint32 |> varuint32 // count
+        yield! Seq.map importEntry imports |> Seq.concat } // import_entry*
+    yield! section 2uy payload }
+
+let functionSection indices = seq {
+    let payload = seq {
+        yield! Seq.length indices |> uint32 |> varuint32 // count
+        yield! Seq.map (uint32 >> varuint32) indices |> Seq.concat } // types
+    yield! section 3uy payload }
+
+let wasm sections = seq { // TODO: test
+    let section = function
+        | Todo (id, bytes) -> section id bytes
+        | Type types -> typeSection types
+        | Import entries -> importSection entries
+        | Function indices -> functionSection indices
+        | Custom (name, bytes) -> customSection name bytes
+    yield! moduleHeader
+    yield! sections |> Seq.map section |> Seq.concat }
+
+// TODO: replace fixed bytes written as varint

@@ -31,6 +31,11 @@ type Instruction =
     | GetGlobal of uint32
     | End
 
+type GlobalVariable = {
+    Value: Value
+    Mutable: bool
+    Init: Instruction seq }
+
 type Section =
     | Todo of byte * byte seq
     | Type of FuncType seq
@@ -38,7 +43,7 @@ type Section =
     | Function of int seq // indices into Types (TODO: higher level?)
     | Table of ResizableLimits
     | Memory of ResizableLimits
-    | Global of (Value * bool * Instruction seq) seq
+    | Global of GlobalVariable seq
     // | Export
     // | Start
     // | Element
@@ -190,9 +195,9 @@ let rec instructions inst = seq { // TODO: test
         | End -> seq { yield 0x0buy }
     yield! Seq.map bytes inst |> Seq.concat }
 
-let globalSection (globals: (Value * bool * Instruction seq) seq) = seq {
+let globalSection (globals: GlobalVariable seq) = seq {
     let payload = seq {
-        let var (v, m, i) = seq {
+        let var { Value = v; Mutable = m; Init = i } = seq {
             yield! globalType v m // global_type
             yield! instructions i } // init_expr
         yield! Seq.length globals |> uint32 |> varuint32 // count

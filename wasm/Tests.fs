@@ -63,7 +63,7 @@ let testSections () =
     test "Table section (with max)" (tableSection (10, Some 20)) [4uy; 5uy; 1uy; 112uy; 1uy; 10uy; 20uy]
     test "Memory section (no max)" (memorySection (10, None)) [5uy; 3uy; 1uy; 0uy; 10uy]
     test "Memory section (with max)" (memorySection (10, Some 20)) [5uy; 4uy; 1uy; 1uy; 10uy; 20uy]
-    test "Global section" (globalSection [(Value.F32, false, [ConstF32 3.14f; End] |> Seq.ofList)]) [6uy; 8uy; 1uy; 125uy; 0uy; 195uy; 245uy; 72uy; 64uy; 11uy]
+    test "Global section" (globalSection [{ Value = Value.F32; Mutable = false; Init = [ConstF32 3.14f; End] |> Seq.ofList }]) [6uy; 8uy; 1uy; 125uy; 0uy; 195uy; 245uy; 72uy; 64uy; 11uy]
     test "Custom section" (customSection "test" [1uy; 2uy; 3uy]) [0uy; 8uy; 4uy; 116uy; 101uy; 115uy; 116uy; 1uy; 2uy; 3uy]
 
 let testAll () =

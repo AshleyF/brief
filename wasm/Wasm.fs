@@ -23,6 +23,14 @@ type ImportEntry =
     | Memory of ImportName * ResizableLimits
     | Global of ImportName * Value * bool
 
+type Instruction =
+    | ConstI32 of int
+    | ConstI64 of int64
+    | ConstF32 of single
+    | ConstF64 of double
+    | GetGlobal of uint32
+    | End
+
 type Section =
     | Todo of byte * byte seq
     | Type of FuncType seq
@@ -30,7 +38,7 @@ type Section =
     | Function of int seq // indices into Types (TODO: higher level?)
     | Table of ResizableLimits
     | Memory of ResizableLimits
-    // | Global
+    | Global of (Value * bool * Instruction seq) seq
     // | Export
     // | Start
     // | Element
@@ -122,6 +130,10 @@ let tableType limits = seq {
     yield 0x70uy // anyfunc (only elem_type currently supported)
     yield! resizable limits }
 
+let globalType v m = seq {
+    yield value v
+    yield if m then 1uy else 0uy }
+
 let importEntry (entry: ImportEntry) = seq {
     let name (n: ImportName) = seq {
         yield! stringUtf8 n.Module
@@ -142,8 +154,7 @@ let importEntry (entry: ImportEntry) = seq {
     | ImportEntry.Global (n, v, m) ->
         yield! name n
         yield 3uy // Global external_kind
-        yield value v // content_type
-        yield if m then 1uy else 0uy } // mutability
+        yield! globalType v m }
 
 let importSection imports = seq {
     let payload = seq {
@@ -169,6 +180,25 @@ let memorySection limits = seq {
         yield! resizable limits } // entries
     yield! section 5uy payload }
 
+let rec instructions inst = seq { // TODO: test
+    let bytes = function
+        | ConstI32 i -> varint32 i
+        | ConstI64 i -> varint64 i
+        | ConstF32 f -> BitConverter.GetBytes(f) |> Array.toSeq
+        | ConstF64 f -> BitConverter.GetBytes(f) |> Array.toSeq
+        | GetGlobal i -> seq { yield 0x23uy; yield! varuint32 i }
+        | End -> seq { yield 0x0buy }
+    yield! Seq.map bytes inst |> Seq.concat }
+
+let globalSection (globals: (Value * bool * Instruction seq) seq) = seq {
+    let payload = seq {
+        let var (v, m, i) = seq {
+            yield! globalType v m // global_type
+            yield! instructions i } // init_expr
+        yield! Seq.length globals |> uint32 |> varuint32 // count
+        yield! Seq.map var globals |> Seq.concat } // global_variable*
+    yield! section 6uy payload }
+
 let wasm sections = seq { // TODO: test
     let section = function
         | Todo (id, bytes) -> section id bytes
@@ -177,6 +207,7 @@ let wasm sections = seq { // TODO: test
         | Function indices -> functionSection indices
         | Table limits -> tableSection limits
         | Memory limits -> memorySection limits
+        | Global globals -> globalSection globals
         | Custom (name, bytes) -> customSection name bytes
     yield! moduleHeader
     yield! sections |> Seq.map section |> Seq.concat }

@@ -218,6 +218,14 @@ type GlobalVariable = {
     Mutable: bool
     Init: Instruction seq }
 
+type LocalEntry = {
+    Number: int
+    Type: Value }
+
+type FunctionBody = {
+    Locals: LocalEntry seq
+    Code: Instruction seq }
+
 type Section =
     | Todo of byte * byte seq
     | Type of FuncType seq
@@ -229,7 +237,7 @@ type Section =
     // | Export
     // | Start
     // | Element
-    // | Code
+    | Code of FunctionBody seq
     // | Data
     | Custom of string * byte seq
 
@@ -557,6 +565,22 @@ let globalSection (globals: GlobalVariable seq) = seq {
         yield! Seq.map var globals |> Seq.concat } // global_variable*
     yield! section 6uy payload }
 
+let codeSection (functions: FunctionBody seq) = seq {
+    let payload = seq {
+        let body (b: FunctionBody) = seq {
+            let bytes = seq {
+                let local loc = seq {
+                    yield! loc.Number |> uint32 |> varuint32 // number of given type
+                    yield loc.Type |> value }
+                yield! Seq.length b.Locals |> uint32 |> varuint32 // count
+                yield! Seq.map local b.Locals |> Seq.concat // locals
+                yield! instructions b.Code }
+            yield! Seq.length bytes |> uint32 |> varuint32 // body size in bytes
+            yield! bytes }
+        yield! Seq.length functions |> uint32 |> varuint32 // count
+        yield! Seq.map body functions |> Seq.concat }
+    yield! section 10uy payload }
+
 let wasm sections = seq { // TODO: test
     let section = function
         | Todo (id, bytes) -> section id bytes
@@ -566,6 +590,7 @@ let wasm sections = seq { // TODO: test
         | Table limits -> tableSection limits
         | Memory limits -> memorySection limits
         | Global globals -> globalSection globals
+        | Code code -> codeSection code
         | Custom (name, bytes) -> customSection name bytes
     yield! moduleHeader
     yield! sections |> Seq.map section |> Seq.concat }

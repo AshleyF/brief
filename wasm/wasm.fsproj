@@ -6,8 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="Readme.md" />
     <Compile Include="Utility.fs" />
-    <Compile Include="Wasm.fs" />
+    <Compile Include="Structure.fs" />
+    <Compile Include="Encoding.fs" />
     <Compile Include="Tests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

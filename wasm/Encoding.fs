@@ -1,287 +1,22 @@
-﻿module Wasm // http://webassembly.org/docs/binary-encoding/
+﻿module Encoding // http://webassembly.org/docs/binary-encoding/
 
 open System
 open System.Text
+open Structure
 
-// --------------------------------------------------------------------------------
-
-type Value = I32 | I64 | F32 | F64 // value_type
-
-type FuncType = { // func_type
-    Parameters: Value seq
-    Returns: Value option } // future multiple supported: http://webassembly.org/docs/future-features/#multiple-return
-
-type ImportName = {
-    Module: string
-    Field: string }
-
-type ResizableLimits = int * int option
-
-type ImportEntry =
-    | Function of ImportName * int
-    | Table of ImportName * ResizableLimits // currently only anyfunc supported
-    | Memory of ImportName * ResizableLimits
-    | Global of ImportName * Value * bool
-
-type Instruction = // using int rather than uint32 throughout for convenience
-    // control flow
-    | Unreachable
-    | Nop
-    | Block of Value option // block type/empty
-    | Loop of Value option // block type/empty
-    | If of Value option // block type/empty
-    | Else
-    | End
-    | Br of int // relative depth
-    | BrIf of int // relative depth
-    | BrTable of int * int seq * int // count, table, default
-    | Return
-    // call
-    | Call of int // function index
-    | CallIndirect of int // type index, (reserved future use)
-    // parametric
-    | Drop
-    | Select
-    // variable
-    | GetLocal of int // index
-    | SetLocal of int // index
-    | TeeLocal of int // index
-    | GetGlobal of int // index
-    | SetGlobal of int // index
-    // memory
-    | LoadI32 of int * int // flags, offset
-    | LoadI64 of int * int // flags, offset
-    | LoadF32 of int * int // flags, offset
-    | LoadF64 of int * int // flags, offset
-    | LoadByteI32 of int * int // flags, offset
-    | LoadByteUnsignedI32 of int * int // flags, offset
-    | LoadShortI32 of int * int // flags, offset
-    | LoadShortUnsignedI32 of int * int // flags, offset
-    | LoadByteI64 of int * int // flags, offset
-    | LoadByteUnsignedI64 of int * int // flags, offset
-    | LoadShortI64 of int * int // flags, offset
-    | LoadShortUnsignedI64 of int * int // flags, offset
-    | LoadIntI64 of int * int // flags, offset
-    | LoadIntUnsignedI64 of int * int // flags, offset
-    | StoreI32 of int * int // flags, offset
-    | StoreI64 of int * int // flags, offset
-    | StoreF32 of int * int // flags, offset
-    | StoreF64 of int * int // flags, offset
-    | StoreByteI32 of int * int // flags, offset
-    | StoreShortI32 of int * int // flags, offset
-    | StoreByteI64 of int * int // flags, offset
-    | StoreShortI64 of int * int // flags, offset
-    | StoreIntI64 of int * int // flags, offset
-    | CurrentMemory // reserved (future)
-    | GrowMemory // reserved (future)
-    // constants
-    | ConstI32 of int
-    | ConstI64 of int64
-    | ConstF32 of single
-    | ConstF64 of double
-    // comparison
-    | EqualZeroI32 // eqz
-    | EqualI32 // eq
-    | NotEqualI32 // neq
-    | LessI32 // lt_s
-    | LessUnsignedI32 // lt_u
-    | GreaterI32 // gt_s
-    | GreaterUnsignedI32 // gt_u
-    | LessOrEqualI32 // le_s
-    | LessOrEqualUnsignedI32 // le_u
-    | GreaterOrEqualI32 // ge_s
-    | GreaterOrEqualUnsignedI32 // ge_u
-    // ----------------------------------------
-    | EqualZeroI64 // eqz
-    | EqualI64 // eq
-    | NotEqualI64 // neq
-    | LessI64 // lt_s
-    | LessUnsignedI64 // lt_u
-    | GreaterI64 // gt_s
-    | GreaterUnsignedI64 // gt_u
-    | LessOrEqualI64 // le_s
-    | LessOrEqualUnsignedI64 // le_u
-    | GreaterOrEqualI64 // ge_s
-    | GreaterOrEqualUnsignedI64 // ge_u
-    // ----------------------------------------
-    | EqualF32 // eq
-    | NotEqualF32 // neq
-    | LessF32 // lt_s
-    | GreaterF32 // gt_s
-    | LessOrEqualF32 // le_s
-    | GreaterOrEqualF32 // ge_s
-    // ----------------------------------------
-    | EqualF64 // eq
-    | NotEqualF64 // neq
-    | LessF64 // lt_s
-    | GreaterF64 // gt_s
-    | LessOrEqualF64 // le_s
-    | GreaterOrEqualF64 // ge_s
-    // numeric
-    | ClzI32 // i32.clz
-    | CtzI32 // i32.ctz
-    | PopCountI32 // i32.popcnt
-    | AddI32 // i32.add
-    | SubI32 // i32.sub
-    | MulI32 // i32.mul
-    | DivI32 // i32.div_s
-    | DivUnsignedI32 // i32.div_u
-    | RemI32 // i32.rem_s
-    | RemUnsignedI32 // i32.rem_u
-    | AndI32 // i32.and
-    | OrI32 // i32.or
-    | XorI32 // i32.xor
-    | ShiftLeftI32 // i32.shl
-    | ShiftRightI32 // i32.shr_s
-    | ShiftRightUnsignedI32 // i32.shr_u
-    | RotateLeftI32 // i32.rotl
-    | RotateRightI32 // i32.rotr
-    // ----------------------------------------
-    | ClzI64 // i64.clz
-    | CtzI64 // i64.ctz
-    | PopCountI64 // i64.popcnt
-    | AddI64 // i64.add
-    | SubI64 // i64.sub
-    | MulI64 // i64.mul
-    | DivI64 // i64.div_s
-    | DivUnsignedI64 // i64.div_u
-    | RemI64 // i64.rem_s
-    | RemUnsignedI64 // i64.rem_u
-    | AndI64 // i64.and
-    | OrI64 // i64.or
-    | XorI64 // i64.xor
-    | ShiftLeftI64 // i64.shl
-    | ShiftRightI64 // i64.shr_s
-    | ShiftRightUnsignedI64 // i64.shr_u
-    | RotateLeftI64 // i64.rotl
-    | RotateRightI64 // i64.rotr
-    // ----------------------------------------
-    | AbsF32 // f32.abs
-    | NegateF32 // f32.neg
-    | CeilingF32 // f32.ceil
-    | FloorF32 // f32.floor
-    | TruncateF32 // f32.trunc
-    | NearestF32 // f32.nearest
-    | SqrtF32 // f32.sqrt
-    | AddF32 // f32.add
-    | SubF32 // f32.sub
-    | MulF32 // f32.mul
-    | DivF32 // f32.div
-    | MinF32 // f32.min
-    | MaxF32 // f32.max
-    | CopySignF32 // f32.copysign
-    // ----------------------------------------
-    | AbsF64 // f64.abs
-    | NegateF64 // f64.neg
-    | CeilingF64 // f64.ceil
-    | FloorF64 // f64.floor
-    | TruncateF64 // f64.trunc
-    | NearestF64 // f64.nearest
-    | SqrtF64 // f64.sqrt
-    | AddF64 // f64.add
-    | SubF64 // f64.sub
-    | MulF64 // f64.mul
-    | DivF64 // f64.div
-    | MinF64 // f64.min
-    | MaxF64 // f64.max
-    | CopySignF64 // f64.copysign
-    // conversions
-    | WrapI64asI32 // i32.wrap/i64
-    | TruncateF32asI32 // i32.trunc_s/f32
-    | TruncateUnsignedF32asI32 // i32.trunc_u/f32
-    | TruncateF64asI32 // i32.trunc_s/f64
-    | TruncateUnsignedF64asI32 // i32.trunc_u/f64
-    | ExtendI32toI64 // i64.extend_s/i32
-    | ExtendUnsignedI32toI64 // i64.extend_u/i32
-    | TruncateF32asI64 // i64.trunc_s/f32
-    | TruncateUnsignedF32asI64 // i64.trunc_u/f32
-    | TruncateF64asI64 // i64.trunc_s/f64
-    | TruncateUnsignedF64asI64 // i64.trunc_u/f64
-    | ConvertI32toF32 // f32.convert_s/i32
-    | ConvertUnsignedI32toF32 // f32.convert_u/i32
-    | ConvertI64toF32 // f32.convert_s/i64
-    | ConvertUnsignedI64toF32 // f32.convert_u/i64
-    | DemoteF64toF32 // f32.demote/f64
-    | ConvertI32toF64 // f64.convert_s/i32
-    | ConvertUnsignedI32toF64 // f64.convert_u/i32
-    | ConvertI64toF64 // f64.convert_s/i64
-    | ConvertUnsignedI64toF64 // f64.convert_u/i64
-    | PromoteF32toF64 // f64.promote/f32
-    // reinterpretations
-    | ReinterpretF32asI32 // i32.reinterpret/f32
-    | ReinterpretF64asI64 // i64.reinterpret/f64
-    | ReinterpretI32asF32 // f32.reinterpret/i32
-    | ReinterpretI64asF64 // f64.reinterpret/i64
-
-type GlobalVariable = {
-    Value: Value
-    Mutable: bool
-    Init: Instruction seq }
-
-type LocalEntry = {
-    Number: int
-    Type: Value }
-
-type FunctionBody = {
-    Locals: LocalEntry seq
-    Code: Instruction seq }
-
-type Section =
-    | Todo of byte * byte seq
-    | Type of FuncType seq
-    | Import of ImportEntry seq
-    | Function of int seq // indices into Types (TODO: higher level?)
-    | Table of ResizableLimits
-    | Memory of ResizableLimits
-    | Global of GlobalVariable seq
-    // | Export
-    // | Start
-    // | Element
-    | Code of FunctionBody seq
-    // | Data
-    | Custom of string * byte seq
-
-type Module = Section seq
-
-// --------------------------------------------------------------------------------
-
-let rec leb128U (v: int64) = seq { // https://en.wikipedia.org/wiki/LEB128
+let rec leb128 condition (v: int64) = seq { // https://en.wikipedia.org/wiki/LEB128
     let b = v &&& 0x7fL |> byte
     let v' = v >>> 7
-    if v' = 0L || v' = -1L then yield b else
+    if condition b v' then yield b else
         yield b ||| 0x80uy
-        yield! leb128U v' }
+        yield! leb128 condition v' }
 
-let varuint1 (v: int) = if v = 0 || v = 1 then v |> int64 |> leb128U else failwith "Out of range (varuint1)" // TODO: still used?
-let varuint7 (v: int) = if v >= 0 && v <= 127 then v |> int64 |> leb128U else failwith "Out of range (varuint7)"
-let varuint32 (v: uint32) = v |> int64 |> leb128U
+let varint64 = leb128 (fun b v -> let c = b &&& 0x40uy = 0uy in (v = 0L && c) || (v = -1L && not c))
+let varint32 (v: int) = v |> int64 |> varint64
+let varuint32 (v: uint32) = v |> int64 |> leb128 (fun _ v -> v = 0L || v = -1L)
 
-let rec leb128S (v: int64) = seq { // https://en.wikipedia.org/wiki/LEB128
-    let b = v &&& 0x7fL |> byte
-    let v' = v >>> 7
-    let clear = b &&& 0x40uy = 0uy
-    if (v' = 0L && clear) || (v' = -1L && not clear) then yield b else
-        yield b ||| 0x80uy
-        yield! leb128S v' }
-
-let varint7 (v: int) = if v >= -128 && v <= 127 then v |> int64 |> leb128S else failwith "Out of range (varint7)"
-let varint32 (v: int) = v |> int64 |> leb128S
-let varint64 = leb128S
-
-let moduleHeader =
-    [0x00uy; 0x61uy; 0x73uy; 0x6duy // magic number (\0asm)
-     0x01uy; 0x00uy; 0x00uy; 0x00uy] // version
-    |> List.toSeq
-
-let value = function
-    | I32 -> 0x7fuy
-    | I64 -> 0x7euy
-    | F32 -> 0x7duy
-    | F64 -> 0x7cuy
-
-let optionalValue = function
-    | Some v -> value v
-    | None -> 0x40uy
+let value = function I32 -> 0x7fuy | I64 -> 0x7euy | F32 -> 0x7duy | F64 -> 0x7cuy
+let optionalValue = function Some v -> value v | None -> 0x40uy // block_type
 
 let section (id: byte) (payload: byte seq) = seq {
     yield id
@@ -315,23 +50,28 @@ let typeSection types = seq {
     yield! section 1uy payload }
 
 let resizable (limits: ResizableLimits) = seq {
-    let init = limits |> fst |> uint32 |> varuint32
     match limits with
     | initial, Some maximum ->
         yield 1uy
-        yield! init
+        yield! initial |> uint32 |> varuint32
         yield! maximum |> uint32 |> varuint32
     | initial, None ->
         yield 0uy
-        yield! init }
+        yield! initial |> uint32 |> varuint32 }
 
-let tableType limits = seq {
+let tableType limits = seq { // table_type
     yield 0x70uy // anyfunc (only elem_type currently supported)
     yield! resizable limits }
 
 let globalType v m = seq {
     yield value v
     yield if m then 1uy else 0uy }
+
+let externalKind = function
+    | ExternalKind.Function -> 0uy
+    | ExternalKind.Table    -> 1uy
+    | ExternalKind.Memory   -> 2uy
+    | ExternalKind.Global   -> 3uy
 
 let importEntry (entry: ImportEntry) = seq {
     let name (n: ImportName) = seq {
@@ -340,19 +80,19 @@ let importEntry (entry: ImportEntry) = seq {
     match entry with
     | ImportEntry.Function (n, i) ->
         yield! name n
-        yield 0uy // Function external_kind
+        yield externalKind ExternalKind.Function
         yield! i |> uint32 |> varuint32
     | ImportEntry.Table (n, r) ->
         yield! name n
-        yield 1uy // Table external_kind
+        yield externalKind ExternalKind.Table
         yield! tableType r
     | ImportEntry.Memory (n, r) ->
         yield! name n
-        yield 2uy // Memory external_kind
+        yield externalKind ExternalKind.Memory
         yield! resizable r
     | ImportEntry.Global (n, v, m) ->
         yield! name n
-        yield 3uy // Global external_kind
+        yield externalKind ExternalKind.Global
         yield! globalType v m }
 
 let importSection imports = seq {
@@ -559,11 +299,38 @@ let rec instructions inst = seq { // TODO: test
 let globalSection (globals: GlobalVariable seq) = seq {
     let payload = seq {
         let var { Value = v; Mutable = m; Init = i } = seq {
-            yield! globalType v m // global_type
+            yield! globalType v m // global_type (only immutable currently supported, but not checked here)
             yield! instructions i } // init_expr
         yield! Seq.length globals |> uint32 |> varuint32 // count
         yield! Seq.map var globals |> Seq.concat } // global_variable*
     yield! section 6uy payload }
+
+let exportEntry (entry: ExportEntry) = seq {
+    yield! stringUtf8 entry.Field
+    yield externalKind entry.Kind
+    yield! entry.Index |> uint32 |> varuint32 }
+
+let exportSection exports = seq {
+    let payload = seq {
+        yield! Seq.length exports |> uint32 |> varuint32 // count
+        yield! Seq.map exportEntry exports |> Seq.concat } // export_entry*
+    yield! section 7uy payload }
+
+let startSection index = seq {
+    let payload = index |> uint32 |> varuint32
+    yield! section 8uy payload }
+
+let elementSegment (segment: ElementSegment) = seq {
+    yield! segment.Index |> uint32 |> varuint32
+    yield! segment.Offset |> instructions // init_expr
+    yield! Seq.length segment.Elements |> uint32 |> varuint32 // num_elements
+    yield! Seq.map (fun s -> s |> uint32 |> varuint32) segment.Elements |> Seq.concat }
+
+let elementSection segments = seq {
+    let payload = seq {
+        yield! Seq.length segments |> uint32 |> varuint32 // count
+        yield! Seq.map elementSegment segments |> Seq.concat } // elem_segment*
+    yield! section 9uy payload }
 
 let codeSection (functions: FunctionBody seq) = seq {
     let payload = seq {
@@ -581,6 +348,23 @@ let codeSection (functions: FunctionBody seq) = seq {
         yield! Seq.map body functions |> Seq.concat }
     yield! section 10uy payload }
 
+let dataSegment (segment: DataSegment) = seq {
+    yield! segment.Index |> uint32 |> varuint32
+    yield! segment.Offset |> instructions // init_expr
+    yield! Seq.length segment.Data |> uint32 |> varuint32
+    yield! segment.Data }
+
+let dataSection segments = seq {
+    let payload = seq {
+        yield! Seq.length segments |> uint32 |> varuint32 // count
+        yield! Seq.map dataSegment segments |> Seq.concat } // data_segment*
+    yield! section 11uy payload }
+
+let moduleHeader =
+    [0x00uy; 0x61uy; 0x73uy; 0x6duy // magic number (\0asm)
+     0x01uy; 0x00uy; 0x00uy; 0x00uy] // version
+    |> List.toSeq
+
 let wasm sections = seq { // TODO: test
     let section = function
         | Todo (id, bytes) -> section id bytes
@@ -590,9 +374,10 @@ let wasm sections = seq { // TODO: test
         | Table limits -> tableSection limits
         | Memory limits -> memorySection limits
         | Global globals -> globalSection globals
+        | Export exports -> exportSection exports
+        | Start index -> startSection index
+        | Element segments -> elementSection segments
         | Code code -> codeSection code
         | Custom (name, bytes) -> customSection name bytes
     yield! moduleHeader
     yield! sections |> Seq.map section |> Seq.concat }
-
-// TODO: replace fixed bytes written as varint

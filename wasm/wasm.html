@@ -9,11 +9,14 @@
         <h1>Hello WASM World!</h1>
         <p>The answer to the ultimate question is <b id="display">...</b>!</p>
         <script type="text/javascript">
-            function run(wasm) {
-                var instance = new WebAssembly.Instance(new WebAssembly.Module(new Uint8Array(wasm)));
-                document.getElementById('display').innerText = instance.exports.main();
+            function run(binary) {
+                // var instance = new WebAssembly.Instance(new WebAssembly.Module(new Uint8Array(binary)));
+                // document.getElementById('display').innerText = instance.exports.main();
+                WebAssembly.instantiate(new Uint8Array(binary)).then(function (wasm) {
+                    document.getElementById('display').innerText = wasm.instance.exports.main();
+                });
             }
         </script>
-        <script type="text/javascript" src="main.js"></script>
+        <script type="text/javascript" src="./bin/debug/netcoreapp2.0/main.js"></script>
     </body>
 </html>

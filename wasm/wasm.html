@@ -10,13 +10,11 @@
         <p>The answer to the ultimate question is <b id="display">...</b>!</p>
         <script type="text/javascript">
             function run(binary) {
-                // var instance = new WebAssembly.Instance(new WebAssembly.Module(new Uint8Array(binary)));
-                // document.getElementById('display').innerText = instance.exports.main();
-                WebAssembly.instantiate(new Uint8Array(binary)).then(function (wasm) {
+                WebAssembly.instantiate(Uint8Array.from(atob(binary), c => c.charCodeAt(0))).then(function (wasm) {
                     document.getElementById('display').innerText = wasm.instance.exports.main();
                 });
             }
         </script>
-        <script type="text/javascript" src="./bin/debug/netcoreapp2.0/main.js"></script>
+        <script type="text/javascript" src="./main.js"></script>
     </body>
 </html>

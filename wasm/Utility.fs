@@ -1,8 +1,9 @@
 ﻿module Utility
 
+open System
 open System.IO
 
 let save (wasm: byte seq) =
-    let array = wasm |> Seq.map (sprintf "%i") |> String.concat ","
+    let base64 = wasm |> Array.ofSeq |> Convert.ToBase64String
     use writer = File.CreateText("./main.js")
-    writer.WriteLine(sprintf "run([%s])" array)
+    writer.WriteLine(sprintf "run('%s');" base64)

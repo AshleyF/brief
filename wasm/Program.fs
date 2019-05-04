@@ -3,6 +3,7 @@
 open Utility
 open Structure
 open Encoding
+open Brief
 open Tests
 
 testAll ()
@@ -14,11 +15,7 @@ let bytes =
         Type [{ Parameters = []; Returns = Some Value.I32 }]
         Function [0]
         Export [{ Field = "main"; Kind = ExternalKind.Function; Index = 0 }]
-        Code [{ Locals = []; Code = [
-            ConstI32 7
-            ConstI32 6
-            MulI32
-            End] }]
+        Code [{ Locals = []; Code = brief "3 4 + 5 *" |> print }]
     ]
 
 save bytes

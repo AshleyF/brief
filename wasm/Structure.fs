@@ -188,32 +188,32 @@ type Instruction = // using int rather than uint32 throughout for convenience
     | MaxF64 // f64.max
     | CopySignF64 // f64.copysign
     // conversions
-    | WrapI64asI32 // i32.wrap/i64
-    | TruncateF32asI32 // i32.trunc_s/f32
-    | TruncateUnsignedF32asI32 // i32.trunc_u/f32
-    | TruncateF64asI32 // i32.trunc_s/f64
-    | TruncateUnsignedF64asI32 // i32.trunc_u/f64
-    | ExtendI32toI64 // i64.extend_s/i32
-    | ExtendUnsignedI32toI64 // i64.extend_u/i32
-    | TruncateF32asI64 // i64.trunc_s/f32
-    | TruncateUnsignedF32asI64 // i64.trunc_u/f32
-    | TruncateF64asI64 // i64.trunc_s/f64
-    | TruncateUnsignedF64asI64 // i64.trunc_u/f64
-    | ConvertI32toF32 // f32.convert_s/i32
-    | ConvertUnsignedI32toF32 // f32.convert_u/i32
-    | ConvertI64toF32 // f32.convert_s/i64
-    | ConvertUnsignedI64toF32 // f32.convert_u/i64
-    | DemoteF64toF32 // f32.demote/f64
-    | ConvertI32toF64 // f64.convert_s/i32
-    | ConvertUnsignedI32toF64 // f64.convert_u/i32
-    | ConvertI64toF64 // f64.convert_s/i64
-    | ConvertUnsignedI64toF64 // f64.convert_u/i64
-    | PromoteF32toF64 // f64.promote/f32
+    | WrapI64asI32 // i32.wrap_i64
+    | TruncateF32asI32 // i32.trunc_s_f32
+    | TruncateUnsignedF32asI32 // i32.trunc_u_f32
+    | TruncateF64asI32 // i32.trunc_s_f64
+    | TruncateUnsignedF64asI32 // i32.trunc_u_f64
+    | ExtendI32toI64 // i64.extend_s_i32
+    | ExtendUnsignedI32toI64 // i64.extend_u_i32
+    | TruncateF32asI64 // i64.trunc_s_f32
+    | TruncateUnsignedF32asI64 // i64.trunc_u_f32
+    | TruncateF64asI64 // i64.trunc_s_f64
+    | TruncateUnsignedF64asI64 // i64.trunc_u_f64
+    | ConvertI32toF32 // f32.convert_s_i32
+    | ConvertUnsignedI32toF32 // f32.convert_u_i32
+    | ConvertI64toF32 // f32.convert_s_i64
+    | ConvertUnsignedI64toF32 // f32.convert_u_i64
+    | DemoteF64toF32 // f32.demote_f64
+    | ConvertI32toF64 // f64.convert_s_i32
+    | ConvertUnsignedI32toF64 // f64.convert_u_i32
+    | ConvertI64toF64 // f64.convert_s_i64
+    | ConvertUnsignedI64toF64 // f64.convert_u_i64
+    | PromoteF32toF64 // f64.promote_f32
     // reinterpretations
-    | ReinterpretF32asI32 // i32.reinterpret/f32
-    | ReinterpretF64asI64 // i64.reinterpret/f64
-    | ReinterpretI32asF32 // f32.reinterpret/i32
-    | ReinterpretI64asF64 // f64.reinterpret/i64
+    | ReinterpretF32asI32 // i32.reinterpret_f32
+    | ReinterpretF64asI64 // i64.reinterpret_f64
+    | ReinterpretI32asF32 // f32.reinterpret_i32
+    | ReinterpretI64asF64 // f64.reinterpret_i64
 
 type GlobalVariable = {
     Value: Value

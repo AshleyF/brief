@@ -10,6 +10,7 @@
     <Compile Include="Utility.fs" />
     <Compile Include="Structure.fs" />
     <Compile Include="Encoding.fs" />
+    <Compile Include="Brief.fs" />
     <Compile Include="Tests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

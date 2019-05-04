@@ -120,7 +120,7 @@ let memorySection limits = seq {
     yield! section 5uy payload }
 
 let rec instructions inst = seq { // TODO: test
-    let bytes = function
+    let bytes = function // https://webassembly.github.io/spec/core/binary/instructions.html#memory-instructions
         | Unreachable -> seq { yield 0x00uy }
         | Nop -> seq { yield 0x01uy }
         | Block v -> seq { yield 0x02uy; yield optionalValue v }

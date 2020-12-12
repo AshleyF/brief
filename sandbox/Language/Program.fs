@@ -19,14 +19,14 @@ and Word =
     | Primitive of NamedPrimitive
     | Secondary of string * Word list
 
-and Value =
-    | Number of double // or primitive closures?
-    | String of string // or primitive closures?
-    | Boolean of bool
-    | List of Value list
-    | Map of Map<string, Value>
-    | Set of Set<Value>
-    | Quotation of Word list
+and Value = // v
+    | Number of double // n
+    | String of string // s
+    | Boolean of bool // b
+    | List of Value list // l
+    | Map of Map<string, Value> // m
+    | Set of Set<Value> // t
+    | Quotation of Word list // q
 
 and State = {
     Continuation: Word list
@@ -77,18 +77,58 @@ let rec eval stream state =
         | None -> state
     | w :: c -> word { state with Continuation = c } w |> eval stream
 
+let depth = Primitive (NamedPrimitive ("depth", (fun s ->
+    { s with Stack = Number (double s.Stack.Length) :: s.Stack })))
+
+let clear = Primitive (NamedPrimitive ("clear", (fun s -> { s with Stack = [] })))
+
 let dup = Primitive (NamedPrimitive ("dup", (fun s ->
     match s.Stack with
     | x :: t -> { s with Stack = x :: x :: t }
     | _ -> failwith "Stack underflow")))
 
-let mult = Primitive (NamedPrimitive ("*", (fun s ->
+let drop = Primitive (NamedPrimitive ("drop", (fun s ->
     match s.Stack with
-    | Number x :: Number y :: t -> { s with Stack = Number (x * y) :: t }
+    | _ :: t -> { s with Stack = t }
     | _ -> failwith "Stack underflow")))
 
-let pi = Secondary ("pi", [Literal (Number 3.14159265)])
-let sq = Secondary ("sq", [dup; mult])
-let area = Secondary ("area", [sq; pi; mult])
+let i = Primitive (NamedPrimitive ("i", (fun s ->
+    match s.Stack with
+    | Quotation q :: t -> { s with Stack = t; Continuation = q @ s.Continuation }
+    | _ :: t -> failwith "Expected q"
+    | _ -> failwith "Stack underflow")))
 
-eval [Literal (Number 7.2); area] emptyState |> printDebug
+let dip = Primitive (NamedPrimitive ("dip", (fun s ->
+    match s.Stack with
+    | Quotation q :: v :: t -> { s with Stack = t; Continuation = q @ Literal v :: s.Continuation }
+    | _ :: _ :: t -> failwith "Expected qv"
+    | _ -> failwith "Stack underflow")))
+
+let unaryOp name op = Primitive (NamedPrimitive (name, (fun s ->
+    match s.Stack with
+    | Number x :: t -> { s with Stack = Number (op x) :: t }
+    | _ :: t -> failwith "Expected n"
+    | _ -> failwith "Stack underflow")))
+
+let binaryOp name op = Primitive (NamedPrimitive (name, (fun s ->
+    match s.Stack with
+    | Number x :: Number y :: t -> { s with Stack = Number (op x y) :: t }
+    | _ :: _ :: t -> failwith "Expected nn"
+    | _ -> failwith "Stack underflow")))
+
+let add = binaryOp "+" (+)
+let sub = binaryOp "-" (+)
+let mul = binaryOp "*" (*)
+let div = binaryOp "/" (/)
+
+let chs = unaryOp "chs" (fun n -> -n)
+let recip = unaryOp "recip" (fun n -> 1. / n)
+let abs = unaryOp "abs" (fun n -> abs n)
+
+let pi = Secondary ("pi", [Literal (Number Math.PI)])
+let e = Secondary ("e", [Literal (Number Math.E)])
+
+let sq = Secondary ("sq", [dup; mul])
+let area = Secondary ("area", [sq; pi; mul])
+
+eval [Literal (Number 7.2); Literal (String "ashleyf"); Literal (Quotation [area]); dip] emptyState |> printDebug

@@ -114,6 +114,74 @@ Then to evaluate (`eval`) a stream of `Words` along with a state, we have two di
 
 This now exposes the mechanics of recursion in the machine and allows for simpler debugging. It also exposes the `Continuation` to be manipulated by `Primitives`. Finally, it allows for a hybrid of stored/streaming words.
 
-## 12 NOV 2020
+## 12 NOV 2020 Dictionary
 
+Building up the set of available words, getting the `depth` of the stack and `clearing` it:
 
+	let depth = Primitive (NamedPrimitive ("depth", (fun s ->
+		{ s with Stack = Number (double s.Stack.Length) :: s.Stack })))
+
+	let clear = Primitive (NamedPrimitive ("clear", (fun s -> { s with Stack = [] })))
+
+Manipulating the stack:
+
+	let dup = Primitive (NamedPrimitive ("dup", (fun s ->
+		match s.Stack with
+		| x :: t -> { s with Stack = x :: x :: t }
+		| _ -> failwith "Stack underflow")))
+
+	let drop = Primitive (NamedPrimitive ("drop", (fun s ->
+		match s.Stack with
+		| _ :: t -> { s with Stack = t }
+		| _ -> failwith "Stack underflow")))
+
+Evaluating quotations by prepending them to the `Continuation`. This is made possible by this representation of the machine decided on yesterday.
+
+	let i = Primitive (NamedPrimitive ("i", (fun s ->
+		match s.Stack with
+		| Quotation q :: t -> { s with Stack = t; Continuation = q @ s.Continuation }
+		| _ :: t -> failwith "Expected q"
+		| _ -> failwith "Stack underflow")))
+
+Dip is an interesting word taken from Joy. It evaluates a quotation while "dipping" below the next value on the stack. This is accomplished again by manipulating the `Continuation` to prepend the unquoted code followed by the value being dipped under as a literal:
+
+	let dip = Primitive (NamedPrimitive ("dip", (fun s ->
+		match s.Stack with
+		| Quotation q :: v :: t -> { s with Stack = t; Continuation = q @ Literal v :: s.Continuation }
+		| _ :: _ :: t -> failwith "Expected qv"
+		| _ -> failwith "Stack underflow")))
+
+Adding some arithemetic:
+
+	let unaryOp name op = Primitive (NamedPrimitive (name, (fun s ->
+		match s.Stack with
+		| Number x :: t -> { s with Stack = Number (op x) :: t }
+		| _ :: t -> failwith "Expected n"
+		| _ -> failwith "Stack underflow")))
+
+	let binaryOp name op = Primitive (NamedPrimitive (name, (fun s ->
+		match s.Stack with
+		| Number x :: Number y :: t -> { s with Stack = Number (op x y) :: t }
+		| _ :: _ :: t -> failwith "Expected nn"
+		| _ -> failwith "Stack underflow")))
+
+	let add = binaryOp "+" (+)
+	let sub = binaryOp "-" (+)
+	let mul = binaryOp "*" (*)
+	let div = binaryOp "/" (/)
+
+	let chs = unaryOp "chs" (fun n -> -n)
+	let recip = unaryOp "recip" (fun n -> 1. / n)
+	let abs = unaryOp "abs" (fun n -> abs n)
+
+Adding some secondary words:
+
+	let pi = Secondary ("pi", [Literal (Number Math.PI)])
+	let e = Secondary ("e", [Literal (Number Math.E)])
+
+	let sq = Secondary ("sq", [dup; mul])
+	let area = Secondary ("area", [sq; pi; mul])
+
+An example usage:
+
+	eval [Literal (Number 7.2); Literal (String "ashleyf"); Literal (Quotation [area]); dip] emptyState |> printDebug

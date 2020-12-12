@@ -8,14 +8,16 @@ My initial thoughts on the structure of Brief is that we have `Values`, `Words` 
 
 `Values` may be primitives (e.g. `double`, `string`, `bool`, ...) or may be composite types (e.g. `Value list`, `Map<string, Value`, Set<Value>, ...) or may be `Quotations` which are a list of `Words`. With the inclusion of quotations, functions are data.
 
-	type Value =
-		| Number of double
-		| String of string
-		| Boolean of bool
-		| List of Value list
-		| Map of Map<string, Value>
-		| Set of Set<Value>
-		| Quotation of Word list
+```fsharp
+type Value =
+	| Number of double
+	| String of string
+	| Boolean of bool
+	| List of Value list
+	| Map of Map<string, Value>
+	| Set of Set<Value>
+	| Quotation of Word list
+```
 
 DEBATE 0: Sets of values require that words (in quotations) be comparible. Literals and secondaries are easy enough, but primitives (State->State functions) may be more difficult. Considering implementing `IComparible` based on a name or ID.
 
@@ -23,55 +25,65 @@ DEBATE 0: Sets of values require that words (in quotations) be comparible. Liter
 
 DEBATE 1: I explored whether to include literals or to instead create primitives as closures capturing the value and having the effect of pushing to the stack (data is code). Cute, but I'm thinking now that literals should be a distinct kind of word. It can still be said that words are code and so literals are data as code; a nice symmetry with quotations being code as data.
 
-	and Word =
-		| Literal of Value
-		| Primitive of (State -> State)
-		| Secondary of Word list
+```fsharp
+and Word =
+	| Literal of Value
+	| Primitive of (State -> State)
+	| Secondary of Word list
+```
 
 The `State` of the "machine" is a `Continuation` list of words (the current continuation), a parameter `Stack` of values and a `Dictionary` used as a global memory space of named values.
 
 DEBATE 2: I'll explore how and whether to support namespaces or something else to avoid collisions in the dictionary.
 
-	and State = {
-		Continuation: Word list
-		Stack: Value list
-		Dictionary: Map<string, Value> }
+```fsharp
+and State = {
+	Continuation: Word list
+	Stack: Value list
+	Dictionary: Map<string, Value> }
+```
 
 ## 10 NOV 2020 Identity
 
 I decided to resolve debate #0 above by introducing a `NamedPrimitive` type that supports `IComparable` by treating the name as the identity (functions cannot be compared). This allows `Values` to include `Set<Value>`, which can include `Quotations`, which are lists of `Words`, which include `Primitives` and so must be comparable.
 
-	type NamedPrimitive(name: string, func: State -> State)= 
-		member _.Name = name
-		member _.Func = func
-		override this.Equals(o) =
+```fsharp
+type NamedPrimitive(name: string, func: State -> State)= 
+	member _.Name = name
+	member _.Func = func
+	override this.Equals(o) =
+		match o with
+			| :? NamedPrimitive as p -> this.Name = p.Name
+			| _ -> false
+	override this.GetHashCode() = hash (this.Name)
+	interface IComparable with
+		override this.CompareTo(o) =
 			match o with
-				| :? NamedPrimitive as p -> this.Name = p.Name
-				| _ -> false
-		override this.GetHashCode() = hash (this.Name)
-		interface IComparable with
-			override this.CompareTo(o) =
-				match o with
-					| :? NamedPrimitive as p -> compare this.Name p.Name
-					| _ -> -1
+				| :? NamedPrimitive as p -> compare this.Name p.Name
+				| _ -> -1
+```
 
 ## 11 NOV 2020 Interpretation
 
 My first cut was to recursively evaluate the whole machine state, including an initial `Continuation`. `Literals` are pushed to the `Stack`. `Primitives` are applied to the state and, most interestingly, `Secondaries` are appended to the `Continuation` for evaluation on the next iteration.
 
-	let rec eval state =
-		match state.Continuation with
-		| Literal v :: t -> { state with Stack = v :: state.Stack; Continuation = t } |> eval
-		| Primitive p :: t -> { state with Continuation = t } |> p.Func |> eval
-		| Secondary (_, s) :: t -> { state with Continuation = s @ t } |> eval
-		| [] -> state
+```fsharp
+let rec eval state =
+	match state.Continuation with
+	| Literal v :: t -> { state with Stack = v :: state.Stack; Continuation = t } |> eval
+	| Primitive p :: t -> { state with Continuation = t } |> p.Func |> eval
+	| Secondary (_, s) :: t -> { state with Continuation = s @ t } |> eval
+	| [] -> state
+```
 
 My second cut was to remove the `Continuation` from the state and instead process `Word` by `Word`; `Literals` go to the stack, `Primitives` are still applied to the state but are no longer able to manipulate the program, `Secondaries` are evaluated by recursively folding over them.
 
-	let rec step state = function
-		| Literal v -> { state with Stack = v :: state.Stack }
-		| Primitive p -> p.Func state
-		| Secondary (_, s) -> Seq.fold step state s
+```fsharp
+let rec step state = function
+	| Literal v -> { state with Stack = v :: state.Stack }
+	| Primitive p -> p.Func state
+	| Secondary (_, s) -> Seq.fold step state s
+```
 
 In fact, full evaluation is then just a fold: `let eval = Seq.fold step`. I like this, but I dislike that `Primitives` can no longer manipulate the program (e.g. to impliment `Dip`) and I don't like that the recursion happens in F#/.NET land rather than in more directly exposed machinery.
 
@@ -97,20 +109,24 @@ DEBATE 5: Should we allow a hybrid of stored-program instruction and "streaming"
 
 My third cut is to change the processing of `Secondaries` to merely prepend to a `Continuation` in the state. This `word` function is similar to this first `eval` above but is not recursive.
 
-	let word state = function
-		| Literal v -> { state with Stack = v :: state.Stack }
-		| Primitive p -> p.Func state
-		| Secondary (_, s) -> { state with Continuation = s @ state.Continuation }
+```fsharp
+let word state = function
+	| Literal v -> { state with Stack = v :: state.Stack }
+	| Primitive p -> p.Func state
+	| Secondary (_, s) -> { state with Continuation = s @ state.Continuation }
+```
 
 Then to evaluate (`eval`) a stream of `Words` along with a state, we have two distinct "modes." While there is no `Continuation`, we simply walk the stream of words one-by-one evaluating them. When there is no `Continuation` and the stream is complete, then we terminate. Otherwise, when there _is_ a `Continuation`, we peal off words from it one-by-one and evaluate them.
 
-	let rec eval stream state =
-		match state.Continuation with
-		| [] ->
-			match Seq.tryHead stream with
-			| Some w -> word state w |> eval (Seq.tail stream)
-			| None -> state
-		| w :: c -> word { state with Continuation = c } w |> eval stream
+```fsharp
+let rec eval stream state =
+	match state.Continuation with
+	| [] ->
+		match Seq.tryHead stream with
+		| Some w -> word state w |> eval (Seq.tail stream)
+		| None -> state
+	| w :: c -> word { state with Continuation = c } w |> eval stream
+```
 
 This now exposes the mechanics of recursion in the machine and allows for simpler debugging. It also exposes the `Continuation` to be manipulated by `Primitives`. Finally, it allows for a hybrid of stored/streaming words.
 
@@ -118,72 +134,84 @@ This now exposes the mechanics of recursion in the machine and allows for simple
 
 Building up the set of available words, getting the `depth` of the stack and `clearing` it:
 
-	let depth = Primitive (NamedPrimitive ("depth", (fun s ->
-		{ s with Stack = Number (double s.Stack.Length) :: s.Stack })))
+```fsharp
+let depth = Primitive (NamedPrimitive ("depth", (fun s ->
+	{ s with Stack = Number (double s.Stack.Length) :: s.Stack })))
 
-	let clear = Primitive (NamedPrimitive ("clear", (fun s -> { s with Stack = [] })))
+let clear = Primitive (NamedPrimitive ("clear", (fun s -> { s with Stack = [] })))
+```
 
 Manipulating the stack:
 
-	let dup = Primitive (NamedPrimitive ("dup", (fun s ->
-		match s.Stack with
-		| x :: t -> { s with Stack = x :: x :: t }
-		| _ -> failwith "Stack underflow")))
+```fsharp
+let dup = Primitive (NamedPrimitive ("dup", (fun s ->
+	match s.Stack with
+	| x :: t -> { s with Stack = x :: x :: t }
+	| _ -> failwith "Stack underflow")))
 
-	let drop = Primitive (NamedPrimitive ("drop", (fun s ->
-		match s.Stack with
-		| _ :: t -> { s with Stack = t }
-		| _ -> failwith "Stack underflow")))
+let drop = Primitive (NamedPrimitive ("drop", (fun s ->
+	match s.Stack with
+	| _ :: t -> { s with Stack = t }
+	| _ -> failwith "Stack underflow")))
+```
 
 Evaluating quotations by prepending them to the `Continuation`. This is made possible by this representation of the machine decided on yesterday.
 
-	let i = Primitive (NamedPrimitive ("i", (fun s ->
-		match s.Stack with
-		| Quotation q :: t -> { s with Stack = t; Continuation = q @ s.Continuation }
-		| _ :: t -> failwith "Expected q"
-		| _ -> failwith "Stack underflow")))
+```fsharp
+let i = Primitive (NamedPrimitive ("i", (fun s ->
+	match s.Stack with
+	| Quotation q :: t -> { s with Stack = t; Continuation = q @ s.Continuation }
+	| _ :: t -> failwith "Expected q"
+	| _ -> failwith "Stack underflow")))
+```
 
 Dip is an interesting word taken from Joy. It evaluates a quotation while "dipping" below the next value on the stack. This is accomplished again by manipulating the `Continuation` to prepend the unquoted code followed by the value being dipped under as a literal:
 
-	let dip = Primitive (NamedPrimitive ("dip", (fun s ->
-		match s.Stack with
-		| Quotation q :: v :: t -> { s with Stack = t; Continuation = q @ Literal v :: s.Continuation }
-		| _ :: _ :: t -> failwith "Expected qv"
-		| _ -> failwith "Stack underflow")))
+```fsharp
+let dip = Primitive (NamedPrimitive ("dip", (fun s ->
+	match s.Stack with
+	| Quotation q :: v :: t -> { s with Stack = t; Continuation = q @ Literal v :: s.Continuation }
+	| _ :: _ :: t -> failwith "Expected qv"
+	| _ -> failwith "Stack underflow")))
+```
 
 Adding some arithemetic:
 
-	let unaryOp name op = Primitive (NamedPrimitive (name, (fun s ->
-		match s.Stack with
-		| Number x :: t -> { s with Stack = Number (op x) :: t }
-		| _ :: t -> failwith "Expected n"
-		| _ -> failwith "Stack underflow")))
+```fsharp
+let unaryOp name op = Primitive (NamedPrimitive (name, (fun s ->
+	match s.Stack with
+	| Number x :: t -> { s with Stack = Number (op x) :: t }
+	| _ :: t -> failwith "Expected n"
+	| _ -> failwith "Stack underflow")))
 
-	let binaryOp name op = Primitive (NamedPrimitive (name, (fun s ->
-		match s.Stack with
-		| Number x :: Number y :: t -> { s with Stack = Number (op x y) :: t }
-		| _ :: _ :: t -> failwith "Expected nn"
-		| _ -> failwith "Stack underflow")))
+let binaryOp name op = Primitive (NamedPrimitive (name, (fun s ->
+	match s.Stack with
+	| Number x :: Number y :: t -> { s with Stack = Number (op x y) :: t }
+	| _ :: _ :: t -> failwith "Expected nn"
+	| _ -> failwith "Stack underflow")))
 
-	let add = binaryOp "+" (+)
-	let sub = binaryOp "-" (+)
-	let mul = binaryOp "*" (*)
-	let div = binaryOp "/" (/)
+let add = binaryOp "+" (+)
+let sub = binaryOp "-" (+)
+let mul = binaryOp "*" (*)
+let div = binaryOp "/" (/)
 
-	let chs = unaryOp "chs" (fun n -> -n)
-	let recip = unaryOp "recip" (fun n -> 1. / n)
-	let abs = unaryOp "abs" (fun n -> abs n)
+let chs = unaryOp "chs" (fun n -> -n)
+let recip = unaryOp "recip" (fun n -> 1. / n)
+let abs = unaryOp "abs" (fun n -> abs n)
+```
 
 Adding some secondary words:
 
-	let pi = Secondary ("pi", [Literal (Number Math.PI)])
-	let e = Secondary ("e", [Literal (Number Math.E)])
+```fsharp
+let pi = Secondary ("pi", [Literal (Number Math.PI)])
+let e = Secondary ("e", [Literal (Number Math.E)])
 
-	let sq = Secondary ("sq", [dup; mul])
-	let area = Secondary ("area", [sq; pi; mul])
+let sq = Secondary ("sq", [dup; mul])
+let area = Secondary ("area", [sq; pi; mul])
+```
 
 An example usage:
 
 ```fsharp
-	eval [Literal (Number 7.2); Literal (String "ashleyf"); Literal (Quotation [area]); dip] emptyState |> printDebug
+eval [Literal (Number 7.2); Literal (String "ashleyf"); Literal (Quotation [area]); dip] emptyState |> printDebug
 ```

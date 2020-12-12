@@ -114,7 +114,7 @@ Then to evaluate (`eval`) a stream of `Words` along with a state, we have two di
 
 This now exposes the mechanics of recursion in the machine and allows for simpler debugging. It also exposes the `Continuation` to be manipulated by `Primitives`. Finally, it allows for a hybrid of stored/streaming words.
 
-## 12 NOV 2020 Dictionary
+## 12 NOV 2020 Vocabulary
 
 Building up the set of available words, getting the `depth` of the stack and `clearing` it:
 
@@ -184,4 +184,6 @@ Adding some secondary words:
 
 An example usage:
 
+```fsharp
 	eval [Literal (Number 7.2); Literal (String "ashleyf"); Literal (Quotation [area]); dip] emptyState |> printDebug
+```

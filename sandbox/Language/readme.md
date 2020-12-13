@@ -1,6 +1,6 @@
 # Brief Sandbox Journal
 
-Starting experimenting with Brief implementation details while documenting thoughts.
+Starting experimenting with Brief implementation details while documenting thoughts. Brief is a concatenative language with quotations.
 
 ## 09 NOV 2020 Structure
 
@@ -10,12 +10,12 @@ My initial thoughts on the structure of Brief is that we have `Values`, `Words` 
 
 ```fsharp
 type Value =
-	| Number of double
-	| String of string
-	| Boolean of bool
-	| List of Value list
-	| Map of Map<string, Value>
-	| Set of Set<Value>
+	| Number    of double
+	| String    of string
+	| Boolean   of bool
+	| List      of Value list
+	| Map       of Map<string, Value>
+	| Set       of Set<Value>
 	| Quotation of Word list
 ```
 
@@ -27,20 +27,18 @@ DEBATE 1: I explored whether to include literals or to instead create primitives
 
 ```fsharp
 and Word =
-	| Literal of Value
+	| Literal   of Value
 	| Primitive of (State -> State)
 	| Secondary of Word list
 ```
 
-The `State` of the "machine" is a `Continuation` list of words (the current continuation), a parameter `Stack` of values and a `Dictionary` used as a global memory space of named values.
-
-DEBATE 2: I'll explore how and whether to support namespaces or something else to avoid collisions in the dictionary.
+The `State` of the "machine" is a `Continuation` list of words (the current continuation), a parameter `Stack` of values and a `Map` used as a global memory space of named values.
 
 ```fsharp
 and State = {
 	Continuation: Word list
 	Stack: Value list
-	Dictionary: Map<string, Value> }
+	Map: Map<string, Value> }
 ```
 
 ## 10 NOV 2020 Identity
@@ -87,7 +85,7 @@ let rec step state = function
 
 In fact, full evaluation is then just a fold: `let eval = Seq.fold step`. I like this, but I dislike that `Primitives` can no longer manipulate the program (e.g. to impliment `Dip`) and I don't like that the recursion happens in F#/.NET land rather than in more directly exposed machinery.
 
-DEBATE 3: Should the current `Continuation` be part of the machine state? I think yes.
+DEBATE 2: Should the current `Continuation` be part of the machine state? I think yes.
 
 I love the below visualization of the mechanics. `Continuation` on the left, `Stack` on the right (or visa versa if you prefer postfix). `Secondary` words are "expanded" and appended to the `Continuation`. I've done this before for a debugger by inserting "break" and "step out" words between the expansion and the rest of the program. Very tangible, exposed, simple mechanics.
 
@@ -101,11 +99,11 @@ I love the below visualization of the mechanics. `Continuation` on the left, `St
 	            * | 3.141593 51.840000 // pi pushed
 	              | 162.860163         // multiply
 
-DEBATE 4: Related to #3, Recursive evaluation of `Secondaries` should be handled with exposed mechanics, supporting Brief-based debugging and (obviously) tail recursion. Prepending to a current `Continuation` works and I like ideas such as inserting debuggind words.
+DEBATE 3: Related to #2, Recursive evaluation of `Secondaries` should be handled with exposed mechanics, supporting Brief-based debugging and (obviously) tail recursion. Prepending to a current `Continuation` works and I like ideas such as inserting debuggind words.
 
 I have a still vague idea that a protocol between Brief "actors" could be streaming code. I also am inspired by the GreenArrays GA144 on which nodes start empty; listening on ports for code to execute. The GA144 has a machanism to point the program counter at a port rather than at memory, reading and executing code as it streams in and instruction words with micronext may easily be used to fill memory with code coming in and jump to that. I want something similar. A Brief machine should start empty and be fed with code. This code should then also be able to be persisted and evaluated internally.
 
-DEBATE 5: Should we allow a hybrid of stored-program instruction and "streaming" instructions to the machine?
+DEBATE 4: Should we allow a hybrid of stored-program instruction and "streaming" instructions to the machine?
 
 My third cut is to change the processing of `Secondaries` to merely prepend to a `Continuation` in the state. This `word` function is similar to this first `eval` above but is not recursive.
 
@@ -215,3 +213,52 @@ An example usage:
 ```fsharp
 eval [Literal (Number 7.2); Literal (String "ashleyf"); Literal (Quotation [area]); dip] emptyState |> printDebug
 ```
+
+## 13 NOV 2020 Dictionary
+
+My first thought was to create a `define` word that would add any `Value` to the `Map`, including `Words`, and add a `find` word to retrieve them. An `i` word (taken from Joy) can be used to apply `Quotations`. I'm thinking now that this is a base case used by more specialized words to define `Literals`, `Primitives`, and `Secondaries`. I think I'll rename `define` to `!` (taken from Forth) and `find` to `@` (also from Forth), read as "store" and "fetch" of course.
+
+``` fsharp
+let store = primitive "store" (fun s ->
+    match s.Stack with
+    | String n :: v :: t -> { s with Stack = t; Map = Map.add n v s.Map }
+    | _ :: _ :: t -> failwith "Expected vs"
+    | _ -> failwith "Stack underflow")
+
+let fetch = primitive "fetch" (fun s ->
+    match s.Stack with
+    | String n :: t ->
+        match Map.tryFind n s.Map with
+        | Some v -> { s with Stack = v :: t }
+        | None -> failwith "Not found" // TODO return flag?
+    | _ :: t -> failwith "Expected s"
+    | _ -> failwith "Stack underflow")
+```
+
+DEBATE 5: Should definitions be `Words`, `Quotations` or any `Value`?
+
+Defining `Words` does seem special. I can create a `def` word for this but it's merely a renaming of `store`; nothing special other than expecting a `Quotation` but there is no enforcement of that.
+
+```fsharp
+let define = Secondary ("def", [store])
+```
+
+DEBATE 6: Obviously including a type system to distinguish `define` (expecting a `Quotation`) from `store` (expecting *any* `Value`) is a very big open question. In this particular case a type error would not even cause an issue until later `fetching` and trying to apply (`i`) a non-`Quotation`.
+
+Now I can `define` words in the "dictionary".
+
+```fsharp
+Literal (Quotation [dup]);                      Literal (String "dup");  store
+Literal (Quotation [mul]);                      Literal (String "*");    store
+Literal (Quotation [Literal (Number Math.PI)]); Literal (String "pi");   store
+Literal (Quotation [dup; mul]);                 Literal (String "sq");   store
+Literal (Quotation [sq; pi; mul]);              Literal (String "area"); store
+```
+
+DEBATE 7: I'll explore how and whether to support namespaces or something else to avoid collisions in the map. Perhaps `define` should hang everything off of a "dictionary" key or maybe "_dictionary" with a convention that underscore denotes Brief internals. User namespacing would just be a matter of convention. Perhaps `@` and `!` could be redefined by the user to redirect to a branch in the `Map`.
+
+DEBATE 8: Maybe _all_ of Brief's internals, the `Stack`, `Continuation`, and the `Map` itself should be avaliable via fetch/store. For example as "_stack", "_continuation", "_map", ... exposing the entire mechanics to programatic manipulation. Or maybe these should be exposed by individual primitives. I rather the idea of the machine state being something threaded through the execution as opposed to a globally accessible entity.
+
+## 14 NOV 2020 Syntax
+
+

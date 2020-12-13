@@ -6,10 +6,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Structure.fs" />
+    <Compile Include="Prelude.fs" />
+    <Compile Include="Print.fs" />
+    <Compile Include="Interpretation.fs" />
     <None Include="journal.md" />
     <Compile Include="Program.fs" />
   </ItemGroup>
-
-  <ItemGroup />
 
 </Project>

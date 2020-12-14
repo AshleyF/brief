@@ -4,13 +4,13 @@ open Structure
 
 let primitive name fn = Primitive (NamedPrimitive (name, fn))
 
-let store = primitive "store" (fun s ->
+let store = primitive "!" (fun s ->
     match s.Stack with
     | String n :: v :: t -> { s with Stack = t; Map = Map.add n v s.Map }
     | _ :: _ :: t -> failwith "Expected vs"
     | _ -> failwith "Stack underflow")
 
-let fetch = primitive "fetch" (fun s ->
+let fetch = primitive "@" (fun s ->
     match s.Stack with
     | String n :: t ->
         match Map.tryFind n s.Map with

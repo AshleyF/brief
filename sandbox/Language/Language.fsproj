@@ -7,6 +7,8 @@
 
   <ItemGroup>
     <Compile Include="Structure.fs" />
+    <Compile Include="Syntax.fs" />
+    <Compile Include="Primitives.fs" />
     <Compile Include="Prelude.fs" />
     <Compile Include="Print.fs" />
     <Compile Include="Interpretation.fs" />

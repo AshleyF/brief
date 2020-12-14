@@ -1,8 +1,8 @@
-﻿open Structure
+﻿open System
+open Structure
+open Syntax
 open Print
 open Prelude
 open Interpretation
 
-let preludeState = eval false prelude emptyState
-
-eval true [Literal (Number 7.2); Literal (String "ashleyf"); Literal (Quotation [Literal (String "area"); fetch; i]); dip] preludeState |> printDebug
+"7.2 area" |> brief prelude |> eval emptyState true |> printState

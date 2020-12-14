@@ -23,7 +23,7 @@ DEBATE 0: Sets of values require that words (in quotations) be comparible. Liter
 
 `Words` represent code. `Literal` values are pushed to the stack, `Primitives` update the state, and `Secondary` words are a list of words to be applied. Note that quotations are also lists of words, but are treated as values (not applied; e.g. a literal quotation is pushed to the stack).
 
-DEBATE 1: I explored whether to include literals or to instead create primitives as closures capturing the value and having the effect of pushing to the stack (data is code). Cute, but I'm thinking now that literals should be a distinct kind of word. It can still be said that words are code and so literals are data as code; a nice symmetry with quotations being code as data.
+DEBATE 1: We explored whether to include literals or to instead create primitives as closures capturing the value and having the effect of pushing to the stack (data is code). Cute, but we're thinking now that literals should be a distinct kind of word. It can still be said that words are code and so literals are data as code; a nice symmetry with quotations being code as data.
 
 ```fsharp
 and Word =
@@ -43,7 +43,7 @@ and State = {
 
 ## 10 NOV 2020 Identity
 
-I decided to resolve debate #0 above by introducing a `NamedPrimitive` type that supports `IComparable` by treating the name as the identity (functions cannot be compared). This allows `Values` to include `Set<Value>`, which can include `Quotations`, which are lists of `Words`, which include `Primitives` and so must be comparable.
+We decided to resolve debate #0 above by introducing a `NamedPrimitive` type that supports `IComparable` by treating the name as the identity (functions cannot be compared). This allows `Values` to include `Set<Value>`, which can include `Quotations`, which are lists of `Words`, which include `Primitives` and so must be comparable.
 
 ```fsharp
 type NamedPrimitive(name: string, func: State -> State)= 
@@ -83,11 +83,11 @@ let rec step state = function
 	| Secondary (_, s) -> Seq.fold step state s
 ```
 
-In fact, full evaluation is then just a fold: `let eval = Seq.fold step`. I like this, but I dislike that `Primitives` can no longer manipulate the program (e.g. to impliment `Dip`) and I don't like that the recursion happens in F#/.NET land rather than in more directly exposed machinery.
+In fact, full evaluation is then just a fold: `let eval = Seq.fold step`. Nice, but unfortunate that `Primitives` can no longer manipulate the program (e.g. to impliment `Dip`) and we don't like that the recursion happens in F#/.NET land rather than in more directly exposed machinery.
 
-DEBATE 2: Should the current `Continuation` be part of the machine state? I think yes.
+DEBATE 2: Should the current `Continuation` be part of the machine state? Probably yes.
 
-I love the below visualization of the mechanics. `Continuation` on the left, `Stack` on the right (or visa versa if you prefer postfix). `Secondary` words are "expanded" and appended to the `Continuation`. I've done this before for a debugger by inserting "break" and "step out" words between the expansion and the rest of the program. Very tangible, exposed, simple mechanics.
+The below visualization of the mechanics are quite nice. `Continuation` on the left, `Stack` on the right (or visa versa if you prefer postfix). `Secondary` words are "expanded" and appended to the `Continuation`. I've done this before for a debugger by inserting "break" and "step out" words between the expansion and the rest of the program. Very tangible, exposed, simple mechanics.
 
 	area 7.200000 |                    // initial program
 	         area | 7.200000           // 7.2 pushed
@@ -99,9 +99,9 @@ I love the below visualization of the mechanics. `Continuation` on the left, `St
 	            * | 3.141593 51.840000 // pi pushed
 	              | 162.860163         // multiply
 
-DEBATE 3: Related to #2, Recursive evaluation of `Secondaries` should be handled with exposed mechanics, supporting Brief-based debugging and (obviously) tail recursion. Prepending to a current `Continuation` works and I like ideas such as inserting debuggind words.
+DEBATE 3: Related to #2, Recursive evaluation of `Secondaries` should be handled with exposed mechanics, supporting Brief-based debugging and (obviously) tail recursion. Prepending to a current `Continuation` works and ideas such as inserting debuggind words are pretty slick.
 
-I have a still vague idea that a protocol between Brief "actors" could be streaming code. I also am inspired by the GreenArrays GA144 on which nodes start empty; listening on ports for code to execute. The GA144 has a machanism to point the program counter at a port rather than at memory, reading and executing code as it streams in and instruction words with micronext may easily be used to fill memory with code coming in and jump to that. I want something similar. A Brief machine should start empty and be fed with code. This code should then also be able to be persisted and evaluated internally.
+A vague idea forming is that a protocol between Brief "actors" could be streaming code. Inspiration comes from the GreenArrays GA144 on which nodes start empty; listening on ports for code to execute. The GA144 has a machanism to point the program counter at a port rather than at memory, reading and executing code as it streams in and instruction words with micronext may easily be used to fill memory with code coming in and jump to that. A Brief machine should start empty and be fed with code. This code should then also be able to be persisted and evaluated internally.
 
 DEBATE 4: Should we allow a hybrid of stored-program instruction and "streaming" instructions to the machine?
 
@@ -216,7 +216,7 @@ eval [Literal (Number 7.2); Literal (String "ashleyf"); Literal (Quotation [area
 
 ## 13 NOV 2020 Dictionary
 
-My first thought was to create a `define` word that would add any `Value` to the `Map`, including `Words`, and add a `find` word to retrieve them. An `i` word (taken from Joy) can be used to apply `Quotations`. I'm thinking now that this is a base case used by more specialized words to define `Literals`, `Primitives`, and `Secondaries`. I think I'll rename `define` to `!` (taken from Forth) and `find` to `@` (also from Forth), read as "store" and "fetch" of course.
+My first thought was to create a `define` word that would add any `Value` to the `Map`, including `Words`, and add a `find` word to retrieve them. An `i` word (taken from Joy) can be used to apply `Quotations`. The thought now that this is a base case used by more specialized words to define `Literals`, `Primitives`, and `Secondaries`. Renaming `define` to `!` (taken from Forth) and `find` to `@` (also from Forth), read as "store" and "fetch" of course.
 
 ``` fsharp
 let store = primitive "store" (fun s ->
@@ -237,7 +237,7 @@ let fetch = primitive "fetch" (fun s ->
 
 DEBATE 5: Should definitions be `Words`, `Quotations` or any `Value`?
 
-Defining `Words` does seem special. I can create a `def` word for this but it's merely a renaming of `store`; nothing special other than expecting a `Quotation` but there is no enforcement of that.
+Defining `Words` does seem special. A `def` word can be created for this but it's merely a renaming of `store`; nothing special other than expecting a `Quotation` but there is no enforcement of that.
 
 ```fsharp
 let define = Secondary ("def", [store])
@@ -245,7 +245,7 @@ let define = Secondary ("def", [store])
 
 DEBATE 6: Obviously including a type system to distinguish `define` (expecting a `Quotation`) from `store` (expecting *any* `Value`) is a very big open question. In this particular case a type error would not even cause an issue until later `fetching` and trying to apply (`i`) a non-`Quotation`.
 
-Now I can `define` words in the "dictionary".
+Now we can `define` words in the "dictionary".
 
 ```fsharp
 Literal (Quotation [dup]);                      Literal (String "dup");  store
@@ -255,10 +255,137 @@ Literal (Quotation [dup; mul]);                 Literal (String "sq");   store
 Literal (Quotation [sq; pi; mul]);              Literal (String "area"); store
 ```
 
-DEBATE 7: I'll explore how and whether to support namespaces or something else to avoid collisions in the map. Perhaps `define` should hang everything off of a "dictionary" key or maybe "_dictionary" with a convention that underscore denotes Brief internals. User namespacing would just be a matter of convention. Perhaps `@` and `!` could be redefined by the user to redirect to a branch in the `Map`.
+DEBATE 7: Explore how and whether to support namespaces or something else to avoid collisions in the map. Perhaps `define` should hang everything off of a "dictionary" key or maybe "_dictionary" with a convention that underscore denotes Brief internals. User namespacing would just be a matter of convention. Perhaps `@` and `!` could be redefined by the user to redirect to a branch in the `Map`.
 
-DEBATE 8: Maybe _all_ of Brief's internals, the `Stack`, `Continuation`, and the `Map` itself should be avaliable via fetch/store. For example as "_stack", "_continuation", "_map", ... exposing the entire mechanics to programatic manipulation. Or maybe these should be exposed by individual primitives. I rather the idea of the machine state being something threaded through the execution as opposed to a globally accessible entity.
+DEBATE 8: Maybe _all_ of Brief's internals, the `Stack`, `Continuation`, and the `Map` itself should be avaliable via fetch/store. For example as "_stack", "_continuation", "_map", ... exposing the entire mechanics to programatic manipulation. Or maybe these should be exposed by individual primitives. The idea of the machine state being something threaded through the execution as opposed to a globally accessible entity is more ideal.
 
 ## 14 NOV 2020 Syntax
 
+It's getting annoying to write Brief code as F#. For example the circle area sample:
 
+```fsharp
+let pi = Secondary ("pi", [Literal (Number Math.PI)])
+let sq = Secondary ("sq", [dup; mul])
+let area = Secondary ("area", [sq; pi; mul])
+
+[Literal (Number 7.2); area] |> eval emptyState true |> printState
+```
+
+It's time to introduce some minimal Brief syntax. `Words` will be simple whitespace-separated tokens interpreted by looking up in a dictionary. If not found, then tokens will be parsed as `Number` literals (e.g. `2.71`, `123`) or as `Booleans` (`true`, `false`) or as single-word `Strings` in the form `'foo` (with a leading tick). At the moment we're ignoring literal forms for `List`, `Map`, `Set`, and more complete support for `Strings`. This is a minimum viable syntax to start with. Additionally, `Quotations` will be supported with square bracket syntax: `[foo bar]`.
+
+TODO Support literal syntax for `List`, `Map`, `Set`, and full `String`
+
+First, to lex source, we merely break words on whitespace and split square brackets into separated tokens. This could have been even simpler by requiring whitespace around square brackets (like Factor), the more compact syntax (like Joy) is more "brief."
+
+DEBATE 9: Factor has the idea of parse-time words which could be useful. Once parsing is moved into Brief itself we should consider this.
+
+```fsharp
+let lex source =
+    let rec lex' token source = seq {
+        let emit (token: char list) = seq { if List.length token > 0 then yield token |> List.rev |> String.Concat }
+        match source with
+        | c :: t when Char.IsWhiteSpace c ->
+            yield! emit token
+            yield! lex' [] t
+        | ('[' as c) :: t | (']' as c) :: t ->
+            yield! emit token
+            yield c.ToString()
+            yield! lex' [] t
+        | c :: t -> yield! lex' (c :: token) t
+        | [] -> yield! emit token }
+    source |> List.ofSeq |> lex' []
+```
+
+Next, tokens are given structure with `Quotations` containing child nodes and/or nested quotations:
+
+```fsharp
+type Node =
+    | Token of string
+    | Quote of Node list
+
+let parse tokens =
+    let rec parse' nodes tokens =
+        match tokens with
+        | "[" :: t ->
+            let q, t' = parse' [] t
+            parse' (Quote q :: nodes) t'
+        | "]" :: t -> List.rev nodes, t
+        | [] -> List.rev nodes, []
+        | token :: t -> parse' (Token token :: nodes) t
+    match tokens |> List.ofSeq |> parse' [] with
+    | (result, []) -> result
+    | _ -> failwith "Unexpected quotation close"
+```
+
+Finally, nodes are given meaning; becoming a sequence of proper `Words` that can be fed into `eval`:
+
+```fsharp
+let rec compile (dictionary: Map<string, Word>) nodes = seq {
+    match nodes with
+    | Token t :: n ->
+        match Map.tryFind t dictionary with
+        | Some w -> yield w
+        | None ->
+            match Double.TryParse t with
+            | (true, v) -> yield Literal (Number v)
+            | _ ->
+                match Boolean.TryParse t with
+                | (true, v) -> yield Literal (Boolean v)
+                | _ ->
+                    if t.StartsWith '\'' && t.Length > 1
+                    then yield Literal (String (t.Substring(1)))
+                    else failwith (sprintf "Unknown word: %s" t)
+        yield! compile dictionary n
+    | Quote q :: n ->
+        yield Literal (Quotation (compile dictionary n |> List.ofSeq))
+        yield! compile dictionary n
+    | [] -> () }
+```
+
+The complete process is bundled into a single composition:
+
+```fsharp
+let brief dictionary = lex >> parse >> compile dictionary >> List.ofSeq
+```
+
+The `dictionary` given is preloaded with primitives:
+
+```fsharp
+let primitives = Map.ofList [
+    "!",     store
+    "@",     fetch
+    "i",     i
+    "depth", depth
+    "clear", clear
+    "dup",   dup
+    "drop",  drop
+    "dip",   dip
+    "+",     add
+    "-",     sub
+    "*",     mul
+    "/",     div
+    "chs",   chs
+    "recip", recip
+    "abs",   abs ]
+```
+
+DEBATE 10: The `define` word manipulates the machine state rather than this dictionary above. This needs to be resolved with this mapping living _inside_ the machine and manipulable by Brief code.
+
+Secondaries are added to the dictionary:
+
+```fsharp
+let define name source dictionary = Map.add name (Secondary (name, brief dictionary source)) dictionary
+
+let prelude =
+    primitives
+    |> define "pi"   "3.14159"
+    |> define "e"    "2.71828"
+    |> define "sq"   "dup *"
+    |> define "area" "sq pi *"
+```
+
+This is getting more manageable with Brief and F# interleaved. Eventually of course Brief will be completly self-hosting. For now, defining secondaried looks like the above and usage looks like the below:
+
+```fsharp
+"7.2 area" |> brief prelude |> eval emptyState true |> printState
+```

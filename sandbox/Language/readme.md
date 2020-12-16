@@ -392,7 +392,7 @@ This is getting more manageable with Brief and F# interleaved. Eventually of cou
 
 DEBATE 11: The above naturally fell together with postfix notation. We should consider prefix notation as well. This may still be _processed_ in reverse.
 
-## 15 DEC 2020 Self-Hosting
+## 15 DEC 2020 Self-Hosting + REPL
 
 The unsatisfactory aspect of the `brief` compiler above is that everything is external to the machine. Source is compiled to `Word list` and fed to the machine. The `define` function is not a Brief word, but an external function adding to a dictionary outside of the machine. This is a fine architecture and has been used for very simple machines like Brief Embedded where the host computer does the compilation and the microcontroller runs a *very* simple VM. For a more self-hosting system, these mechanics should be moved inside.
 

@@ -66,11 +66,11 @@ type NamedPrimitive(name: string, func: State -> State)=
 The first cut at interpretation was to recursively evaluate the whole machine state, including an initial `Continuation`. `Literals` are pushed to the `Stack`. `Primitives` are applied to the state and, most interestingly, `Secondaries` are appended to the `Continuation` for evaluation on the next iteration.
 
 ```fsharp
-let rec eval state =
+let rec interpret state =
 	match state.Continuation with
-	| Literal v :: t -> { state with Stack = v :: state.Stack; Continuation = t } |> eval
-	| Primitive p :: t -> { state with Continuation = t } |> p.Func |> eval
-	| Secondary (_, s) :: t -> { state with Continuation = s @ t } |> eval
+	| Literal v :: t -> { state with Stack = v :: state.Stack; Continuation = t } |> interpret
+	| Primitive p :: t -> { state with Continuation = t } |> p.Func |> interpret
+	| Secondary (_, s) :: t -> { state with Continuation = s @ t } |> interpret
 	| [] -> state
 ```
 
@@ -83,7 +83,7 @@ let rec step state = function
 	| Secondary (_, s) -> Seq.fold step state s
 ```
 
-In fact, full evaluation is then just a fold: `let eval = Seq.fold step`. Nice, but unfortunate that `Primitives` can no longer manipulate the program (e.g. to impliment `Dip`) and we don't like that the recursion happens in F#/.NET land rather than in more directly exposed machinery.
+In fact, full evaluation is then just a fold: `let interpret = Seq.fold step`. Nice, but unfortunate that `Primitives` can no longer manipulate the program (e.g. to impliment `Dip`) and we don't like that the recursion happens in F#/.NET land rather than in more directly exposed machinery.
 
 DEBATE 2: Should the current `Continuation` be part of the machine state? Probably yes.
 
@@ -105,7 +105,7 @@ A vague idea forming is that a protocol between Brief "actors" could be streamin
 
 DEBATE 4: Should we allow a hybrid of stored-program instruction and "streaming" instructions to the machine?
 
-The third cut is to change the processing of `Secondaries` to merely prepend to a `Continuation` in the state. This `word` function is similar to this first `eval` above but is not recursive.
+The third cut is to change the processing of `Secondaries` to merely prepend to a `Continuation` in the state. This `word` function is similar to this first `interpret` above but is not recursive.
 
 ```fsharp
 let word state = function
@@ -114,16 +114,16 @@ let word state = function
 	| Secondary (_, s) -> { state with Continuation = s @ state.Continuation }
 ```
 
-Then to evaluate (`eval`) a stream of `Words` along with a state, we have two distinct "modes." While there is no `Continuation`, we simply walk the stream of words one-by-one evaluating them. Otherwise, when there _is_ a `Continuation`, we peal off words from it one-by-one and evaluate them. When there is no `Continuation` and the stream is complete, then we terminate.
+Then to interpret a stream of `Words` along with a state, we have two distinct "modes." While there is no `Continuation`, we simply walk the stream of words one-by-one evaluating them. Otherwise, when there _is_ a `Continuation`, we peal off words from it one-by-one and evaluate them. When there is no `Continuation` and the stream is complete, then we terminate.
 
 ```fsharp
-let rec eval stream state =
+let rec interpret stream state =
 	match state.Continuation with
 	| [] ->
 		match Seq.tryHead stream with
-		| Some w -> word state w |> eval (Seq.tail stream)
+		| Some w -> word state w |> interpret (Seq.tail stream)
 		| None -> state
-	| w :: c -> word { state with Continuation = c } w |> eval stream
+	| w :: c -> word { state with Continuation = c } w |> interpret stream
 ```
 
 This now exposes the mechanics of recursion in the machine and allows for simpler debugging. It also exposes the `Continuation` to be manipulated by `Primitives`. Finally, it allows for a hybrid of stored/streaming words.
@@ -211,7 +211,7 @@ let area = Secondary ("area", [sq; pi; mul])
 An example usage:
 
 ```fsharp
-eval [Literal (Number 7.2); Literal (String "dip under me"); Literal (Quotation [area]); dip] emptyState |> printDebug
+interpret [Literal (Number 7.2); Literal (String "dip under me"); Literal (Quotation [area]); dip] emptyState |> printDebug
 ```
 
 ## 13 DEC 2020 Dictionary
@@ -268,7 +268,7 @@ let pi = Secondary ("pi", [Literal (Number Math.PI)])
 let sq = Secondary ("sq", [dup; mul])
 let area = Secondary ("area", [sq; pi; mul])
 
-[Literal (Number 7.2); area] |> eval emptyState true |> printState
+[Literal (Number 7.2); area] |> interpret emptyState true |> printState
 ```
 
 It's time to introduce some minimal Brief syntax. `Words` will be simple whitespace-separated tokens interpreted by looking up in a dictionary. If not found, then tokens will be parsed as `Number` literals (e.g. `2.71`, `123`) or as `Booleans` (`true`, `false`) or as single-word `Strings` in the form `'foo` (with a leading tick). At the moment we're ignoring literal forms for `List`, `Map`, `Set`, and more complete support for `Strings`. This is a minimum viable syntax to start with. Additionally, `Quotations` will be supported with square bracket syntax: `[foo bar]`.
@@ -315,7 +315,7 @@ let parse tokens =
     | _ -> failwith "Unexpected quotation close"
 ```
 
-Finally, nodes are given meaning; becoming a sequence of proper `Words` that can be fed into `eval`:
+Finally, nodes are given meaning; becoming a sequence of proper `Words` that can be fed into `interpret`:
 
 ```fsharp
 let rec compile (dictionary: Map<string, Word>) nodes = seq {
@@ -335,7 +335,7 @@ let rec compile (dictionary: Map<string, Word>) nodes = seq {
                     else failwith (sprintf "Unknown word: %s" t)
         yield! compile dictionary n
     | Quote q :: n ->
-        yield Literal (Quotation (compile dictionary n |> List.ofSeq))
+        yield Literal (Quotation (compile dictionary q |> List.ofSeq))
         yield! compile dictionary n
     | [] -> () }
 ```
@@ -387,7 +387,62 @@ let prelude =
 This is getting more manageable with Brief and F# interleaved. Eventually of course Brief will be completly self-hosting. For now, defining secondaried looks like the above and usage looks like the below:
 
 ```fsharp
-"7.2 area" |> brief prelude |> eval emptyState |> printState
+"7.2 area" |> brief prelude |> interpret emptyState |> printState
 ```
 
 DEBATE 11: The above naturally fell together with postfix notation. We should consider prefix notation as well. This may still be _processed_ in reverse.
+
+## 15 DEC 2020 Self-Hosting
+
+The unsatisfactory aspect of the `brief` compiler above is that everything is external to the machine. Source is compiled to `Word list` and fed to the machine. The `define` function is not a Brief word, but an external function adding to a dictionary outside of the machine. This is a fine architecture and has been used for very simple machines like Brief Embedded where the host computer does the compilation and the microcontroller runs a *very* simple VM. For a more self-hosting system, these mechanics should be moved inside.
+
+DEBATE 12: Should the Brief VM be self-hosting or simpler but require a host?
+
+We could use the existing `Map` in machine state to contain the dictionary, but it simplifies the code to keep this separate and more type-specific as a `Map<string, Word>`, so adding this to the state.
+
+DEBATE 13: Should the dictionary be separate or just a key (e.g. "_dictionary") in the `Map`?
+
+Exposing this in the language is a simple matter of adding a new `define` primitive:
+
+```fsharp
+let define = primitive "define" (fun s ->
+    match s.Stack with
+    | String n :: Quotation q :: t -> { s with Dictionary = Map.add n (Secondary (n, q)) s.Dictionary; Stack = t }
+    | String n :: v :: t -> { s with Dictionary = Map.add n (Literal v) s.Dictionary; Stack = t }
+    | _ :: _  :: _ -> failwith "Expected qs"
+    | _ -> failwith "Stack underflow")
+```
+
+As well as an `eval` primitive to invoke the bare `brief` compiler:
+
+```fsharp
+let eval = primitive "eval" (fun s ->
+    match s.Stack with
+    | String b :: t -> (brief s.Dictionary b |> interpret { s with Stack = t } false)
+    | _ :: _ -> failwith "Expected s"
+    | _ -> failwith "Stack underflow")
+```
+
+One issue with the above is that source is `interpreted` in terms of the current `Dictionary`. If the source includes newly `defined` words and then dependent words, this will fail. For the moment we'll live with interpreting one definition at a time by folding over a list of strings of source:
+
+```fsharp
+let prelude = [
+    "3.14159   'pi   define"
+    "2.71828   'e    define"
+    "[dup *]   'sq   define"
+    "[sq pi *] 'area define" ]
+
+let rep state source = [Literal (String source); eval] |> interpret state false
+
+let preludeState = prelude |> Seq.fold rep primitiveState
+```
+
+TODO: Definitions currently must be interpreted entirely before referencing definitions. Words should be processed lazily.
+
+Finally, let's throw in a proper REPL!
+
+```fsharp
+let rec repl state = Console.ReadLine() |> rep state |> repl
+
+repl preludeState
+```

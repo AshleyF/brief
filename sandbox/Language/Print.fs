@@ -15,16 +15,17 @@ and stringOfValues = List.map stringOfValue >> String.concat " " // TODO: unify 
 and stringOfWord = function
     | Literal lit -> stringOfValue lit
     | Primitive p -> p.Name
-    | Secondary (n, _) -> n
+    | Secondary (n, q) -> stringOfWords q
 and stringOfWords = List.map stringOfWord >> String.concat " "
 
 let printState s =
+    let printMap m t = m |> Map.toSeq |> Seq.iter (fun (k, v) -> printfn "  %s -> %s" k (t v))
     printfn ""
     printfn "--- STATE ------------------------------------------------------"
     printfn "Continuation: %s" (stringOfWords s.Continuation)
     printfn "Stack: %s" (stringOfValues s.Stack)
-    printfn "Map:"
-    s.Map |> Map.toSeq |> Seq.iter (fun (k, v) -> printfn "  %s -> %s" k (stringOfValue v))
+    printfn "Map:"; printMap s.Map stringOfValue
+    printfn "Dictionary:"; printMap s.Dictionary stringOfWord
 
 let printDebug s =
     let program = s.Continuation |> List.rev |> stringOfWords

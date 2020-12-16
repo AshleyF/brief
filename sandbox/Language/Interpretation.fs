@@ -3,7 +3,7 @@
 open Structure
 open Print
 
-let rec eval state debug stream =
+let rec interpret state debug stream =
     let word state = function
         | Literal v -> { state with Stack = v :: state.Stack }
         | Primitive p -> p.Func state
@@ -15,6 +15,6 @@ let rec eval state debug stream =
     match state.Continuation with
     | [] ->
         match Seq.tryHead stream with
-        | Some w -> eval (word state w)debug (Seq.tail stream)
+        | Some w -> interpret (word state w)debug (Seq.tail stream)
         | None -> state
-    | w :: c -> eval (word { state with Continuation = c } w) debug stream
+    | w :: c -> interpret (word { state with Continuation = c } w) debug stream

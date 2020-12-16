@@ -52,7 +52,7 @@ let rec compile (dictionary: Map<string, Word>) nodes = seq {
                     else failwith (sprintf "Unknown word: %s" t)
         yield! compile dictionary n
     | Quote q :: n ->
-        yield Literal (Quotation (compile dictionary n |> List.ofSeq))
+        yield Literal (Quotation (compile dictionary q |> List.ofSeq))
         yield! compile dictionary n
     | [] -> () }
 

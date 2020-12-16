@@ -33,5 +33,6 @@ and Value =                           // v
 and State = {
     Continuation: Word list
     Stack: Value list
-    Map: Map<string, Value> }
-let emptyState = { Continuation = []; Stack = []; Map = Map.empty }
+    Map: Map<string, Value>
+    Dictionary: Map<string, Word> }
+let emptyState = { Continuation = []; Stack = []; Map = Map.empty; Dictionary = Map.empty }

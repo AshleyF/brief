@@ -12,7 +12,12 @@
     <Compile Include="Interpretation.fs" />
     <Compile Include="Primitives.fs" />
     <Compile Include="Prelude.fs" />
+    <Compile Include="Tesla.fs" />
     <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
   </ItemGroup>
 
 </Project>

@@ -526,41 +526,123 @@ Next we should consider an actor model to encapsulate state and allow async comm
 
 ## 17 DEC 2020 Actor Model
 
-The problem...
+A first cut at an actor model: 
 
-A first thought is an actor model in which agents receive Brief words as input and emit Brief words as output. Imagine a _Console_ agent acting as a REPL, emitting compiled Brief and receiving commands to write information to the screen. Having the full power of Brief at the disposal of these streams sounds very interesting. Actors can add definitions to each other and use this to customize and compress the "protocol."
+```fsharp
+type BriefActor = MailboxProcessor<string>
+
+let actor state : BriefActor =
+    BriefActor.Start((fun channel ->
+        let rec loop state = async {
+            let! input = channel.Receive()
+            try return! input |> brief state.Dictionary |> interpret state false |> loop
+            with ex -> printfn "Actor Error: %s" ex.Message }
+        loop state))
+```
+
+Using F#'s `MailboxProcessors`, we create actors that accept fragments of Brief source and evaluate them in their own instance of machine state.
+
+This state can contain a custom vocabular of words that then befome the "protocol" for interacting with the actor.
+
+```fsharp
+let teslaActor =
+    let mutable car = None
+
+    let auth = primitive "auth" (fun s ->
+        match s.Stack with
+        | String vin :: String pass :: String name :: t ->
+            car <- Some (new Tesla(name, pass, vin))
+            { s with Stack = t }
+        | _ :: _ :: _ :: _ -> failwith "Expected sss"
+        | _ -> failwith "Stack underflow")
+
+    let teslaCommand name fn = primitive name (fun s ->
+        match car with
+        | Some c -> { s with Stack = String (fn c) :: s.Stack }
+        | None -> failwith "No Tesla car connected")
+
+    let wake = teslaCommand "wake" (fun c -> c.WakeUp())
+    let honk = teslaCommand "honk" (fun c -> c.HonkHorn())
+    let flash = teslaCommand "flash" (fun c -> c.FlashLights())
+    let lock = teslaCommand "lock" (fun c -> c.DoorLock())
+    let unlock = teslaCommand "unlock" (fun c -> c.DoorUnlock())
+    let startac = teslaCommand "startac" (fun c -> c.AutoConditioningStart())
+    let stopac = teslaCommand "stopac" (fun c -> c.AutoConditioningStop())
+    let getCharge = teslaCommand "charge?" (fun c -> c.ChargeState())
+    let getClimate = teslaCommand "climate?" (fun c -> c.ClimateState())
+    let getDrive = teslaCommand "drive?" (fun c -> c.DriveState())
+    let getGui = teslaCommand "gui?" (fun c -> c.GuiSettings())
+    let getVehicle = teslaCommand "vehicle?" (fun c -> c.VehicleState())
+
+    let setChargeLimit = primitive "charge" (fun s ->
+        match car with
+        | Some c ->
+            match s.Stack with
+            | Number limit :: t -> { s with Stack = String (c.SetChargeLimit(int limit)) :: t }
+            | _ :: _ -> failwith "Expected n"
+            | _ -> failwith "Stack underflow"
+        | None -> failwith "No Tesla car connected")
+
+    let setTemperature = primitive "temperature" (fun s ->
+        match car with
+        | Some c ->
+            match s.Stack with
+            | Number driver :: Number passenger :: t ->
+                { s with Stack = String (c.SetTemperatures(float driver, float passenger)) :: t }
+            | _ :: _ :: _ -> failwith "Expected nn"
+            | _ -> failwith "Stack underflow"
+        | None -> failwith "No Tesla car connected")
+
+    let dict =
+        primitiveState.Dictionary
+        |> Map.add "auth" auth
+        |> Map.add "wake" wake
+        |> Map.add "honk" honk
+        |> Map.add "flash" flash
+        |> Map.add "lock" lock
+        |> Map.add "unlock" unlock
+        |> Map.add "startac" unlock
+        |> Map.add "stopac" unlock
+        |> Map.add "charge?" getCharge
+        |> Map.add "climate?" getClimate
+        |> Map.add "drive?" getDrive
+        |> Map.add "gui?" getGui
+        |> Map.add "vehicle?" getVehicle
+        |> Map.add "charge" setChargeLimit
+        |> Map.add "temperature" setTemperature
+
+    let teslaState = { primitiveState with Dictionary = dict }
+
+    actor teslaState
+```
+
+This helps to encapsulate Tesla-specific state (e.g. the `mutable car`) and to scope the Tesla-specific vocabulary of words.
 
 How are these actors created and wired together? How do they know about each other? The ROS model of a "master" service acting as a liason where "topics" can be published and subscribed to is interesting. A more direct dependency injection style system where actors are passed "channels" on which to communicate is interesting too. Let's try the channels approach first.
 
-DEBATE 14: Should actors use a ROS-style "master" or [Clojure core.async-style "channels"](https://clojure.org/news/2013/06/28/clojure-clore-async-channels)?
+The `teslaActor` (created by `actor teslaState`) could be used directly in F# code with `teslaActor.Post("honk")` for example. But it would be nice to be able to interact with it from the REPL. A Tesla-specific `postTesla` primitive word could be created. Instead, let's try a central `registry` to which we can `register` new `BriefActors` (e.g. `register "tesla" teslaActor`):
 
 ```fsharp
-let teslaActor (channel: MailboxProcessor<Word seq>) =
-    let rec loop () = async {
-        let! message = channel.Receive()
+let mutable (registry: Map<string, BriefActor>) = Map.empty
 
-        return! loop ()
-    }
-
-    loop ()
-
-let channel = MailboxProcessor<string>.Start(fun inbox ->
-    let rec loop () = async {
-        let! message = inbox.Receive()
-        if message = "hi" then inbox.Post("call Saul")
-        printfn "Message: %s" message
-        return! loop ()
-    }
-    loop ())
-
-channel.Post("test")
-channel.Post("foo")
-channel.Post("hi")
-
-async {
-    let! foo = channel.Receive()
-    printfn "REC: %s" foo
-} |> ignore
-
-Console.ReadKey() |> ignore
+let register name actor = registry <- Map.add name actor registry
 ```
+
+Then a general word to post to a known actor by name:
+
+```fsharp
+let post = primitive "post" (fun s ->
+    match s.Stack with
+    | String n :: String b :: t ->
+        match Map.tryFind n registry with
+        | Some actor -> actor.Post b; { s with Stack = t }
+        | None -> failwith "Actor not found"
+    | _ :: _  :: _ -> failwith "Expected ss"
+    | _ -> failwith "Stack underflow")
+```
+
+DEBATE 14: Should actors use a ROS-style "master" or [Clojure core.async-style "channels"](https://clojure.org/news/2013/06/28/clojure-clore-async-channels)?
+
+DEBATE 15: Should actors communicate with source? No. Communication should be more structured. Perhaps parsed Brief, but containing words that are unknown to the host (e.g. `honk` is known only within the `teslaAgent`).
+
+DEBATE 16: This is fine for stand-along actors. How are actors to be wired together into a graph?

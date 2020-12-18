@@ -4,6 +4,7 @@ open Structure
 open Syntax
 open Print
 open Interpretation
+open Actor
 
 let primitive name fn = Primitive (NamedPrimitive (name, fn))
 
@@ -85,6 +86,16 @@ let eval = primitive "eval" (fun s ->
 
 let state = primitive "state" (fun s -> printState s; s)
 
+let post = primitive "post" (fun s ->
+    match s.Stack with
+    | String n :: String b :: t ->
+        printfn "Post %s %s" n b
+        match Map.tryFind n registry with
+        | Some actor -> actor.Post b; { s with Stack = t }
+        | None -> failwith "Actor not found"
+    | _ :: _  :: _ -> failwith "Expected ss"
+    | _ -> failwith "Stack underflow")
+
 let primitives = Map.ofList [
     "!",      store
     "@",      fetch
@@ -104,6 +115,7 @@ let primitives = Map.ofList [
     "define", define
     "eval",   eval
     "state",  state
+    "post",   post
     ]
 
 let primitiveState = { emptyState with Dictionary = primitives }

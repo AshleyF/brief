@@ -10,6 +10,7 @@
     <Compile Include="Syntax.fs" />
     <Compile Include="Print.fs" />
     <Compile Include="Interpretation.fs" />
+    <Compile Include="Actor.fs" />
     <Compile Include="Primitives.fs" />
     <Compile Include="Prelude.fs" />
     <Compile Include="Tesla.fs" />

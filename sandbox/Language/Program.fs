@@ -2,12 +2,14 @@
 open Structure
 open Prelude
 open Interpretation
+open Actor
 open Primitives
-open Tesla
 
 let rep state source = [Literal (String source); eval] |> interpret state false
 
 let preludeState = prelude |> Seq.fold rep primitiveState
+
+register "tesla" Tesla.teslaActor
 
 let rec repl state =
     try
@@ -16,4 +18,5 @@ let rec repl state =
         | line -> rep state line |> repl
     with ex -> printfn "Error: %s" ex.Message; repl state
 
-repl teslaState
+repl preludeState
+

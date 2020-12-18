@@ -4,19 +4,29 @@ open System
 open Structure
 
 let lex source =
-    let rec lex' token source = seq {
+    let rec lex' token str source = seq {
         let emit (token: char list) = seq { if List.length token > 0 then yield token |> List.rev |> String.Concat }
-        match source with
-        | c :: t when Char.IsWhiteSpace c ->
-            yield! emit token
-            yield! lex' [] t
-        | ('[' as c) :: t | (']' as c) :: t ->
-            yield! emit token
-            yield c.ToString()
-            yield! lex' [] t
-        | c :: t -> yield! lex' (c :: token) t
-        | [] -> yield! emit token }
-    source |> List.ofSeq |> lex' []
+        if str then
+            match source with
+            | '\\' :: '"' :: t -> yield! lex' ('"' :: token) true t
+            | '"' :: t -> 
+                yield! emit token
+                yield! lex' [] false t
+            | c :: t -> yield! lex' (c :: token) true t
+            | [] -> failwith "Incomplete string"
+        else
+            match source with
+            | c :: t when Char.IsWhiteSpace c ->
+                yield! emit token
+                yield! lex' [] false t
+            | ('[' as c) :: t | (']' as c) :: t ->
+                yield! emit token
+                yield c.ToString()
+                yield! lex' [] false t
+            | '"' :: t -> yield! lex' ['\''] true t // prefix token with '
+            | c :: t -> yield! lex' (c :: token) false t
+            | [] -> yield! emit token }
+    source |> List.ofSeq |> lex' [] false
 
 type Node =
     | Token of string
@@ -47,8 +57,7 @@ let rec compile (dictionary: Map<string, Word>) nodes = seq {
                 match Boolean.TryParse t with
                 | (true, v) -> yield Literal (Boolean v)
                 | _ ->
-                    if t.StartsWith '\'' && t.Length > 1
-                    then yield Literal (String (t.Substring(1)))
+                    if t.StartsWith '\'' then yield (if t.Length > 1 then t.Substring(1) else "") |> String |> Literal
                     else failwith (sprintf "Unknown word: %s" t)
         yield! compile dictionary n
     | Quote q :: n ->

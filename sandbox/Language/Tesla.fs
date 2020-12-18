@@ -9,6 +9,7 @@ open System.Text
 open Newtonsoft.Json
 open Structure
 open Primitives
+open Actor
 
 type Tesla(user: string, password: string, vin: string) =
     let baseAddress = new Uri("https://owner-api.teslamotors.com/")
@@ -81,69 +82,72 @@ type Tesla(user: string, password: string, vin: string) =
     member this.SunRoofControl(state, percent) = sprintf "sun_roof_control?state=%s&percent=%i" state percent |> command
     member this.RemoteStartDrive(password) = sprintf "remote_start_drive?password=%s" password |> command
 
-let mutable car = None
+let teslaActor =
+    let mutable car = None
 
-let auth = primitive "auth" (fun s ->
-    match s.Stack with
-    | String vin :: String pass :: String name :: t ->
-        car <- Some (new Tesla(name, pass, vin))
-        { s with Stack = t }
-    | _ :: _ :: _ :: _ -> failwith "Expected sss"
-    | _ -> failwith "Stack underflow")
-
-let teslaCommand name fn = primitive name (fun s ->
-    match car with
-    | Some c -> { s with Stack = String (fn c) :: s.Stack }
-    | None -> failwith "No Tesla car connected")
-
-let wake = teslaCommand "wake" (fun c -> c.WakeUp())
-let honk = teslaCommand "honk" (fun c -> c.HonkHorn())
-let flash = teslaCommand "flash" (fun c -> c.FlashLights())
-let lock = teslaCommand "lock" (fun c -> c.DoorLock())
-let unlock = teslaCommand "unlock" (fun c -> c.DoorUnlock())
-let startac = teslaCommand "startac" (fun c -> c.AutoConditioningStart())
-let stopac = teslaCommand "stopac" (fun c -> c.AutoConditioningStop())
-let getCharge = teslaCommand "charge?" (fun c -> c.ChargeState())
-let getClimate = teslaCommand "climate?" (fun c -> c.ClimateState())
-let getDrive = teslaCommand "drive?" (fun c -> c.DriveState())
-let getGui = teslaCommand "gui?" (fun c -> c.GuiSettings())
-let getVehicle = teslaCommand "vehicle?" (fun c -> c.VehicleState())
-
-let setChargeLimit = primitive "charge" (fun s ->
-    match car with
-    | Some c ->
+    let auth = primitive "auth" (fun s ->
         match s.Stack with
-        | Number limit :: t -> { s with Stack = String (c.SetChargeLimit(int limit)) :: t }
-        | _ :: _ -> failwith "Expected n"
-        | _ -> failwith "Stack underflow"
-    | None -> failwith "No Tesla car connected")
+        | String vin :: String pass :: String name :: t ->
+            car <- Some (new Tesla(name, pass, vin))
+            { s with Stack = t }
+        | _ :: _ :: _ :: _ -> failwith "Expected sss"
+        | _ -> failwith "Stack underflow")
 
-let setTemperature = primitive "temperature" (fun s ->
-    match car with
-    | Some c ->
-        match s.Stack with
-        | Number driver :: Number passenger :: t ->
-            { s with Stack = String (c.SetTemperatures(float driver, float passenger)) :: t }
-        | _ :: _ :: _ -> failwith "Expected nn"
-        | _ -> failwith "Stack underflow"
-    | None -> failwith "No Tesla car connected")
+    let teslaCommand name fn = primitive name (fun s ->
+        match car with
+        | Some c -> { s with Stack = String (fn c) :: s.Stack }
+        | None -> failwith "No Tesla car connected")
 
-let dict =
-    primitiveState.Dictionary
-    |> Map.add "auth" auth
-    |> Map.add "wake" wake
-    |> Map.add "honk" honk
-    |> Map.add "flash" flash
-    |> Map.add "lock" lock
-    |> Map.add "unlock" unlock
-    |> Map.add "startac" unlock
-    |> Map.add "stopac" unlock
-    |> Map.add "charge?" getCharge
-    |> Map.add "climate?" getClimate
-    |> Map.add "drive?" getDrive
-    |> Map.add "gui?" getGui
-    |> Map.add "vehicle?" getVehicle
-    |> Map.add "charge" setChargeLimit
-    |> Map.add "temperature" setTemperature
+    let wake = teslaCommand "wake" (fun c -> c.WakeUp())
+    let honk = teslaCommand "honk" (fun c -> c.HonkHorn())
+    let flash = teslaCommand "flash" (fun c -> c.FlashLights())
+    let lock = teslaCommand "lock" (fun c -> c.DoorLock())
+    let unlock = teslaCommand "unlock" (fun c -> c.DoorUnlock())
+    let startac = teslaCommand "startac" (fun c -> c.AutoConditioningStart())
+    let stopac = teslaCommand "stopac" (fun c -> c.AutoConditioningStop())
+    let getCharge = teslaCommand "charge?" (fun c -> c.ChargeState())
+    let getClimate = teslaCommand "climate?" (fun c -> c.ClimateState())
+    let getDrive = teslaCommand "drive?" (fun c -> c.DriveState())
+    let getGui = teslaCommand "gui?" (fun c -> c.GuiSettings())
+    let getVehicle = teslaCommand "vehicle?" (fun c -> c.VehicleState())
 
-let teslaState = { primitiveState with Dictionary = dict }
+    let setChargeLimit = primitive "charge" (fun s ->
+        match car with
+        | Some c ->
+            match s.Stack with
+            | Number limit :: t -> { s with Stack = String (c.SetChargeLimit(int limit)) :: t }
+            | _ :: _ -> failwith "Expected n"
+            | _ -> failwith "Stack underflow"
+        | None -> failwith "No Tesla car connected")
+
+    let setTemperature = primitive "temperature" (fun s ->
+        match car with
+        | Some c ->
+            match s.Stack with
+            | Number driver :: Number passenger :: t ->
+                { s with Stack = String (c.SetTemperatures(float driver, float passenger)) :: t }
+            | _ :: _ :: _ -> failwith "Expected nn"
+            | _ -> failwith "Stack underflow"
+        | None -> failwith "No Tesla car connected")
+
+    let dict =
+        primitiveState.Dictionary
+        |> Map.add "auth" auth
+        |> Map.add "wake" wake
+        |> Map.add "honk" honk
+        |> Map.add "flash" flash
+        |> Map.add "lock" lock
+        |> Map.add "unlock" unlock
+        |> Map.add "startac" unlock
+        |> Map.add "stopac" unlock
+        |> Map.add "charge?" getCharge
+        |> Map.add "climate?" getClimate
+        |> Map.add "drive?" getDrive
+        |> Map.add "gui?" getGui
+        |> Map.add "vehicle?" getVehicle
+        |> Map.add "charge" setChargeLimit
+        |> Map.add "temperature" setTemperature
+
+    let teslaState = { primitiveState with Dictionary = dict }
+
+    actor teslaState

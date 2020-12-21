@@ -8,7 +8,6 @@ let rec stringOfValue = function
     | Boolean b -> sprintf "%b" b
     | List l -> sprintf "[%s]" (stringOfValues l) // TODO: same syntax as quotation?
     | Map m -> sprintf "MAP: %A" m // TODO
-    | Set s -> sprintf "SET: %A" s // TODO
     | Quotation q -> sprintf "[%s]" (stringOfWords q)
 and stringOfValues = List.map stringOfValue >> String.concat " " // TODO: unify words/values
 

@@ -27,7 +27,6 @@ and Value =                           // v
     | Boolean   of bool               // b
     | List      of Value list         // l
     | Map       of Map<string, Value> // m
-    | Set       of Set<Value>         // t
     | Quotation of Word list          // q
 
 and State = {

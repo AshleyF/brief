@@ -87,7 +87,7 @@ In fact, full evaluation is then just a fold: `let interpret = Seq.fold step`. N
 
 DEBATE 2: Should the current `Continuation` be part of the machine state? Probably yes.
 
-The below visualization of the mechanics are quite nice. `Continuation` on the left, `Stack` on the right (or visa versa if you prefer postfix). `Secondary` words are "expanded" and appended to the `Continuation`. I've done this before for a debugger by inserting "break" and "step out" words between the expansion and the rest of the program. Very tangible, exposed, simple mechanics.
+The below visualization of the mechanics are quite nice. `Continuation` on the left, `Stack` on the right (or visa versa if you prefer postfix). `Secondary` words are "expanded" and appended to the `Continuation`. I've done this before for a debugger by inserting "break" and "step out" words between the expansion and the rest of the program. Very tangible, exposed, simple mechanics. This idea was inspired by [Stevan Apters's XY language](http://www.nsl.com/k/xy/xy.htm).
 
 	area 7.200000 |                    // initial program
 	         area | 7.200000           // 7.2 pushed
@@ -540,9 +540,7 @@ let actor state : BriefActor =
         loop state))
 ```
 
-Using F#'s `MailboxProcessors`, we create actors that accept fragments of Brief source and evaluate them in their own instance of machine state.
-
-This state can contain a custom vocabular of words that then befome the "protocol" for interacting with the actor.
+Using F#'s `MailboxProcessors`, we create actors that accept fragments of Brief source and evaluate them in their own instance of machine state. This state can contain a custom vocabulary of words that then befome the "protocol" for interacting with the actor.
 
 ```fsharp
 let teslaActor =
@@ -618,7 +616,7 @@ let teslaActor =
 
 This helps to encapsulate Tesla-specific state (e.g. the `mutable car`) and to scope the Tesla-specific vocabulary of words.
 
-How are these actors created and wired together? How do they know about each other? The ROS model of a "master" service acting as a liason where "topics" can be published and subscribed to is interesting. A more direct dependency injection style system where actors are passed "channels" on which to communicate is interesting too. Let's try the channels approach first.
+How are these actors created and wired together? How do they know about each other? The ROS model of a "master" service acting as a liason where "topics" can be published and subscribed to is interesting. A more direct dependency injection style system where actors are passed "channels" on which to communicate is interesting too.
 
 The `teslaActor` (created by `actor teslaState`) could be used directly in F# code with `teslaActor.Post("honk")` for example. But it would be nice to be able to interact with it from the REPL. A Tesla-specific `postTesla` primitive word could be created. Instead, let's try a central `registry` to which we can `register` new `BriefActors` (e.g. `register "tesla" teslaActor`):
 
@@ -646,3 +644,94 @@ DEBATE 14: Should actors use a ROS-style "master" or [Clojure core.async-style "
 DEBATE 15: Should actors communicate with source? No. Communication should be more structured. Perhaps parsed Brief, but containing words that are unknown to the host (e.g. `honk` is known only within the `teslaAgent`).
 
 DEBATE 16: This is fine for stand-along actors. How are actors to be wired together into a graph?
+
+20 DEC 2020 Binary Format
+
+Thinking about making actors that span processes and/or machines: should the protocol simply be Brief *source* code (DEBATE 15 above)? Or should there be a simpler and more compact binary representation. In fact, should the Brief machinery be defined in terms of a "byte code"?
+
+DEBATE: 17: Should Brief machinery be defined in terms of a byte code?
+
+Conveying `Word lists` is what we're talking about. We'll need to encode `Values`, including compound `Lists`, `Maps`, and `Sets` (and recursive `Quotations` themselves), and we'll need to encode `Primitive` and `Secondary` words.
+
+`Primitive` words are built into the machine. These should be as few as possible/practical and should be identified by name or some unique number (GUID?) known across machines. Some actors add new `Primitives` (such as Tesla's `honk`) and so need to be able to extend the known set; either by name or otherwise. Either we use something truely globally unique like a GUID or we add namespaces and such (e.g. `brief.dup`, `tesla.honk`).
+
+`Secondaries` can be defined on the host actor and then conveyed by name. Or again, perhaps must be defined with a GUID or namespace.
+
+Both `Primitive` and `Secondary` words should be able to be conveyed without understanding them. Imagine a "relay" actor, forwarding code to other actors for interpretation or some algebraic manipulation of program structure at a higher level. So, the format should support words as "symbols" being conveyed without a necessary mapping to implementation.
+
+In the future there may be name scopes as well for secondaries; that is sequences of words given a name for clarity or factoring out redundancy but then referred to by name only within a "parent" word. For example `area` could define `sq` and `pi` as children and not polute te dictionary with these names - only exposing `area`.
+
+Atomic `Values` are easy enough to encode: `Numbers` as IEEE754, `Strings` as lenth-prefixed UTF-8, `Booleans` as a simple byte (-1, 0), ... Composit `Values` are not much more difficult. `Lists` could be a length followed by n-values, a `Map` could be a length followed by n-pairs of `String`/`Value` and `Sets` could be a length followed by n-distinct `Values`.
+
+In the language itself, where will be a means of composing compound `Values` from atomic ones. An `empty-list` word will push an empty `List` while a `cons` word will add a `Value` to the head; building a list in reverse. Encoding a list this way would use words already available in the machine. Perhaps an `n-cons` word could cons n-values onto a list as a more compact representation. `empty-list 'a 'b 'c 3 n-cons` vs `empty-list 'a cons 'b cons 'c cons`.
+
+Yet another encoding could mimic the source format more closely with begin/end delimiters.
+
+DEBATE 18: How exactly should compound `Values` be encoded?
+
+Looking at the original definition of `Words` and `Values`:
+
+```fsharp
+and Word =
+    | Literal   of Value
+    | Primitive of (State -> State)
+    | Secondary of Word list
+
+and Value =
+    | Number    of double
+    | String    of string
+    | Boolean   of bool
+    | List      of Value list
+    | Map       of Map<string, Value>
+    | Set       of Set<Value>
+    | Quotation of Word list
+```
+
+Encoded `Words` are then reduced to just `Literal of Value | Symbol of string` and `Values` include only atomic ones: `Number of double | String of string | Boolean of bool`. Compound `Lists`, `Maps`, `Sets` and `Quotations` are defined using `Symbols` representing words to build these compounds from atomic pieces.
+
+```fsharp
+type Token =
+    | Sym  of string
+    | QSym of string
+    | Num  of double
+    | Str  of string
+    | Bool of bool
+```
+
+Symbols (`Sym`) are identical to strings (`Str`), except that they represent words and are meant to be interpreted (eventually) and contain no whitespace in Brief syntax. They need a separate representation in the token stream. Even though they have the same underlying type as `Tokens`, they have very different symantics and slightly different syntax. In fact, how will we encode `Quotations`? Lists of `Words`, which are not themselves `Values`. This is what `QSym` is, a "quoted symbol."
+
+```fsharp
+let rec tokensOfWords words = seq {
+    let rec tokensOfValue v = seq {
+        match v with
+        | Number    n -> yield Num n
+        | String    s -> yield Str s
+        | Boolean   b -> yield Bool b
+        | List l ->
+            yield Sym "list"
+            for v in List.rev l do
+                yield! tokensOfValue v
+                yield Sym "cons"
+        | Map m ->
+            yield Sym "map"
+            for kv in m do
+                yield! tokensOfValue kv.Value
+                yield Str kv.Key
+                yield Sym "add"
+        | Quotation q ->
+            yield Sym "quote"
+            for w in List.rev q do
+                yield! tokensOfWords [w]
+                yield Sym "qcons" }
+    match words with
+    | Literal v :: t -> yield! tokensOfValue v; yield! tokensOfWords t
+    | Primitive p :: t-> yield Sym p.Name; yield! tokensOfWords t
+    | Secondary (n, _) :: t-> yield Sym n; yield! tokensOfWords t
+    | [] -> () }
+```
+
+Any sequence of `Words` (even hierarcical `Quotations`) can be reduced to a flat sequence of these tokens and then serialized to bytes quite straight forwardly.
+
+Before jumping in, let's look at [Manfred von Thun's the Flat-Joy (Floy) paper](https://hypercubed.github.io/joy/html/jp-flatjoy.html). He too used quotations of single words, each followed by a `concat` and even proposed a "Q foo" syntax for what is essentially the same thing as our `QSym`.
+
+The problem to sleep on tonight is whether `Words` should be data; something that can be pushed to the stack. Perhaps symbols are a value directly. Maybe symbols remain lazy until evaluation-time. Maybe `Quotations` and `Lists` are one and the same? The fact that Joy and XY make a distinction tells me there must be a reason...

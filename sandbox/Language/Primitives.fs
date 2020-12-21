@@ -89,7 +89,6 @@ let state = primitive "state" (fun s -> printState s; s)
 let post = primitive "post" (fun s ->
     match s.Stack with
     | String n :: String b :: t ->
-        printfn "Post %s %s" n b
         match Map.tryFind n registry with
         | Some actor -> actor.Post b; { s with Stack = t }
         | None -> failwith "Actor not found"

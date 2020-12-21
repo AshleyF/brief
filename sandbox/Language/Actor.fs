@@ -10,7 +10,6 @@ let actor state : BriefActor =
     BriefActor.Start((fun channel ->
         let rec loop state = async {
             let! input = channel.Receive()
-            printfn "INPUT %s" input
             try return! input |> brief state.Dictionary |> interpret state false |> loop
             with ex -> printfn "Actor Error: %s" ex.Message }
         loop state))

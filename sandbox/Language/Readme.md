@@ -520,6 +520,8 @@ let dict =
 let teslaState = { primitiveState with Dictionary = dict }
 ```
 
+Example: `"'foo@bar.com 'MyPassword 'MyVin auth" 'tesla post`, `"honk" 'tesla post`
+
 Very cool! However, the `mutable car` is an example of state being maintained in a non-functional way and outside of the machine. Also, some of the words retrieve information asynchronously but block the REPL when they should really report back asynchronously.
 
 Next we should consider an actor model to encapsulate state and allow async communication. Messages as Brief code is an interesting idea!
@@ -735,3 +737,72 @@ Any sequence of `Words` (even hierarcical `Quotations`) can be reduced to a flat
 Before jumping in, let's look at [Manfred von Thun's the Flat-Joy (Floy) paper](https://hypercubed.github.io/joy/html/jp-flatjoy.html). He too used quotations of single words, each followed by a `concat` and even proposed a "Q foo" syntax for what is essentially the same thing as our `QSym`.
 
 The problem to sleep on tonight is whether `Words` should be data; something that can be pushed to the stack. Perhaps symbols are a value directly. Maybe symbols remain lazy until evaluation-time. Maybe `Quotations` and `Lists` are one and the same? The fact that Joy and XY make a distinction tells me there must be a reason...
+
+## 21 DEC 2020 Simplification
+
+This seems to work out *much* simpler. The structure has now been reduced to:
+
+```fsharp
+type Value =                          // v
+    | Symbol    of string             // y
+    | Number    of double             // n
+    | String    of string             // s
+    | Boolean   of bool               // b
+    | List      of Value list         // l
+    | Map       of Map<string, Value> // m
+```
+
+`Words` go away and are replaced by `Symbols` in the `Value` union type. They are distinct from `Strings` in that they do represent words in the language. `Quotation` also go away and are now just `Lists`.
+
+```fsharp
+and State = {
+    Continuation: Value list
+    Stack: Value list
+    Map: Map<string, Value>
+    Dictionary: Map<string, Value>
+    Primitives: Map<string, (State -> State)> }
+```
+
+ `NamedPrimitives` also go away and `Primitives` are added to the `State` as simple `(State -> State)` functions.
+
+The `Dictionary` is now a mapping of named `Values` rather than words but again is meant to contain word definitions, as opposed to the `Map` which is meant as user-space to store values:
+
+Compiling no longer produces `Words`. Tokens representing literal values are merely emitted as `Values` rather than `Literal Values`. Words are emitted as `Symbols` without conversion to a primitive or secondary.
+
+```fsharp
+let rec compile nodes = seq {
+    match nodes with
+    | Token t :: n ->
+        match Double.TryParse t with
+        | (true, v) -> yield Number v
+        | _ ->
+            match Boolean.TryParse t with
+            | (true, v) -> yield Boolean v
+            | _ ->
+                if t.StartsWith '\'' then yield (if t.Length > 1 then t.Substring(1) else "") |> String
+                else yield Symbol t
+        yield! compile n
+    | Quote q :: n ->
+        yield List (compile q |> List.ofSeq)
+        yield! compile n
+    | [] -> () }
+```
+
+Instead, now `interpret` is responsible for giving `Symbols` meaning; attempting to find them in the `Dictionary` or in the set of `Primitives` at interpretation-time. Notice that this means that `compiled` code can now be held and passed around even when the primitives are unknown.
+
+```fsharp
+let rec interpret state debug stream =
+    let word state = function
+        | Symbol s ->
+            match Map.tryFind s state.Dictionary with
+            | Some (List l) -> { state with Continuation = l @ state.Continuation }
+            | Some v -> { state with Continuation = v :: state.Continuation }
+            | None ->
+                match Map.tryFind s state.Primitives with
+                | Some p -> p state
+                | None -> failwith (sprintf "Unknown word '%s'" s)
+        | v -> { state with Stack = v :: state.Stack }
+    ...
+```
+
+For example, `Actors` now take messages of `Value list` instead of `string` and now `interpret` them directly. For example, to control the Tesla we now post quotations (`Lists`) to the actor (just replacing `"` syntax with square brackets, but _structurally_ much different): `['foo@bar.com 'MyPassword 'MyVin auth] 'tesla post`, `[honk] 'tesla post`

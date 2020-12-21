@@ -5,7 +5,7 @@ open Interpretation
 open Actor
 open Primitives
 
-let rep state source = [Literal (String source); eval] |> interpret state false
+let rep state source = [String source; Symbol "eval"] |> interpret state false
 
 let preludeState = prelude |> Seq.fold rep primitiveState
 

@@ -45,24 +45,21 @@ let parse tokens =
     | (result, []) -> result
     | _ -> failwith "Unexpected quotation close"
 
-let rec compile (dictionary: Map<string, Word>) nodes = seq {
+let rec compile nodes = seq {
     match nodes with
     | Token t :: n ->
-        match Map.tryFind t dictionary with
-        | Some w -> yield w
-        | None ->
-            match Double.TryParse t with
-            | (true, v) -> yield Literal (Number v)
+        match Double.TryParse t with
+        | (true, v) -> yield Number v
+        | _ ->
+            match Boolean.TryParse t with
+            | (true, v) -> yield Boolean v
             | _ ->
-                match Boolean.TryParse t with
-                | (true, v) -> yield Literal (Boolean v)
-                | _ ->
-                    if t.StartsWith '\'' then yield (if t.Length > 1 then t.Substring(1) else "") |> String |> Literal
-                    else failwith (sprintf "Unknown word: %s" t)
-        yield! compile dictionary n
+                if t.StartsWith '\'' then yield (if t.Length > 1 then t.Substring(1) else "") |> String
+                else yield Symbol t
+        yield! compile n
     | Quote q :: n ->
-        yield Literal (Quotation (compile dictionary q |> List.ofSeq))
-        yield! compile dictionary n
+        yield List (compile q |> List.ofSeq)
+        yield! compile n
     | [] -> () }
 
-let brief dictionary = lex >> parse >> compile dictionary >> List.ofSeq
+let brief source = source |> lex |> parse |> compile |> List.ofSeq

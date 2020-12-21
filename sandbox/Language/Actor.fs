@@ -4,13 +4,13 @@ open Structure
 open Syntax
 open Interpretation
 
-type BriefActor = MailboxProcessor<string>
+type BriefActor = MailboxProcessor<Value list>
 
 let actor state : BriefActor =
     BriefActor.Start((fun channel ->
         let rec loop state = async {
             let! input = channel.Receive()
-            try return! input |> brief state.Dictionary |> interpret state false |> loop
+            try return! input |> interpret state false |> loop
             with ex -> printfn "Actor Error: %s" ex.Message }
         loop state))
 

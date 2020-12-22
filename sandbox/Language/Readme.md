@@ -6,7 +6,7 @@ Starting experimenting with Brief implementation details while documenting thoug
 
 The initial thoughts on the structure of Brief is that we have `Values`, `Words` and a machine `State`.
 
-`Values` may be primitives (e.g. `double`, `string`, `bool`, ...) or may be composite types (e.g. `Value list`, `Map<string, Value`, `Set<Value>`, ...) or may be `Quotations` which are a list of `Words`. With the inclusion of quotations, functions are data.
+`Values` may be primitives (e.g. `double`, `string`, `bool`, ...) or may be compound types (e.g. `Value list`, `Map<string, Value`, `Set<Value>`, ...) or may be `Quotations` which are a list of `Words`. With the inclusion of quotations, functions are data.
 
 ```fsharp
 type Value =
@@ -647,7 +647,7 @@ DEBATE 15: Should actors communicate with source? No. Communication should be mo
 
 DEBATE 16: This is fine for stand-along actors. How are actors to be wired together into a graph?
 
-20 DEC 2020 Binary Format
+## 20 DEC 2020 Binary Format
 
 Thinking about making actors that span processes and/or machines: should the protocol simply be Brief *source* code (DEBATE 15 above)? Or should there be a simpler and more compact binary representation. In fact, should the Brief machinery be defined in terms of a "byte code"?
 
@@ -661,9 +661,9 @@ Conveying `Word lists` is what we're talking about. We'll need to encode `Values
 
 Both `Primitive` and `Secondary` words should be able to be conveyed without understanding them. Imagine a "relay" actor, forwarding code to other actors for interpretation or some algebraic manipulation of program structure at a higher level. So, the format should support words as "symbols" being conveyed without a necessary mapping to implementation.
 
-In the future there may be name scopes as well for secondaries; that is sequences of words given a name for clarity or factoring out redundancy but then referred to by name only within a "parent" word. For example `area` could define `sq` and `pi` as children and not polute te dictionary with these names - only exposing `area`.
+In the future there may be name scopes as well for secondaries; that is sequences of words given a name for clarity or factoring out redundancy but then referred to by name only within a "parent" word. For example `area` could define `sq` and `pi` as children and not polute the dictionary with these names - only exposing `area`.
 
-Atomic `Values` are easy enough to encode: `Numbers` as IEEE754, `Strings` as lenth-prefixed UTF-8, `Booleans` as a simple byte (-1, 0), ... Composit `Values` are not much more difficult. `Lists` could be a length followed by n-values, a `Map` could be a length followed by n-pairs of `String`/`Value` and `Sets` could be a length followed by n-distinct `Values`.
+Atomic `Values` are easy enough to encode: `Numbers` as IEEE754, `Strings` as lenth-prefixed UTF-8, `Booleans` as a simple byte (-1, 0), ... Compound `Values` are not much more difficult. `Lists` could be a length followed by n-values, a `Map` could be a length followed by n-pairs of `String`/`Value` and `Sets` could be a length followed by n-distinct `Values`.
 
 In the language itself, where will be a means of composing compound `Values` from atomic ones. An `empty-list` word will push an empty `List` while a `cons` word will add a `Value` to the head; building a list in reverse. Encoding a list this way would use words already available in the machine. Perhaps an `n-cons` word could cons n-values onto a list as a more compact representation. `empty-list 'a 'b 'c 3 n-cons` vs `empty-list 'a cons 'b cons 'c cons`.
 
@@ -788,7 +788,7 @@ let rec compile nodes = seq {
     | [] -> () }
 ```
 
-Instead, now `interpret` is responsible for giving `Symbols` meaning; attempting to find them in the `Dictionary` or in the set of `Primitives` at interpretation-time. Notice that this means that `compiled` code can now be held and passed around even when the primitives are unknown.
+Instead, now `interpret` is responsible for giving `Symbols` meaning; attempting to find them in the `Dictionary` or in the set of `Primitives` at interpretation-time. Notice that this means that `compiled` code can now be held and passed around even when the primitives are unknown (e.g. the Tesla actor's internal primitives).
 
 ```fsharp
 let rec interpret state debug stream =

@@ -32,6 +32,7 @@ type Tesla(user: string, password: string, vin: string) =
         return readToken () }
     let vehicle (vin: string) (token: string) = async {
         use client = new HttpClient(BaseAddress = baseAddress)
+        client.Timeout <- TimeSpan.FromMinutes 1.
         client.DefaultRequestHeaders.Add("Authorization", sprintf "Bearer %s" token)
         use! response = Async.AwaitTask (client.GetAsync("api/1/vehicles"))
         response.EnsureSuccessStatusCode() |> ignore
@@ -86,7 +87,7 @@ let teslaActor =
     let mutable car = None
 
     let teslaState =
-        let mutable (primitives : Map<string, (State -> State)>) = Map.empty
+        let mutable (primitives : Map<string, (State -> State)>) = primitiveState.Primitives
         let primitive name fn = primitives <- Map.add name fn primitives
 
         primitive "auth" (fun s ->

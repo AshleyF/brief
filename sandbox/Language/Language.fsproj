@@ -16,10 +16,9 @@
     <Compile Include="Primitives.fs" />
     <Compile Include="Prelude.fs" />
     <Compile Include="Tesla.fs" />
+    <Compile Include="Trigger.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
-
-  <ItemGroup />
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />

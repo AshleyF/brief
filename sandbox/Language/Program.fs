@@ -5,11 +5,10 @@ open Interpretation
 open Actor
 open Primitives
 
-let rep state source = [String source; Symbol "eval"] |> interpret state false
-
-let preludeState = prelude |> Seq.fold rep primitiveState
-
 register "tesla" Tesla.teslaActor
+register "trigger" Trigger.triggerActor
+
+let rep state source = [String source; Symbol "eval"] |> interpret state false
 
 let rec repl state =
     try
@@ -18,5 +17,8 @@ let rec repl state =
         | line -> rep state line |> repl
     with ex -> printfn "Error: %s" ex.Message; repl state
 
-repl preludeState
+let commandLine =
+    let exe = Environment.GetCommandLineArgs().[0]
+    Environment.CommandLine.Substring(exe.Length)
 
+commandLine :: prelude |> Seq.fold rep primitiveState |> repl

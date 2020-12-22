@@ -806,3 +806,57 @@ let rec interpret state debug stream =
 ```
 
 For example, `Actors` now take messages of `Value list` instead of `string` and now `interpret` them directly. For example, to control the Tesla we now post quotations (`Lists`) to the actor (just replacing `"` syntax with square brackets, but _structurally_ much different): `['foo@bar.com 'MyPassword 'MyVin auth] 'tesla post`, `[honk] 'tesla post`
+
+## 22 DEC 2020 IFTTT
+
+The If-This-Then-That (IFTTT) service allows connecting events from various devices to actuations of various other devices. One event sensing "device" is a ["webhook."](https://ifttt.com/maker_webhooks). Once an account is setup, a webhook can be created and assigned a key. Triggering the webhook is a simple matter of an HTTP GET requect to the a URL in the form: `https://maker.ifttt.com/trigger/<event>/with/key/<key>` where the `<event>` is some name you invent (e.g. `lights-on`, `lights-off`) and the `<key>` is the one assigned by IFTTT. Named events can then be wired to devices in the IFTTT interface (e.g. If light-on then HUE Lights: On). Additionally, some devices accept parameters and these can be posted by appending `?value1=<val1>&value2=<val2>&value3=<val3>` to the URL.
+
+Let's build a new actor for this:
+
+```fsharp
+let triggerActor =
+    let triggerState =
+        let mutable (primitives : Map<string, (State -> State)>) = primitiveState.Primitives
+        let primitive name fn = primitives <- Map.add name fn primitives
+
+        let triggerEvent event val1 val2 val3 key = async {
+            use client = new HttpClient(Timeout = TimeSpan.FromMinutes 1.)
+            client.Timeout <- TimeSpan.FromMinutes 1.
+            let url = sprintf "https://maker.ifttt.com/trigger/%s/with/key/%s?value1=%s&value2=%s&value3=%s" event key val1 val2 val3
+            use! response = Async.AwaitTask (client.GetAsync(url))
+            response.EnsureSuccessStatusCode() |> ignore }
+
+        primitive "hook" (fun s ->
+            match s.Stack with
+            | String key :: String val3 :: String val2 :: String val1 :: String event :: t ->
+                triggerEvent event val1 val2 val3 key |> Async.RunSynchronously
+                { s with Stack = t }
+            | _ :: _ :: _ :: _ :: _ :: _ -> failwith "Expected ssss"
+            | _ -> failwith "Stack underflow")
+
+        { primitiveState with Primitives = primitives }
+
+    actor triggerState
+```
+
+We don't want to expose the IFTTT key or the Tesla credentials in source. We also don't want to have to type them repeatedly. Let's add the ability to pass Brief source to the executable on startup:
+
+```fsharp
+let commandLine =
+    let exe = Environment.GetCommandLineArgs().[0]
+    Environment.CommandLine.Substring(exe.Length)
+
+commandLine :: prelude |> Seq.fold rep primitiveState |> repl
+```
+
+Then we can add to the application arguments something like:
+
+```brief
+[['foo@bar.com 'MyPassword 'MyVin auth] 'tesla post] 'tesla-auth define
+['MyKey 'ifttt-key define] 'trigger post
+[[' ' ' ifttt-key hook] 'ifttt define] 'trigger post
+```
+
+Notice that we define a `tesla-auth` word in the REPL's dictionary that `posts` to the `tesla` actor. Even more interestingly, we define the `ifttt-key` _in the `trigger` dictionary_ by posting a `define` to the actor. The same goes for the `ifttt` word which makes triggering without value arguments more convenient.
+
+Finally, we can now say something like `tesla-auth [honk] 'tesla post` or `['lights-on ifttt] 'trigger post`.

@@ -92,7 +92,7 @@ let teslaActor =
 
         primitive "auth" (fun s ->
             match s.Stack with
-            | String vin :: String pass :: String name :: t ->
+            | String vin :: String name :: String pass :: t ->
                 car <- Some (new Tesla(name, pass, vin))
                 { s with Stack = t }
             | _ :: _ :: _ :: _ -> failwith "Expected sss"

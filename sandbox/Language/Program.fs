@@ -8,7 +8,7 @@ open Primitives
 register "tesla" Tesla.teslaActor
 register "trigger" Trigger.triggerActor
 
-let rep state source = [String source; Symbol "eval"] |> interpret state false
+let rep state source = [String source; Symbol "eval"] |> interpret state
 
 let rec repl state =
     try

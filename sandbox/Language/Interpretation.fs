@@ -3,24 +3,24 @@
 open Structure
 open Print
 
-let rec interpret state debug stream =
-    let word state = function
+let rec interpret state stream =
+    let word state w = 
+        printDebug (Some w) state
+        match w with
         | Symbol s ->
             match Map.tryFind s state.Dictionary with
-            | Some (List l) -> { state with Continuation = l @ state.Continuation }
+            | Some (List l) -> { state with Continuation = List.rev l @ state.Continuation }
             | Some v -> { state with Continuation = v :: state.Continuation }
             | None ->
                 match Map.tryFind s state.Primitives with
                 | Some p -> p state
                 | None -> failwith (sprintf "Unknown word '%s'" s)
         | v -> { state with Stack = v :: state.Stack }
-    if debug then
-        printState state
-        // System.Console.ReadKey() |> ignore
-    else printDebug state
     match state.Continuation with
     | [] ->
         match Seq.tryHead stream with
-        | Some w -> interpret (word state w) debug (Seq.tail stream)
-        | None -> state
-    | w :: c -> interpret (word { state with Continuation = c } w) debug stream
+        | Some w -> interpret (word state w) (Seq.tail stream)
+        | None ->
+            printDebug None state
+            state
+    | w :: c -> interpret (word { state with Continuation = c } w) stream

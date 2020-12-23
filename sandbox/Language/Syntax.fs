@@ -26,7 +26,7 @@ let lex source =
             | '"' :: t -> yield! lex' ['\''] true t // prefix token with '
             | c :: t -> yield! lex' (c :: token) false t
             | [] -> yield! emit token }
-    source |> List.ofSeq |> lex' [] false
+    source |> List.ofSeq |> lex' [] false |> Seq.rev
 
 type Node =
     | Token of string
@@ -38,19 +38,22 @@ let stripLeadingTick s = if String.length s > 1 then s.Substring(1) else ""
 let parse tokens =
     let rec parse' nodes tokens =
         match tokens with
-        | "[" :: t ->
+        | "]" :: t ->
             let q, t' = parse' [] t
-            parse' (Quote q :: nodes) t'
-        | "]" :: t -> List.rev nodes, t
-        | "{" :: t ->
+            parse' (Quote (List.rev q) :: nodes) t'
+        | "[" :: t -> List.rev nodes, t
+        | "}" :: t ->
             let m, t' = parse' [] t
             let rec pairs list = seq {
                 match list with
-                | Token n :: v :: t -> yield (if n.StartsWith '\'' then stripLeadingTick n else n), v; yield! pairs t
+                | Token n :: v :: t ->
+                    if n.StartsWith '\'' then yield stripLeadingTick n, v
+                    else failwith "Expected string name"
+                    yield! pairs t
                 | [] -> ()
                 | _ -> failwith "Expected name/value pair" }
-            parse' (Pairs (m |> pairs |> List.ofSeq) :: nodes) t'
-        | "}" :: t -> List.rev nodes, t
+            parse' (Pairs (m |> List.rev |> pairs |> List.ofSeq) :: nodes) t'
+        | "{" :: t -> List.rev nodes, t
         | [] -> List.rev nodes, []
         | token :: t -> parse' (Token token :: nodes) t
     match tokens |> List.ofSeq |> parse' [] with
@@ -66,7 +69,7 @@ let rec compile nodes =
             | _ ->
                 match Boolean.TryParse t with
                 | (true, v) -> Boolean v
-                | _ -> if t.StartsWith '\'' then (stripLeadingTick t) |> String else Symbol t
+                | _ -> if t.StartsWith '\'' then stripLeadingTick t |> String else Symbol t
         | Quote q -> List (compile q |> List.ofSeq)
         | Pairs p -> p |> Seq.map (fun (n, v) -> n, compile' v) |> Map.ofSeq |> Map
     nodes |> Seq.map compile'

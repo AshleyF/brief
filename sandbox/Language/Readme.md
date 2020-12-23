@@ -6,6 +6,8 @@ Starting experimenting with Brief implementation details while documenting thoug
 
 The initial thoughts on the structure of Brief is that we have `Values`, `Words` and a machine `State`.
 
+NOTE: This structure was simplified later (see 21 DEC 2020 Simplification).
+
 `Values` may be primitives (e.g. `double`, `string`, `bool`, ...) or may be compound types (e.g. `Value list`, `Map<string, Value`, `Set<Value>`, ...) or may be `Quotations` which are a list of `Words`. With the inclusion of quotations, functions are data.
 
 ```fsharp
@@ -62,6 +64,8 @@ type NamedPrimitive(name: string, func: State -> State)=
 ```
 
 ## 11 DEC 2020 Interpretation
+
+NOTE: This interpretation scheme was simplified later (see 21 DEC 2020 Simplification).
 
 The first cut at interpretation was to recursively evaluate the whole machine state, including an initial `Continuation`. `Literals` are pushed to the `Stack`. `Primitives` are applied to the state and, most interestingly, `Secondaries` are appended to the `Continuation` for evaluation on the next iteration.
 
@@ -649,6 +653,8 @@ DEBATE 16: This is fine for stand-along actors. How are actors to be wired toget
 
 ## 20 DEC 2020 Binary Format
 
+NOTE: This was removed later in favor of plain source as the storage and conveyance format for now.
+
 Thinking about making actors that span processes and/or machines: should the protocol simply be Brief *source* code (DEBATE 15 above)? Or should there be a simpler and more compact binary representation. In fact, should the Brief machinery be defined in terms of a "byte code"?
 
 DEBATE: 17: Should Brief machinery be defined in terms of a byte code?
@@ -860,3 +866,25 @@ Then we can add to the application arguments something like:
 Notice that we define a `tesla-auth` word in the REPL's dictionary that `posts` to the `tesla` actor. Even more interestingly, we define the `ifttt-key` _in the `trigger` dictionary_ by posting a `define` to the actor. The same goes for the `ifttt` word which makes triggering without value arguments more convenient.
 
 Finally, we can now say something like `tesla-auth [honk] 'tesla post` or `['lights-on ifttt] 'trigger post`.
+
+## 23 DEC 2020 _Reverse_ Reverse Polish Notation
+
+Reversing the syntax to see how it feels for a while. It's like prefix-notation Lisp now, but without the parenthesis. Fixed aritiy words still lead to a concise (brief) syntax but prefix notation may read better:
+
+```brief
+define 'area [* pi sq]
+define 'pi 3.14159
+define 'sq [* dup]
+```
+
+The semantics are the same however with tokens processed in reverse right-to-left. Source can also be thought of as being processed from bottom-to-top with definitions being _followed_ (in English reading order) by their dependencies. This could be useful later once name scopes are used. For example the `area` word could contain the `pi` and `sq` dependencies as children and offsides-rule indenting:
+
+```brief
+define 'area [* pi sq]
+	define 'pi 3.14159
+	define 'sq [* dup]
+```
+
+To make this change, the `lex` function merely reverse the sequence of tokens (`... |> Seq.rev`). Also, the `parser` changed to give opposite meaning to `[` and `]` as well as `{` and `}` tokens. The `parser` also now reverses the tokens within lists and maps so that they're treated in the order written. When a definition is expanded onto the `Continuation` it is reversed (again) for interpretation. In a couple of places, parameters were rearranged to be in a more "natural" order (e.g. `Tesla.auth` still expects user name and password in that order in source).
+
+Also today, we added syntax for maps in the form `{ 'key1 <value>  'key2 <value> }`. Brace-delimited sets of pairs of `String` and `Value`, that's it. Conventionally, we'll put whitespace around `{` and `}` tokens (though not required, same as list syntax) and two spaces between pairs when on the same line as other pairs (again, a single space is enough for the lexer).

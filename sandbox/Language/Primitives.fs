@@ -82,7 +82,7 @@ let primitiveState =
 
     primitive "eval" (fun s ->
         match s.Stack with
-        | String b :: t -> brief b |> interpret { s with Stack = t } false
+        | String b :: t -> brief b |> interpret { s with Stack = t }
         | _ :: _ -> failwith "Expected s"
         | _ -> failwith "Stack underflow")
 
@@ -92,7 +92,7 @@ let primitiveState =
         match s.Stack with
         | String n :: List q :: t ->
             match Map.tryFind n registry with
-            | Some actor -> actor.Post q; { s with Stack = t }
+            | Some actor -> actor.Post (List.rev q); { s with Stack = t }
             | None -> failwith "Actor not found"
         | _ :: _  :: _ -> failwith "Expected ss"
         | _ -> failwith "Stack underflow")

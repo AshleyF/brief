@@ -8,7 +8,6 @@
   <ItemGroup>
     <None Include="Readme.md" />
     <Compile Include="Structure.fs" />
-    <Compile Include="Serialization.fs" />
     <Compile Include="Syntax.fs" />
     <Compile Include="Print.fs" />
     <Compile Include="Interpretation.fs" />

@@ -19,7 +19,7 @@ let lex source =
             | c :: t when Char.IsWhiteSpace c ->
                 yield! emit token
                 yield! lex' [] false t
-            | ('[' as c) :: t | (']' as c) :: t ->
+            | ('[' as c) :: t | (']' as c) :: t | ('{' as c) :: t | ('}' as c) :: t ->
                 yield! emit token
                 yield c.ToString()
                 yield! lex' [] false t
@@ -31,6 +31,9 @@ let lex source =
 type Node =
     | Token of string
     | Quote of Node list
+    | Pairs of (string * Node) list
+
+let stripLeadingTick s = if String.length s > 1 then s.Substring(1) else ""
 
 let parse tokens =
     let rec parse' nodes tokens =
@@ -39,27 +42,33 @@ let parse tokens =
             let q, t' = parse' [] t
             parse' (Quote q :: nodes) t'
         | "]" :: t -> List.rev nodes, t
+        | "{" :: t ->
+            let m, t' = parse' [] t
+            let rec pairs list = seq {
+                match list with
+                | Token n :: v :: t -> yield (if n.StartsWith '\'' then stripLeadingTick n else n), v; yield! pairs t
+                | [] -> ()
+                | _ -> failwith "Expected name/value pair" }
+            parse' (Pairs (m |> pairs |> List.ofSeq) :: nodes) t'
+        | "}" :: t -> List.rev nodes, t
         | [] -> List.rev nodes, []
         | token :: t -> parse' (Token token :: nodes) t
     match tokens |> List.ofSeq |> parse' [] with
     | (result, []) -> result
     | _ -> failwith "Unexpected quotation close"
 
-let rec compile nodes = seq {
-    match nodes with
-    | Token t :: n ->
-        match Double.TryParse t with
-        | (true, v) -> yield Number v
-        | _ ->
-            match Boolean.TryParse t with
-            | (true, v) -> yield Boolean v
+let rec compile nodes =
+    let rec compile' node =
+        match node with
+        | Token t ->
+            match Double.TryParse t with
+            | (true, v) -> Number v
             | _ ->
-                if t.StartsWith '\'' then yield (if t.Length > 1 then t.Substring(1) else "") |> String
-                else yield Symbol t
-        yield! compile n
-    | Quote q :: n ->
-        yield List (compile q |> List.ofSeq)
-        yield! compile n
-    | [] -> () }
+                match Boolean.TryParse t with
+                | (true, v) -> Boolean v
+                | _ -> if t.StartsWith '\'' then (stripLeadingTick t) |> String else Symbol t
+        | Quote q -> List (compile q |> List.ofSeq)
+        | Pairs p -> p |> Seq.map (fun (n, v) -> n, compile' v) |> Map.ofSeq |> Map
+    nodes |> Seq.map compile'
 
 let brief source = source |> lex |> parse |> compile |> List.ofSeq

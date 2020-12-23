@@ -7,9 +7,10 @@ let rec stringOfValue = function
     | Number n  -> sprintf "%f" n
     | String s  -> sprintf "\"%s\"" s
     | Boolean b -> sprintf "%b" b
-    | List l    -> sprintf "[%s]" (stringOfValues l) // TODO: same syntax as quotation?
-    | Map m     -> sprintf "MAP: %A" m // TODO
-and stringOfValues = List.map stringOfValue >> String.concat " " // TODO: unify words/values
+    | List l    -> sprintf "[%s]" (stringOfValues l)
+    | Map m     -> sprintf "{ %s }" (stringOfMap m)
+and stringOfValues = List.map stringOfValue >> String.concat " "
+and stringOfMap = Map.toSeq >> Seq.map (fun (k, v) -> sprintf "\"%s\" %s" k (stringOfValue v)) >> String.concat " "
 
 let printState s =
     let printMap m t = m |> Map.toSeq |> Seq.iter (fun (k, v) -> printfn "  %s -> %s" k (t v))

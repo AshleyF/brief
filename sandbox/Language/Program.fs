@@ -10,6 +10,8 @@ register "trigger" Trigger.triggerActor
 
 let rep state source = [String source; Symbol "eval"] |> interpret state
 
+let speech = Remote.remoteActor "127.0.0.1" 11411
+
 let rec repl state =
     try
         match Console.ReadLine() with

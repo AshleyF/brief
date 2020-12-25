@@ -46,6 +46,11 @@ let primitiveState =
         | _ :: t -> { s with Stack = t }
         | _ -> failwith "Stack underflow")
 
+    primitive "swap" (fun s ->
+        match s.Stack with
+        | x :: y :: t -> { s with Stack = y :: x :: t }
+        | _ -> failwith "Stack underflow")
+
     primitive "dip" (fun s ->
         match s.Stack with
         | List q :: v :: t -> { s with Stack = t; Continuation = q @ v :: s.Continuation }
@@ -73,7 +78,7 @@ let primitiveState =
     unaryOp "recip" (fun n -> 1. / n)
     unaryOp "abs" (fun n -> abs n)
 
-    primitive "define" (fun s ->
+    primitive "let" (fun s ->
         match s.Stack with
         | String n :: (List _ as q) :: t -> { s with Dictionary = Map.add n q s.Dictionary; Stack = t }
         | String n :: v :: t -> { s with Dictionary = Map.add n v s.Dictionary; Stack = t }

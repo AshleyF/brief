@@ -20,7 +20,7 @@ let triggerActor =
 
         primitive "hook" (fun s ->
             match s.Stack with
-            | String key :: String val3 :: String val2 :: String val1 :: String event :: t ->
+            | String key :: String event :: String val1 :: String val2 :: String val3 :: t ->
                 triggerEvent event val1 val2 val3 key |> Async.RunSynchronously
                 { s with Stack = t }
             | _ :: _ :: _ :: _ :: _ :: _ -> failwith "Expected ssss"

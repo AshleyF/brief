@@ -16,6 +16,7 @@
     <Compile Include="Prelude.fs" />
     <Compile Include="Tesla.fs" />
     <Compile Include="Trigger.fs" />
+    <Compile Include="Remote.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 

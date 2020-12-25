@@ -21,7 +21,7 @@ type Value =
 	| Quotation of Word list
 ```
 
-DEBATE 0: Sets of values require that words (in quotations) be comparible. Literals and secondaries are easy enough, but primitives (`State -> State` functions) may be more difficult. Considering implementing `IComparible` based on a name or ID.
+DEBATE 0: Sets of values require that words (in quotations) be comparable. Literals and secondaries are easy enough, but primitives (`State -> State` functions) may be more difficult. Considering implementing `IComparable` based on a name or ID.
 
 `Words` represent code. `Literal` values are pushed to the stack, `Primitives` update the state, and `Secondary` words are a list of words to be applied. Note that quotations are also lists of words, but are treated as values (not applied; e.g. a literal quotation is pushed to the stack).
 
@@ -103,7 +103,7 @@ The below visualization of the mechanics are quite nice. `Continuation` on the l
 	            * | 3.141593 51.840000 // pi pushed
 	              | 162.860163         // multiply
 
-DEBATE 3: Related to #2, Recursive evaluation of `Secondaries` should be handled with exposed mechanics, supporting Brief-based debugging and (obviously) tail recursion. Prepending to a current `Continuation` works and ideas such as inserting debuggind words are pretty slick.
+DEBATE 3: Related to #2, Recursive evaluation of `Secondaries` should be handled with exposed mechanics, supporting Brief-based debugging and (obviously) tail recursion. Prepending to a current `Continuation` works and ideas such as inserting debugging words are pretty slick.
 
 A vague idea forming is that a protocol between Brief "actors" could be streaming code. Inspiration comes from the GreenArrays GA144 on which nodes start empty; listening on ports for code to execute. The GA144 has a machanism to point the program counter at a port rather than at memory, reading and executing code as it streams in and instruction words with micronext may easily be used to fill memory with code coming in and jump to that. A Brief machine should start empty and be fed with code. This code should then also be able to be persisted and evaluated internally.
 
@@ -118,7 +118,7 @@ let word state = function
 	| Secondary (_, s) -> { state with Continuation = s @ state.Continuation }
 ```
 
-Then to interpret a stream of `Words` along with a state, we have two distinct "modes." While there is no `Continuation`, we simply walk the stream of words one-by-one evaluating them. Otherwise, when there _is_ a `Continuation`, we peal off words from it one-by-one and evaluate them. When there is no `Continuation` and the stream is complete, then we terminate.
+Then to interpret a stream of `Words` along with a state, we have two distinct "modes." While the `Continuation` is empty, we simply walk the stream of words one-by-one evaluating them. Otherwise, when there _is_ a `Continuation`, we peal off words from it one-by-one and evaluate them. When there the `Continuation` is empty and the stream is complete, then we terminate.
 
 ```fsharp
 let rec interpret stream state =
@@ -154,6 +154,11 @@ let dup = Primitive (NamedPrimitive ("dup", (fun s ->
 let drop = Primitive (NamedPrimitive ("drop", (fun s ->
 	match s.Stack with
 	| _ :: t -> { s with Stack = t }
+	| _ -> failwith "Stack underflow")))
+
+let swap = primitive (NamedPrimitive ("swap" (fun s ->
+	match s.Stack with
+	| x :: y :: t -> { s with Stack = y :: x :: t }
 	| _ -> failwith "Stack underflow")))
 ```
 
@@ -524,8 +529,6 @@ let dict =
 let teslaState = { primitiveState with Dictionary = dict }
 ```
 
-Example: `"'foo@bar.com 'MyPassword 'MyVin auth" 'tesla post`, `"honk" 'tesla post`
-
 Very cool! However, the `mutable car` is an example of state being maintained in a non-functional way and outside of the machine. Also, some of the words retrieve information asynchronously but block the REPL when they should really report back asynchronously.
 
 Next we should consider an actor model to encapsulate state and allow async communication. Messages as Brief code is an interesting idea!
@@ -546,7 +549,7 @@ let actor state : BriefActor =
         loop state))
 ```
 
-Using F#'s `MailboxProcessors`, we create actors that accept fragments of Brief source and evaluate them in their own instance of machine state. This state can contain a custom vocabulary of words that then befome the "protocol" for interacting with the actor.
+Using F#'s `MailboxProcessors`, we create actors that accept fragments of Brief source and evaluate them in their own instance of machine state. This state can contain a custom vocabulary of words that then become the "protocol" for interacting with the actor.
 
 ```fsharp
 let teslaActor =
@@ -620,6 +623,8 @@ let teslaActor =
     actor teslaState
 ```
 
+Example: `"'foo@bar.com 'MyPassword 'MyVin auth" 'tesla post`, `"honk" 'tesla post`
+
 This helps to encapsulate Tesla-specific state (e.g. the `mutable car`) and to scope the Tesla-specific vocabulary of words.
 
 How are these actors created and wired together? How do they know about each other? The ROS model of a "master" service acting as a liason where "topics" can be published and subscribed to is interesting. A more direct dependency injection style system where actors are passed "channels" on which to communicate is interesting too.
@@ -667,11 +672,11 @@ Conveying `Word lists` is what we're talking about. We'll need to encode `Values
 
 Both `Primitive` and `Secondary` words should be able to be conveyed without understanding them. Imagine a "relay" actor, forwarding code to other actors for interpretation or some algebraic manipulation of program structure at a higher level. So, the format should support words as "symbols" being conveyed without a necessary mapping to implementation.
 
-In the future there may be name scopes as well for secondaries; that is sequences of words given a name for clarity or factoring out redundancy but then referred to by name only within a "parent" word. For example `area` could define `sq` and `pi` as children and not polute the dictionary with these names - only exposing `area`.
+In the future there may be name scopes as well for secondaries; that is, sequences of words given a name for clarity or factoring out redundancy but then referred to by name only within a "parent" word. For example `area` could define `sq` and `pi` as children and not polute the dictionary with these names - only exposing `area`.
 
-Atomic `Values` are easy enough to encode: `Numbers` as IEEE754, `Strings` as lenth-prefixed UTF-8, `Booleans` as a simple byte (-1, 0), ... Compound `Values` are not much more difficult. `Lists` could be a length followed by n-values, a `Map` could be a length followed by n-pairs of `String`/`Value` and `Sets` could be a length followed by n-distinct `Values`.
+Atomic `Values` are easy enough to encode: `Numbers` as IEEE754, `Strings` as length-prefixed UTF-8, `Booleans` as a simple byte (-1, 0), ... Compound `Values` are not much more difficult. `Lists` could be a length followed by n-values, a `Map` could be a length followed by n-pairs of `String`/`Value` and `Sets` could be a length followed by n-distinct `Values`.
 
-In the language itself, where will be a means of composing compound `Values` from atomic ones. An `empty-list` word will push an empty `List` while a `cons` word will add a `Value` to the head; building a list in reverse. Encoding a list this way would use words already available in the machine. Perhaps an `n-cons` word could cons n-values onto a list as a more compact representation. `empty-list 'a 'b 'c 3 n-cons` vs `empty-list 'a cons 'b cons 'c cons`.
+In the language itself, there will be a means of composing compound `Values` from atomic ones. An `empty-list` word will push an empty `List` while a `cons` word will add a `Value` to the head; building a list in reverse. Encoding a list this way would use words already available in the machine. Perhaps an `n-cons` word could cons n-values onto a list as a more compact representation. `empty-list 'a 'b 'c 3 n-cons` vs `empty-list 'a cons 'b cons 'c cons`.
 
 Yet another encoding could mimic the source format more closely with begin/end delimiters.
 
@@ -746,7 +751,7 @@ The problem to sleep on tonight is whether `Words` should be data; something tha
 
 ## 21 DEC 2020 Simplification
 
-This seems to work out *much* simpler. The structure has now been reduced to:
+After thinking about it, it seems that `Words` and `Values` can be furture unified and no distinction is needed between `Quotations` and regular `Lists`. This seems to work out *much* simpler. The structure has now been reduced to:
 
 ```fsharp
 type Value =                          // v
@@ -815,7 +820,7 @@ For example, `Actors` now take messages of `Value list` instead of `string` and 
 
 ## 22 DEC 2020 IFTTT
 
-The If-This-Then-That (IFTTT) service allows connecting events from various devices to actuations of various other devices. One event sensing "device" is a ["webhook."](https://ifttt.com/maker_webhooks). Once an account is setup, a webhook can be created and assigned a key. Triggering the webhook is a simple matter of an HTTP GET requect to the a URL in the form: `https://maker.ifttt.com/trigger/<event>/with/key/<key>` where the `<event>` is some name you invent (e.g. `lights-on`, `lights-off`) and the `<key>` is the one assigned by IFTTT. Named events can then be wired to devices in the IFTTT interface (e.g. If light-on then HUE Lights: On). Additionally, some devices accept parameters and these can be posted by appending `?value1=<val1>&value2=<val2>&value3=<val3>` to the URL.
+The If-This-Then-That (IFTTT) service allows connecting events from various devices to actuations of various other devices. One event sensing "device" is a ["webhook"](https://ifttt.com/maker_webhooks). Once an account is setup, a webhook can be created and assigned a key. Triggering the webhook is a simple matter of an HTTP GET request to the a URL in the form: `https://maker.ifttt.com/trigger/<event>/with/key/<key>` where the `<event>` is some name you invent (e.g. `lights-on`, `lights-off`) and the `<key>` is the one assigned by IFTTT. Named events can then be wired to devices in the IFTTT interface (e.g. If light-on then HUE Lights: On). Additionally, some devices accept parameters and these can be posted by appending `?value1=<val1>&value2=<val2>&value3=<val3>` to the URL. These values can be used in IFTTT triggers as "ingredients" in their UI.
 
 Let's build a new actor for this:
 
@@ -869,7 +874,7 @@ Finally, we can now say something like `tesla-auth [honk] 'tesla post` or `['lig
 
 ## 23 DEC 2020 _Reverse_ Reverse Polish Notation
 
-Reversing the syntax to see how it feels for a while. It's like prefix-notation Lisp now, but without the parenthesis. Fixed aritiy words still lead to a concise (brief) syntax but prefix notation may read better:
+Let's try reversing the syntax to see how it feels for a while. It's like prefix-notation Lisp now, but without the parenthesis. Fixed aritiy words still lead to a concise (brief) syntax but prefix notation may read better:
 
 ```brief
 define 'area [* pi sq]
@@ -881,10 +886,143 @@ The semantics are the same however with tokens processed in reverse right-to-lef
 
 ```brief
 define 'area [* pi sq]
-	define 'pi 3.14159
-	define 'sq [* dup]
+    define 'pi 3.14159
+    define 'sq [* dup]
 ```
 
-To make this change, the `lex` function merely reverse the sequence of tokens (`... |> Seq.rev`). Also, the `parser` changed to give opposite meaning to `[` and `]` as well as `{` and `}` tokens. The `parser` also now reverses the tokens within lists and maps so that they're treated in the order written. When a definition is expanded onto the `Continuation` it is reversed (again) for interpretation. In a couple of places, parameters were rearranged to be in a more "natural" order (e.g. `Tesla.auth` still expects user name and password in that order in source).
+To make this change, the `lex` function merely reverses the sequence of tokens (`... |> Seq.rev`). Also, the `parser` changed to give opposite meaning to `[` and `]` as well as `{` and `}` tokens. The `parser` also now reverses the tokens within `Lists` and `Maps` so that they're treated in the order written. When a definition is expanded onto the `Continuation` it is reversed (again) for interpretation. In a couple of places, parameters were rearranged to be in a more "natural" order (e.g. `Tesla.auth` still expects user name and password in that order in source).
 
-Also today, we added syntax for maps in the form `{ 'key1 <value>  'key2 <value> }`. Brace-delimited sets of pairs of `String` and `Value`, that's it. Conventionally, we'll put whitespace around `{` and `}` tokens (though not required, same as list syntax) and two spaces between pairs when on the same line as other pairs (again, a single space is enough for the lexer).
+Also today, we added syntax for maps in the form `{ 'key1 <value>  'key2 <value> }`. Brace-delimited sets of pairs of `String` and `Value`, that's it. Conventionally, we'll put whitespace around `{` and `}` tokens (though not required, same as list syntax) and two spaces between name/value pairs when on the same line as other pairs (again, a single space is enough for the lexer).
+
+## 25 DEC 2020 Remoting
+
+Using some old code [from VimSpeak](), let's try controlling Brief with our voice!
+
+The `System.Speech` APIs require .NET Framework, while Brief has been written for .NET Core. For simplicity, let's build a speech app as [a separate project here](https://github.com/AshleyF/brief/tree/gh-pages/speech). Speech reco is aweful for dictation, but works quite well with a grammar. This grammar building code is very convenient:
+
+```fsharp
+type GrammarAST<'a> =
+    | Phrase   of string * string option
+    | Optional of GrammarAST<'a>
+    | Sequence of GrammarAST<'a> list
+    | Choice   of GrammarAST<'a> list
+    | Dictation
+
+let rec speechGrammar = function
+    | Phrase (say, Some value) ->
+        let g = new GrammarBuilder(say)
+        g.Append(new SemanticResultValue(value))
+        g
+    | Phrase (say, None) -> new GrammarBuilder(say)
+    | Optional g -> new GrammarBuilder(speechGrammar g, 0, 1)
+    | Sequence gs ->
+        let builder = new GrammarBuilder()
+        List.iter (fun g -> builder.Append(speechGrammar g)) gs
+        builder
+    | Choice cs -> new GrammarBuilder(new Choices(List.map speechGrammar cs |> Array.ofList))
+    | Dictation ->
+        let dict = new GrammarBuilder()
+        dict.AppendDictation()
+        dict
+```
+
+With it, we can build a grammar for controlling the lights in the house using IFTTT:
+
+```fsharp
+let briefLightsOn = "post 'trigger [hook ifttt-key 'all-lights-on ' ' ']"
+let briefLightsOff = "post 'trigger [hook ifttt-key 'all-lights-off ' ' ']"
+let briefLightsDim = "post 'trigger [hook ifttt-key 'all-lights-dim '50 ' ']"
+let briefLightsBright = "post 'trigger [hook ifttt-key 'all-lights-dim '100 ' ']"
+
+let lightsOn = Choice [
+    Phrase ("Illuminate",         Some briefLightsOn)
+    Phrase ("Turn on",            Some briefLightsOn)
+    Phrase ("Lights on",          Some briefLightsOn)
+    Phrase ("Turn lights on",     Some briefLightsOn)
+    Phrase ("Turn the lights on", Some briefLightsOn)]
+
+let lightsOff = Choice [
+    Phrase ("Turn off",            Some briefLightsOff)
+    Phrase ("Lights off",          Some briefLightsOff)
+    Phrase ("Turn lights off",     Some briefLightsOff)
+    Phrase ("Turn the lights off", Some briefLightsOff)]
+
+let lightsDim = Choice [
+    Phrase ("Dim",            Some briefLightsDim)
+    Phrase ("Dim lights",     Some briefLightsDim)
+    Phrase ("Lights dim",     Some briefLightsDim)
+    Phrase ("Dim the lights", Some briefLightsDim)]
+
+let lightsBright = Choice [
+    Phrase ("Bright",              Some briefLightsBright)
+    Phrase ("Brighten",            Some briefLightsBright)
+    Phrase ("Bright lights",       Some briefLightsBright)
+    Phrase ("Lights bright",       Some briefLightsBright)
+    Phrase ("Brigten lights",      Some briefLightsBright)
+    Phrase ("Brighten the lights", Some briefLightsBright)]
+
+let grammar = new Grammar(Choice [lightsOn; lightsOff; lightsDim; lightsBright] |> speechGrammar)
+reco.LoadGrammar(grammar)
+
+while true do
+    let res = reco.Recognize()
+    if res <> null then
+        printfn "Sync Reco: %s %f" res.Text res.Confidence
+        let sem = if res.Semantics.Value = null then None else Some (res.Semantics.Value :?> string)
+        match sem with
+        | Some s -> if res.Confidence > 0.7f then post pair.[1]
+        | None -> synth.Speak("what?")
+```
+
+Notice that the semantic values set on the various phrases are just fragments of Brief source. In the future, we will make this a proper Brief actor and add a primitive for definting grammars and binding to Brief quotations.
+
+The `post` function writes the source to a TCP socket if anyone is listening:
+
+```fsharp
+let mutable client : TcpClient option = None
+let mutable writer : BinaryWriter option = None
+let server () =
+    let listener = new TcpListener(IPAddress.Loopback, 11411)
+    listener.Start()
+    while true do
+        try
+            printfn "Waiting for connection..."
+            let client = listener.AcceptTcpClient()
+            printfn "Connected"
+            let stream = client.GetStream()
+            writer <- Some (new BinaryWriter(stream))
+        with ex ->
+            printfn "Connection Error: %s" ex.Message
+            match client with
+            | Some c -> c.Close()
+            | None -> ()
+            writer <- None
+            client <- None
+(new Thread(new ThreadStart(server), IsBackground = true)).Start()
+
+let post brief =
+    printfn "Brief: %s" brief
+    match writer with
+    | Some w -> w.Write(brief)
+    | None -> printf "No connection"
+```
+
+The little Speech app it's tightly integrated with Brief at all. It just sends strings that happen to be valid Brief source. In the future we want to host the Brief "engine" within separate processes and shuttle code over the "wire" in some specific serialization format (or perhaps in string form).
+
+Next we add a simple `remoteActor` that listens on a TCP socket and executes code off the wire:
+
+```fsharp
+let remoteActor host port =
+    let channel = actor primitiveState
+    let client = new TcpClient(host, port)
+    let stream = client.GetStream()
+    let reader = new BinaryReader(stream)
+    let rec read () =
+        let source = reader.ReadString()
+        printfn "Remote: %s" source
+        source |> brief |> channel.Post
+        read ()
+    (new Thread(new ThreadStart(read), IsBackground = true)).Start()
+```
+
+Adding this to the main program, we have cobbled together a complete system to control the lights using `System.Speech` and the `trigger` actor executing Brief.

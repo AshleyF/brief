@@ -1026,3 +1026,7 @@ let remoteActor host port =
 ```
 
 Adding this to the main program, we have cobbled together a complete system to control the lights using `System.Speech` and the `trigger` actor executing Brief.
+
+```fsharp
+let speech = Remote.remoteActor "127.0.0.1" 11411
+```

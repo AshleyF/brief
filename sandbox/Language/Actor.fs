@@ -11,7 +11,9 @@ let actor state : BriefActor =
         let rec loop state = async {
             let! input = channel.Receive()
             try return! input |> interpret state |> loop
-            with ex -> printfn "Actor Error: %s" ex.Message }
+            with ex ->
+                printfn "Actor Error: %s" ex.Message
+                return! loop state }
         loop state))
 
 let mutable (registry: Map<string, BriefActor>) = Map.empty

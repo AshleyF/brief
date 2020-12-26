@@ -5,7 +5,6 @@ open System.Speech.Synthesis
 open System.Speech.Recognition
 open System.Threading
 
-let mutable client : TcpClient option = None
 let mutable writer : BinaryWriter option = None
 let server () =
     let listener = new TcpListener(IPAddress.Loopback, 11411)
@@ -13,17 +12,9 @@ let server () =
     while true do
         try
             printfn "Waiting for connection..."
-            let client = listener.AcceptTcpClient()
+            writer <- Some (new BinaryWriter(listener.AcceptTcpClient().GetStream()))
             printfn "Connected"
-            let stream = client.GetStream()
-            writer <- Some (new BinaryWriter(stream))
-        with ex ->
-            printfn "Connection Error: %s" ex.Message
-            match client with
-            | Some c -> c.Close()
-            | None -> ()
-            writer <- None
-            client <- None
+        with ex -> printfn "Connection Error: %s" ex.Message
 (new Thread(new ThreadStart(server), IsBackground = true)).Start()
 
 let post brief =
@@ -89,12 +80,13 @@ let lightsDim = Choice [
     Phrase ("Dim the lights", Some briefLightsDim)]
 
 let lightsBright = Choice [
-    Phrase ("Bright",              Some briefLightsBright)
-    Phrase ("Brighten",            Some briefLightsBright)
-    Phrase ("Bright lights",       Some briefLightsBright)
-    Phrase ("Lights bright",       Some briefLightsBright)
-    Phrase ("Brigten lights",      Some briefLightsBright)
-    Phrase ("Brighten the lights", Some briefLightsBright)]
+    Phrase ("Bright",                 Some briefLightsBright)
+    Phrase ("Brighten",               Some briefLightsBright)
+    Phrase ("Bright lights",          Some briefLightsBright)
+    Phrase ("Lights bright",          Some briefLightsBright)
+    Phrase ("Brigten lights",         Some briefLightsBright)
+    Phrase ("Brighten the lights",    Some briefLightsBright)
+    Phrase ("Make the lights bright", Some briefLightsBright)]
 
 let lightsColor =
     let lights = Choice [
@@ -140,7 +132,7 @@ let rec fade () =
         Thread.Sleep(5 * 60 * 1000 / 100)
         if fading then
             if level > 0 then fade' (level - 1)
-            else post briefLightsOff
+            else post "post 'trigger [hook ifttt-key 'all-lights-off ' ' ']"
     (new Thread(new ThreadStart(fun () -> fade' 100), IsBackground = true)).Start()
 
 while true do

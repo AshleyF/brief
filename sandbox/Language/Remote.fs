@@ -9,9 +9,7 @@ open Actor
 
 let remoteActor host port =
     let channel = actor primitiveState
-    let client = new TcpClient(host, port)
-    let stream = client.GetStream()
-    let reader = new BinaryReader(stream)
+    let reader = new BinaryReader((new TcpClient(host, port)).GetStream())
     let rec read () =
         let source = reader.ReadString()
         printfn "Remote: %s" source

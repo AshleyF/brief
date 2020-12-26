@@ -896,7 +896,7 @@ Also today, we added syntax for maps in the form `{ 'key1 <value>  'key2 <value>
 
 ## 25 DEC 2020 Remoting
 
-Using some old code [from VimSpeak](), let's try controlling Brief with our voice!
+Using some old code [from VimSpeak](https://github.com/AshleyF/VimSpeak), let's try controlling Brief with our voice!
 
 The `System.Speech` APIs require .NET Framework, while Brief has been written for .NET Core. For simplicity, let's build a speech app as [a separate project here](https://github.com/AshleyF/brief/tree/gh-pages/speech). Speech reco is aweful for dictation, but works quite well with a grammar. This grammar building code is very convenient:
 
@@ -970,34 +970,23 @@ while true do
         printfn "Sync Reco: %s %f" res.Text res.Confidence
         let sem = if res.Semantics.Value = null then None else Some (res.Semantics.Value :?> string)
         match sem with
-        | Some s -> if res.Confidence > 0.7f then post pair.[1]
-        | None -> synth.Speak("what?")
+        | Some s -> if res.Confidence > 0.7f then post s
+        | None -> synth.Speak("What?")
 ```
 
-Notice that the semantic values set on the various phrases are just fragments of Brief source. In the future, we will make this a proper Brief actor and add a primitive for definting grammars and binding to Brief quotations.
+Notice that the semantic values set on the various phrases are just fragments of Brief source (e.g. `post 'trigger [hook ifttt-key 'all-lights-on ' ' ']`). In the future, we will make this a proper Brief actor and add primitives for defining grammars and binding speech phrases to Brief quotations.
 
 The `post` function writes the source to a TCP socket if anyone is listening:
 
 ```fsharp
-let mutable client : TcpClient option = None
 let mutable writer : BinaryWriter option = None
 let server () =
     let listener = new TcpListener(IPAddress.Loopback, 11411)
     listener.Start()
     while true do
         try
-            printfn "Waiting for connection..."
-            let client = listener.AcceptTcpClient()
-            printfn "Connected"
-            let stream = client.GetStream()
-            writer <- Some (new BinaryWriter(stream))
-        with ex ->
-            printfn "Connection Error: %s" ex.Message
-            match client with
-            | Some c -> c.Close()
-            | None -> ()
-            writer <- None
-            client <- None
+            writer <- Some (new BinaryWriter(listener.AcceptTcpClient().GetStream()))
+        with ex -> printfn "Connection Error: %s" ex.Message
 (new Thread(new ThreadStart(server), IsBackground = true)).Start()
 
 let post brief =
@@ -1007,16 +996,14 @@ let post brief =
     | None -> printf "No connection"
 ```
 
-The little Speech app it's tightly integrated with Brief at all. It just sends strings that happen to be valid Brief source. In the future we want to host the Brief "engine" within separate processes and shuttle code over the "wire" in some specific serialization format (or perhaps in string form).
+This little Speech app isn't tightly integrated with Brief at all. It just sends strings that happen to be valid Brief source. In the future we want to host the Brief "engine" within separate processes and shuttle code over the "wire" in some specific serialization format (or perhaps in string form).
 
 Next we add a simple `remoteActor` that listens on a TCP socket and executes code off the wire:
 
 ```fsharp
 let remoteActor host port =
     let channel = actor primitiveState
-    let client = new TcpClient(host, port)
-    let stream = client.GetStream()
-    let reader = new BinaryReader(stream)
+    let reader = new BinaryReader((new TcpClient(host, port)).GetStream())
     let rec read () =
         let source = reader.ReadString()
         printfn "Remote: %s" source
@@ -1025,7 +1012,7 @@ let remoteActor host port =
     (new Thread(new ThreadStart(read), IsBackground = true)).Start()
 ```
 
-Adding this to the main program, we have cobbled together a complete system to control the lights using `System.Speech` and the `trigger` actor executing Brief.
+Adding this to the main program, we have successfully cobbled together a complete system to control the lights using `System.Speech` and the `trigger` actor executing, all glued together with Brief.
 
 ```fsharp
 let speech = Remote.remoteActor "127.0.0.1" 11411

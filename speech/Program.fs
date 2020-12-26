@@ -115,10 +115,26 @@ let lightsFade = Choice [
 let lightsExtra = Choice [
     Phrase ("Fuck mode", Some "lights-color:red")]
 
-let lights = Choice [lightsOn; lightsOff; lightsDim; lightsBright; lightsColor; lightsFade; lightsExtra]
+let roombaCleanAll = "'Cleaning the floors|post 'trigger [hook ifttt-key 'roomba-clean-all ' ' ']"
+let roombaDock = "'Docking the vaccuume|post 'trigger [hook ifttt-key 'roomba-dock ' ' ']"
 
-let grammar = new Grammar(speechGrammar lights)
-reco.LoadGrammar(grammar)
+let roomba = Choice [
+    Phrase ("Clean the floors", Some roombaCleanAll)
+    Phrase ("Clean floors", Some roombaCleanAll)
+    Phrase ("Go back to the dock", Some roombaDock)
+    Phrase ("Go to the dock", Some roombaDock)]
+
+let vocabulary = Choice [
+    lightsOn
+    lightsOff
+    lightsDim
+    lightsBright
+    lightsColor
+    lightsFade
+    lightsExtra
+    roomba]
+
+reco.LoadGrammar(new Grammar(speechGrammar vocabulary))
 
 synth.Speak("Talk to me Goose!")
 

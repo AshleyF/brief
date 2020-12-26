@@ -102,4 +102,10 @@ let primitiveState =
         | _ :: _  :: _ -> failwith "Expected ss"
         | _ -> failwith "Stack underflow")
 
+//    primitive "load" (fun s ->
+//        match s.Stack with
+//        | String n :: t ->
+//        | _ :: _  :: _ -> failwith "Expected ss"
+//        | _ -> failwith "Stack underflow")
+
     { emptyState with Primitives = primitives }

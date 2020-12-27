@@ -6,14 +6,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="Readme.md" />
+    <Content Include="Prelude.b">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Include="Readme.md">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <Compile Include="Structure.fs" />
     <Compile Include="Syntax.fs" />
     <Compile Include="Print.fs" />
     <Compile Include="Interpretation.fs" />
     <Compile Include="Actor.fs" />
     <Compile Include="Primitives.fs" />
-    <Compile Include="Prelude.fs" />
     <Compile Include="Tesla.fs" />
     <Compile Include="Trigger.fs" />
     <Compile Include="Remote.fs" />

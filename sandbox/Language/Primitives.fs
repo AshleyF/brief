@@ -1,5 +1,6 @@
 ﻿module Primitives
 
+open System.IO
 open Structure
 open Syntax
 open Print
@@ -25,12 +26,6 @@ let primitiveState =
         | _ :: _ -> failwith "Expected s"
         | _ -> failwith "Stack underflow")
 
-    primitive "i" (fun s ->
-        match s.Stack with
-        | List q :: t -> { s with Stack = t; Continuation = q @ s.Continuation }
-        | _ :: _ -> failwith "Expected q"
-        | _ -> failwith "Stack underflow")
-
     primitive "depth" (fun s ->
         { s with Stack = Number (double s.Stack.Length) :: s.Stack })
 
@@ -53,7 +48,14 @@ let primitiveState =
 
     primitive "dip" (fun s ->
         match s.Stack with
-        | List q :: v :: t -> { s with Stack = t; Continuation = q @ v :: s.Continuation }
+        | List q :: v :: t -> { s with Stack = t; Continuation = (List.rev q) @ v :: s.Continuation }
+        | _ :: _ :: _ -> failwith "Expected vq"
+        | _ -> failwith "Stack underflow")
+
+    primitive "if" (fun s ->
+        match s.Stack with
+        | List q :: List r :: Boolean b :: t ->
+            { s with Stack = t; Continuation = (List.rev (if b then q else r)) @ s.Continuation }
         | _ :: _ :: _ -> failwith "Expected vq"
         | _ -> failwith "Stack underflow")
 
@@ -64,7 +66,7 @@ let primitiveState =
         | _ -> failwith "Stack underflow")
 
     binaryOp "+" (+)
-    binaryOp "-" (+)
+    binaryOp "-" (-)
     binaryOp "*" (*)
     binaryOp "/" (/)
 
@@ -74,9 +76,31 @@ let primitiveState =
         | _ :: _ -> failwith "Expected n"
         | _ -> failwith "Stack underflow")
 
-    unaryOp "chs" (fun n -> -n)
     unaryOp "recip" (fun n -> 1. / n)
-    unaryOp "abs" (fun n -> abs n)
+
+    let booleanOp name op = primitive name (fun s ->
+        match s.Stack with
+        | Boolean x :: Boolean y :: t -> { s with Stack = Boolean (op x y) :: t }
+        | _ :: _ :: _ -> failwith "Expected bb"
+        | _ -> failwith "Stack underflow")
+
+    booleanOp "and" (&&)
+    booleanOp "or" (||)
+
+    primitive "not" (fun s ->
+        match s.Stack with
+        | Boolean x :: t -> { s with Stack = Boolean (not x) :: t }
+        | _ :: _ -> failwith "Expected b"
+        | _ -> failwith "Stack underflow")
+
+    let comparisonOp name op = primitive name (fun s ->
+        match s.Stack with
+        | x :: y :: t -> { s with Stack = Boolean (op x y) :: t }
+        | _ -> failwith "Stack underflow")
+
+    comparisonOp "=" (=)
+    comparisonOp ">" (>)
+    comparisonOp "<" (<)
 
     primitive "let" (fun s ->
         match s.Stack with
@@ -102,10 +126,10 @@ let primitiveState =
         | _ :: _  :: _ -> failwith "Expected ss"
         | _ -> failwith "Stack underflow")
 
-//    primitive "load" (fun s ->
-//        match s.Stack with
-//        | String n :: t ->
-//        | _ :: _  :: _ -> failwith "Expected ss"
-//        | _ -> failwith "Stack underflow")
+    primitive "load" (fun s ->
+        match s.Stack with
+        | String p :: t -> File.ReadAllText(sprintf "%s.b" p) |> rep { s with Stack = t }
+        | _  :: _ -> failwith "Expected s"
+        | _ -> failwith "Stack underflow")
 
     { emptyState with Primitives = primitives }

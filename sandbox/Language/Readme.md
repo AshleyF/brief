@@ -12,13 +12,13 @@ NOTE: This structure was simplified later (see 21 DEC 2020 Simplification).
 
 ```fsharp
 type Value =
-	| Number    of double
-	| String    of string
-	| Boolean   of bool
-	| List      of Value list
-	| Map       of Map<string, Value>
-	| Set       of Set<Value>
-	| Quotation of Word list
+    | Number    of double
+    | String    of string
+    | Boolean   of bool
+    | List      of Value list
+    | Map       of Map<string, Value>
+    | Set       of Set<Value>
+    | Quotation of Word list
 ```
 
 DEBATE 0: Sets of values require that words (in quotations) be comparable. Literals and secondaries are easy enough, but primitives (`State -> State` functions) may be more difficult. Considering implementing `IComparable` based on a name or ID.
@@ -29,18 +29,18 @@ DEBATE 1: We explored whether to include literals or to instead create primitive
 
 ```fsharp
 and Word =
-	| Literal   of Value
-	| Primitive of (State -> State)
-	| Secondary of Word list
+    | Literal   of Value
+    | Primitive of (State -> State)
+    | Secondary of Word list
 ```
 
 The `State` of the "machine" is a `Continuation` list of words, a parameter `Stack` of values and a `Map` used as a global memory space of named values.
 
 ```fsharp
 and State = {
-	Continuation: Word list
-	Stack: Value list
-	Map: Map<string, Value> }
+    Continuation: Word list
+    Stack: Value list
+    Map: Map<string, Value> }
 ```
 
 ## 10 DEC 2020 Identity
@@ -49,18 +49,18 @@ We decided to resolve debate #0 above by introducing a `NamedPrimitive` type tha
 
 ```fsharp
 type NamedPrimitive(name: string, func: State -> State)= 
-	member _.Name = name
-	member _.Func = func
-	override this.Equals(o) =
-		match o with
-			| :? NamedPrimitive as p -> this.Name = p.Name
-			| _ -> false
-	override this.GetHashCode() = hash (this.Name)
-	interface IComparable with
-		override this.CompareTo(o) =
-			match o with
-				| :? NamedPrimitive as p -> compare this.Name p.Name
-				| _ -> -1
+    member _.Name = name
+    member _.Func = func
+    override this.Equals(o) =
+        match o with
+            | :? NamedPrimitive as p -> this.Name = p.Name
+            | _ -> false
+    override this.GetHashCode() = hash (this.Name)
+    interface IComparable with
+        override this.CompareTo(o) =
+            match o with
+                | :? NamedPrimitive as p -> compare this.Name p.Name
+                | _ -> -1
 ```
 
 ## 11 DEC 2020 Interpretation
@@ -71,20 +71,20 @@ The first cut at interpretation was to recursively evaluate the whole machine st
 
 ```fsharp
 let rec interpret state =
-	match state.Continuation with
-	| Literal v :: t -> { state with Stack = v :: state.Stack; Continuation = t } |> interpret
-	| Primitive p :: t -> { state with Continuation = t } |> p.Func |> interpret
-	| Secondary (_, s) :: t -> { state with Continuation = s @ t } |> interpret
-	| [] -> state
+    match state.Continuation with
+    | Literal v :: t -> { state with Stack = v :: state.Stack; Continuation = t } |> interpret
+    | Primitive p :: t -> { state with Continuation = t } |> p.Func |> interpret
+    | Secondary (_, s) :: t -> { state with Continuation = s @ t } |> interpret
+    | [] -> state
 ```
 
 The second cut was to remove the `Continuation` from the state and instead process `Word` by `Word`; `Literals` go to the stack, `Primitives` are still applied to the state but are no longer able to manipulate the program, `Secondaries` are evaluated by recursively folding over them.
 
 ```fsharp
 let rec step state = function
-	| Literal v -> { state with Stack = v :: state.Stack }
-	| Primitive p -> p.Func state
-	| Secondary (_, s) -> Seq.fold step state s
+    | Literal v -> { state with Stack = v :: state.Stack }
+    | Primitive p -> p.Func state
+    | Secondary (_, s) -> Seq.fold step state s
 ```
 
 In fact, full evaluation is then just a fold: `let interpret = Seq.fold step`. Nice, but unfortunate that `Primitives` can no longer manipulate the program (e.g. to impliment `Dip`) and we don't like that the recursion happens in F#/.NET land rather than in more directly exposed machinery.
@@ -93,15 +93,15 @@ DEBATE 2: Should the current `Continuation` be part of the machine state? Probab
 
 The below visualization of the mechanics are quite nice. `Continuation` on the left, `Stack` on the right (or visa versa if you prefer postfix). `Secondary` words are "expanded" and appended to the `Continuation`. I've done this before for a debugger by inserting "break" and "step out" words between the expansion and the rest of the program. Very tangible, exposed, simple mechanics. This idea was inspired by [Stevan Apters's XY language](http://www.nsl.com/k/xy/xy.htm).
 
-	area 7.200000 |                    // initial program
-	         area | 7.200000           // 7.2 pushed
-	      * pi sq | 7.200000           // area expanded
-	   * pi * dup | 7.200000           // sq expanded
-	       * pi * | 7.200000 7.200000  // 7.2 duplicated
-	         * pi | 51.840000          // mulpiply
-	   * 3.141593 | 51.840000          // pi expanded
-	            * | 3.141593 51.840000 // pi pushed
-	              | 162.860163         // multiply
+    area 7.200000 |                    // initial program
+             area | 7.200000           // 7.2 pushed
+          * pi sq | 7.200000           // area expanded
+       * pi * dup | 7.200000           // sq expanded
+           * pi * | 7.200000 7.200000  // 7.2 duplicated
+             * pi | 51.840000          // mulpiply
+       * 3.141593 | 51.840000          // pi expanded
+                * | 3.141593 51.840000 // pi pushed
+                  | 162.860163         // multiply
 
 DEBATE 3: Related to #2, Recursive evaluation of `Secondaries` should be handled with exposed mechanics, supporting Brief-based debugging and (obviously) tail recursion. Prepending to a current `Continuation` works and ideas such as inserting debugging words are pretty slick.
 
@@ -113,21 +113,21 @@ The third cut is to change the processing of `Secondaries` to merely prepend to 
 
 ```fsharp
 let word state = function
-	| Literal v -> { state with Stack = v :: state.Stack }
-	| Primitive p -> p.Func state
-	| Secondary (_, s) -> { state with Continuation = s @ state.Continuation }
+    | Literal v -> { state with Stack = v :: state.Stack }
+    | Primitive p -> p.Func state
+    | Secondary (_, s) -> { state with Continuation = s @ state.Continuation }
 ```
 
 Then to interpret a stream of `Words` along with a state, we have two distinct "modes." While the `Continuation` is empty, we simply walk the stream of words one-by-one evaluating them. Otherwise, when there _is_ a `Continuation`, we peal off words from it one-by-one and evaluate them. When there the `Continuation` is empty and the stream is complete, then we terminate.
 
 ```fsharp
 let rec interpret stream state =
-	match state.Continuation with
-	| [] ->
-		match Seq.tryHead stream with
-		| Some w -> word state w |> interpret (Seq.tail stream)
-		| None -> state
-	| w :: c -> word { state with Continuation = c } w |> interpret stream
+    match state.Continuation with
+    | [] ->
+        match Seq.tryHead stream with
+        | Some w -> word state w |> interpret (Seq.tail stream)
+        | None -> state
+    | w :: c -> word { state with Continuation = c } w |> interpret stream
 ```
 
 This now exposes the mechanics of recursion in the machine and allows for simpler debugging. It also exposes the `Continuation` to be manipulated by `Primitives`. Finally, it allows for a hybrid of stored/streaming words.
@@ -138,7 +138,7 @@ Let's build up the set of available words. Starting with getting the `depth` of 
 
 ```fsharp
 let depth = Primitive (NamedPrimitive ("depth", (fun s ->
-	{ s with Stack = Number (double s.Stack.Length) :: s.Stack })))
+    { s with Stack = Number (double s.Stack.Length) :: s.Stack })))
 
 let clear = Primitive (NamedPrimitive ("clear", (fun s -> { s with Stack = [] })))
 ```
@@ -147,62 +147,54 @@ Manipulating the stack:
 
 ```fsharp
 let dup = Primitive (NamedPrimitive ("dup", (fun s ->
-	match s.Stack with
-	| x :: t -> { s with Stack = x :: x :: t }
-	| _ -> failwith "Stack underflow")))
+    match s.Stack with
+    | x :: t -> { s with Stack = x :: x :: t }
+    | _ -> failwith "Stack underflow")))
 
 let drop = Primitive (NamedPrimitive ("drop", (fun s ->
-	match s.Stack with
-	| _ :: t -> { s with Stack = t }
-	| _ -> failwith "Stack underflow")))
+    match s.Stack with
+    | _ :: t -> { s with Stack = t }
+    | _ -> failwith "Stack underflow")))
 
 let swap = primitive (NamedPrimitive ("swap" (fun s ->
-	match s.Stack with
-	| x :: y :: t -> { s with Stack = y :: x :: t }
-	| _ -> failwith "Stack underflow")))
+    match s.Stack with
+    | x :: y :: t -> { s with Stack = y :: x :: t }
+    | _ -> failwith "Stack underflow")))
 ```
 
-Evaluating quotations on the stack by prepending them to the `Continuation`. This is made possible by this representation of the machine decided on yesterday. The name `i` is taken from Joy.
-
-```fsharp
-let i = Primitive (NamedPrimitive ("i", (fun s ->
-	match s.Stack with
-	| Quotation q :: t -> { s with Stack = t; Continuation = q @ s.Continuation }
-	| _ :: t -> failwith "Expected q"
-	| _ -> failwith "Stack underflow")))
-```
+Evaluating quotations on the stack by prepending them to the `Continuation`. This is made possible by this representation of the machine decided on yesterday.
 
 Dip is an interesting word, also taken from Joy. It evaluates a quotation while "dipping" below the next value on the stack. This is accomplished again by manipulating the `Continuation` to prepend the unquoted code followed by the value being dipped under as a literal:
 
 ```fsharp
 let dip = Primitive (NamedPrimitive ("dip", (fun s ->
-	match s.Stack with
-	| Quotation q :: v :: t -> { s with Stack = t; Continuation = q @ Literal v :: s.Continuation }
-	| _ :: _ :: t -> failwith "Expected qv"
-	| _ -> failwith "Stack underflow")))
+    match s.Stack with
+    | Quotation q :: v :: t -> { s with Stack = t; Continuation = q @ Literal v :: s.Continuation }
+    | _ :: _ :: t -> failwith "Expected qv"
+    | _ -> failwith "Stack underflow")))
 ```
 
 Adding some arithemetic:
 
 ```fsharp
 let unaryOp name op = Primitive (NamedPrimitive (name, (fun s ->
-	match s.Stack with
-	| Number x :: t -> { s with Stack = Number (op x) :: t }
-	| _ :: t -> failwith "Expected n"
-	| _ -> failwith "Stack underflow")))
+    match s.Stack with
+    | Number x :: t -> { s with Stack = Number (op x) :: t }
+    | _ :: t -> failwith "Expected n"
+    | _ -> failwith "Stack underflow")))
 
 let binaryOp name op = Primitive (NamedPrimitive (name, (fun s ->
-	match s.Stack with
-	| Number x :: Number y :: t -> { s with Stack = Number (op x y) :: t }
-	| _ :: _ :: t -> failwith "Expected nn"
-	| _ -> failwith "Stack underflow")))
+    match s.Stack with
+    | Number x :: Number y :: t -> { s with Stack = Number (op x y) :: t }
+    | _ :: _ :: t -> failwith "Expected nn"
+    | _ -> failwith "Stack underflow")))
 
 let add = binaryOp "+" (+)
-let sub = binaryOp "-" (+)
+let sub = binaryOp "-" (-)
 let mul = binaryOp "*" (*)
 let div = binaryOp "/" (/)
 
-let chs = unaryOp "chs" (fun n -> -n)
+let neg = unaryOp "neg" (fun n -> -n)
 let recip = unaryOp "recip" (fun n -> 1. / n)
 let abs = unaryOp "abs" (fun n -> abs n)
 ```
@@ -225,7 +217,7 @@ interpret [Literal (Number 7.2); Literal (String "dip under me"); Literal (Quota
 
 ## 13 DEC 2020 Dictionary
 
-The first thought was to create a `define` word that would add any `Value` to the `Map`, including `Words`, and add a `find` word to retrieve them. The `i` word (taken from Joy) can be used to apply `Quotations`. The thought now that this is a base case used by more specialized words to define `Literals`, `Primitives`, and `Secondaries`. Renaming `define` to `!` (taken from Forth) and `find` to `@` (also from Forth), read as "store" and "fetch" of course.
+The first thought was to create a `define` word that would add any `Value` to the `Map`, including `Words`, and add a `find` word to retrieve them. The thought now that this is a base case used by more specialized words to define `Literals`, `Primitives`, and `Secondaries`. Renaming `define` to `!` (taken from Forth) and `find` to `@` (also from Forth), read as "store" and "fetch" of course.
 
 ``` fsharp
 let store = primitive "!" (fun s ->
@@ -252,7 +244,7 @@ Defining `Words` does seem special. A `def` word can be created for this but it'
 let define = Secondary ("def", [store])
 ```
 
-DEBATE 6: Obviously including a type system to distinguish `define` (expecting a `Quotation`) from `store` (expecting *any* `Value`) is a very big open question. In this particular case a type error would not even cause an issue until later `fetching` and trying to apply (`i`) a non-`Quotation`.
+DEBATE 6: Obviously including a type system to distinguish `define` (expecting a `Quotation`) from `store` (expecting *any* `Value`) is a very big open question. In this particular case a type error would not even cause an issue until later `fetching` and trying to apply a non-`Quotation`.
 
 Now we can `define` words in the "dictionary".
 
@@ -373,7 +365,7 @@ let primitives = Map.ofList [
     "-",     sub
     "*",     mul
     "/",     div
-    "chs",   chs
+    "neg",   neg
     "recip", recip
     "abs",   abs ]
 ```
@@ -1017,3 +1009,166 @@ Adding this to the main program, we have successfully cobbled together a complet
 ```fsharp
 let speech = Remote.remoteActor "127.0.0.1" 11411
 ```
+
+---
+
+Let's control the vaccuume:
+
+```fsharp
+let roombaCleanAll = "'Cleaning the floors|post 'trigger [hook ifttt-key 'roomba-clean-all ' ' ']"
+let roombaDock = "'Docking the vaccuume|post 'trigger [hook ifttt-key 'roomba-dock ' ' ']"
+
+let roomba = Choice [
+    Phrase ("Clean the floors", Some roombaCleanAll)
+    Phrase ("Clean floors", Some roombaCleanAll)
+    Phrase ("Go back to the dock", Some roombaDock)
+    Phrase ("Go to the dock", Some roombaDock)]
+```
+
+This is going to be fun! We really need to add the ability to author grammars in Brief. Soon...
+
+## 26 DEC 2020 Language
+
+In preparation for adding to the language, let's move the `Prelude.fs` to a simple text file (`Prelude.b` -- `.b` for Brief) and add the following primitive to load Brief source files:
+
+```fsharp
+primitive "load" (fun s ->
+    match s.Stack with
+    | String p :: t -> File.ReadAllText(sprintf "%s.b" p) |> rep { s with Stack = t }
+    | _  :: _ -> failwith "Expected s"
+    | _ -> failwith "Stack underflow")
+```
+
+We'll be adding new primitives and new secondaries. Sometimes we'll have a choice to make. For example, `over` could be defined as:
+
+ ```fsharp
+primitive "over" (fun s ->
+    match s.Stack with
+    | x :: y :: t -> { s with Stack = y :: x :: y :: t }
+    | _ -> failwith "Stack underflow")
+ ```
+
+Or we could define it in terms of other primitives: `let 'over [swap dip [dup]]`. This is less efficient, but Brief is not meant to be a high-performance language. For now, we'll favor secondaries and optimize later as needed. This will keep the implementation small. We may later port this to Python, JavaScript, etc. and a small implementation will be appreciated.
+
+### Combinators
+
+Let's add some of the combinators, [inspired by Aaron Bull Schaefer's Factor blog post](https://elasticdog.com/2008/12/beginning-factor-shufflers-and-combinators/). We have `drop`, `dup`, and `swap` aleardy. We can add versions that work with pairs or tripples of values and we can add the `keep` word:
+
+```brief
+let '3keep [3dip dip [3dup]]
+let '2keep [2dip dip [2dup]]
+let 'keep [dip dip [dup]]
+
+let '3drop [2drop drop]
+let '2drop [drop drop]
+
+let '3dup [dup 2dup]
+let '2dup [over over]
+
+let '3dip [dip [2dip] swap]
+let '2dip [dip [dip] swap]
+```
+
+Then let's add the extreemely useful cleave, spread and apply combinators:
+
+```brief
+let 'bi [apply dip [keep]]
+let '2bi [apply dip [2keep]]
+let '3bi [apply dip [3keep]]
+let 'bi* [apply dip [dip]]
+let '2bi* [apply dip [2dip]]
+let 'bi@ [apply 2dip dup]
+let '2bi@ [apply 3dip dup]
+
+let 'tri [apply dip [keep] 2dip [keep]]
+let '2tri [apply dip [2keep] 2dip [2keep]]
+let '3tri [apply dip [3keep] 2dip [3keep]]
+let 'tri* [apply dip [dip] 2dip [2dip]]
+let '2tri* [apply dip [2dip] 2dip [4dip]]
+let 'tri@ [apply 2dip dup 3dip dup]
+let '2tri@ [apply 4dip dup]
+```
+
+We can then start adding interesting words in terms of these:
+
+```brief
+let 'both? [and bi@]
+let 'either? [or bi@]
+let 'neither? [not or bi@]
+```
+
+### Conditionals
+
+The `if` primitive will serve as our conditional. In a completely prefix-notation manner, with no special syntax or semantics, this selects one or the other quotation (`Lists`) based on a `Boolean` value.
+
+```fsharp
+primitive "if" (fun s ->
+    match s.Stack with
+    | List q :: List r :: Boolean b :: t ->
+        { s with Stack = t; Continuation = List.rev (if b then q else r) @ s.Continuation }
+    | _ :: _ :: _ -> failwith "Expected vq"
+    | _ -> failwith "Stack underflow")
+```
+
+To execute something only `when` true or `unless` it's true, just pass an empty quotation (`[]`) to do nothing in one or the other branch:
+
+```brief
+let 'when [if swap []]
+let 'unless [if []]
+```
+
+Unconditional application of a quotation is just:
+
+```brief
+let 'apply [when swap true]
+```
+
+To make logical choices, we need boolean algebra operations and comparison to map regular values to `Booleans`.
+
+```fsharp
+let booleanOp name op = primitive name (fun s ->
+    match s.Stack with
+    | Boolean x :: Boolean y :: t -> { s with Stack = Boolean (op x y) :: t }
+    | _ :: _ :: _ -> failwith "Expected bb"
+    | _ -> failwith "Stack underflow")
+
+booleanOp "and" (&&)
+booleanOp "or" (||)
+
+primitive "not" (fun s ->
+    match s.Stack with
+    | Boolean x :: t -> { s with Stack = Boolean (not x) :: t }
+    | _ :: _ -> failwith "Expected b"
+    | _ -> failwith "Stack underflow")
+```
+
+TODO Reduce boolean operations to `nand`, from which we derrive`and`, `or`, `xor`, `not`, `nor` and `xnor`.
+
+Basic comparison operations:
+
+```fsharp
+let comparisonOp name op = primitive name (fun s ->
+    match s.Stack with
+    | x :: y :: t -> { s with Stack = Boolean (op x y) :: t }
+    | _ -> failwith "Stack underflow")
+
+comparisonOp "=" (=)
+comparisonOp ">" (>)
+```
+
+Then define `<` in terms of these: `let '< [not or 2bi [>] [=]]`.
+
+### Miscellaneous
+
+```fsharp
+unaryOp "neg" (fun n -> -n)
+unaryOp "abs" (fun n -> abs n)
+```
+
+```brief
+let 'sign [min 1 max -1]
+let 'min [drop when [swap] < 2dup]
+let 'max [drop when [swap] > 2dup]
+```
+
+It's pretty fun filling out the language and starting to really code in Brief itself instead of F#!

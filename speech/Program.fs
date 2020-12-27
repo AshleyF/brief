@@ -20,7 +20,12 @@ let server () =
 let post brief =
     printfn "Brief: %s" brief
     match writer with
-    | Some w -> w.Write(brief)
+    | Some w ->
+        try
+            w.Write(brief)
+        with ex ->
+            printfn "Write Error: %s" ex.Message
+            writer <- None
     | None -> printf "No connection"
 
 let synth = new SpeechSynthesizer(Rate = 2)

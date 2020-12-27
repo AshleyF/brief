@@ -24,3 +24,5 @@ let rec interpret state stream =
             printDebug None state
             state
     | w :: c -> interpret (word { state with Continuation = c } w) stream
+
+let rep state source = [String source; Symbol "eval"] |> interpret state

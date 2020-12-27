@@ -1069,6 +1069,22 @@ let '3dip [dip [2dip] swap]
 let '2dip [dip [dip] swap]
 ```
 
+Maybe add `pick` and `nip`, `tuck` and `over`:
+
+```fsharp
+primitive "pick" (fun s ->
+	match s.Stack with
+	| x :: y :: z :: t -> { s with Stack = z :: x :: y :: z :: t }
+	| _ -> failwith "Stack underflow")
+```
+
+```brief
+let 'over [swap dip [dup]]
+let '2over [pick pick]
+let 'nip [drop swap]
+let 'tuck [over swap]
+```
+
 Then let's add the extremely useful cleave, spread and apply combinators:
 
 ```brief

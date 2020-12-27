@@ -46,6 +46,11 @@ let primitiveState =
         | x :: y :: t -> { s with Stack = y :: x :: t }
         | _ -> failwith "Stack underflow")
 
+    primitive "pick" (fun s ->
+        match s.Stack with
+        | x :: y :: z :: t -> { s with Stack = z :: x :: y :: z :: t }
+        | _ -> failwith "Stack underflow")
+
     primitive "dip" (fun s ->
         match s.Stack with
         | List q :: v :: t -> { s with Stack = t; Continuation = (List.rev q) @ v :: s.Continuation }

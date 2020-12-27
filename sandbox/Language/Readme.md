@@ -1069,7 +1069,7 @@ let '3dip [dip [2dip] swap]
 let '2dip [dip [dip] swap]
 ```
 
-Then let's add the extreemely useful cleave, spread and apply combinators:
+Then let's add the extremely useful cleave, spread and apply combinators:
 
 ```brief
 let 'bi [apply dip [keep]]
@@ -1160,10 +1160,21 @@ Then define `<` in terms of these: `let '< [not or 2bi [>] [=]]`.
 
 ### Miscellaneous
 
+Removing the F# implementations of `neg` and `abs`:
+
 ```fsharp
 unaryOp "neg" (fun n -> -n)
 unaryOp "abs" (fun n -> abs n)
 ```
+
+And replacing with Brief implementations:
+
+```brief
+let 'neg [- 0]
+let 'abs [when [neg] < 0 dup]
+```
+
+Plus a few more:
 
 ```brief
 let 'sign [min 1 max -1]

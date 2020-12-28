@@ -137,4 +137,51 @@ let primitiveState =
         | _  :: _ -> failwith "Expected s"
         | _ -> failwith "Stack underflow")
 
+    primitive ">sym" (fun s ->
+        match s.Stack with
+        | Symbol _ :: _ -> s
+        | String str :: t ->
+            if str |> Seq.exists (System.Char.IsWhiteSpace)
+            then failwith "Symbols cannot contain whitespace."
+            else { s with Stack = Symbol str :: t }
+        | List _ :: t -> failwith "Lists cannot be cast to a Symbol value."
+        | Map _ :: t -> failwith "Maps cannot be cast to a Symbol value."
+        | v :: t -> { s with Stack = Symbol (stringOfValue v) :: t }
+        | _ -> failwith "Stack underflow")
+
+    primitive ">num" (fun s ->
+        match s.Stack with
+        | Number _ :: _ -> s
+        | Symbol y :: t | String y :: t ->
+            match System.Double.TryParse y with
+            | (true, v) -> { s with Stack = Number v :: t }
+            | _ -> failwith "Cannot cast to Number"
+        | Boolean b :: t -> { s with Stack = Number (if b then -1. else 0.) :: t}
+        | List l :: t -> { s with Stack = Number (List.length l |> float) :: t }
+        | Map m :: t -> { s with Stack = Number (Map.count m |> float) :: t }
+        | _ -> failwith "Stack underflow")
+
+    primitive ">str" (fun s ->
+        match s.Stack with
+        | String _ :: _ -> s
+        | v :: t -> { s with Stack = String (stringOfValue v) :: t }
+        | _ -> failwith "Stack underflow")
+
+    primitive ">bool" (fun s ->
+        match s.Stack with
+        | Boolean _ :: _ -> s
+        | Symbol y :: t | String y :: t ->
+            match System.Boolean.TryParse y with
+            | (true, v) -> { s with Stack = Boolean v :: t }
+            | _ -> failwith "Cannot cast to Number"
+        | Number n :: t -> { s with Stack = Boolean (n <> 0.) :: t }
+        | List l :: t -> { s with Stack = Boolean (List.isEmpty l |> not) :: t }
+        | Map m :: t -> { s with Stack = Boolean (Map.isEmpty m |> not) :: t }
+        | _ -> failwith "Stack underflow")
+
+    primitive ">list" (fun s ->
+        match s.Stack with
+        | v :: t -> { s with Stack = List [v] :: t }
+        | _ -> failwith "Stack underflow")
+
     { emptyState with Primitives = primitives }

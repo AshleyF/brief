@@ -1027,7 +1027,7 @@ let roomba = Choice [
 
 This is going to be fun! We really need to add the ability to author grammars in Brief. Soon...
 
-## 26 DEC 2020 Language
+## 26 DEC 2020 Combinators, Conditionals, etc.
 
 In preparation for adding to the language, let's move the `Prelude.fs` to a simple text file (`Prelude.b` -- `.b` for Brief) and add the following primitive to load Brief source files:
 
@@ -1073,9 +1073,9 @@ Maybe add `pick` and `nip`, `tuck` and `over`:
 
 ```fsharp
 primitive "pick" (fun s ->
-	match s.Stack with
-	| x :: y :: z :: t -> { s with Stack = z :: x :: y :: z :: t }
-	| _ -> failwith "Stack underflow")
+    match s.Stack with
+    | x :: y :: z :: t -> { s with Stack = z :: x :: y :: z :: t }
+    | _ -> failwith "Stack underflow")
 ```
 
 ```brief
@@ -1199,3 +1199,76 @@ let 'max [drop when [swap] > 2dup]
 ```
 
 It's pretty fun filling out the language and starting to really code in Brief itself instead of F#!
+
+## 27 DEC 2020 Type Casting
+
+Casting values between types: `Numbers`, `Booleans`, and `Strings` (that don't contain white space) may be cast to `Symbols`:
+
+```fsharp
+primitive ">sym" (fun s ->
+    match s.Stack with
+    | Symbol _ :: _ -> s
+    | String str :: t ->
+        if str |> Seq.exists (System.Char.IsWhiteSpace)
+        then failwith "Symbols cannot contain whitespace."
+        else { s with Stack = Symbol str :: t }
+    | List _ :: t -> failwith "Lists cannot be cast to a Symbol value."
+    | Map _ :: t -> failwith "Maps cannot be cast to a Symbol value."
+    | v :: t -> { s with Stack = Symbol (stringOfValue v) :: t }
+    | _ -> failwith "Stack underflow")
+```
+
+`Symbols` and `Strings` may be parsed as `Numbers`. `Booleans` can be cast with the rule that `true` is -1 (all bits on) and `false` is 0. `Lists` and `Maps` cast to the length of the collection.
+
+```fsharp
+primitive ">num" (fun s ->
+    match s.Stack with
+    | Number _ :: _ -> s
+    | Symbol y :: t | String y :: t ->
+        match System.Double.TryParse y with
+        | (true, v) -> { s with Stack = Number v :: t }
+        | _ -> failwith "Cannot cast to Number"
+    | Boolean b :: t -> { s with Stack = Number (if b then -1. else 0.) :: t}
+    | List l :: t -> { s with Stack = Number (List.length l |> float) :: t }
+    | Map m :: t -> { s with Stack = Number (Map.count m |> float) :: t }
+    | _ -> failwith "Stack underflow")
+```
+
+Any value can be cast to a `String` as essentially Brief source format. `Strings` themselves, however, retain their value without being surrounded by quotes (`"`) or prefixed with a tick (`'`).
+
+```fsharp
+primitive ">str" (fun s ->
+    match s.Stack with
+    | String _ :: _ -> s
+    | v :: t -> { s with Stack = String (stringOfValue v) :: t }
+    | _ -> failwith "Stack underflow")
+```
+
+`Symbols` and `Strings` may be parsed as `Booleans`. `Numbers` become `Booleans` with the rule that zero is `false` and any other value (expecially -1) is `true`. `Lists` and `Maps` convert indicating whether the collection is empty.
+
+```fsharp
+primitive ">bool" (fun s ->
+    match s.Stack with
+    | Boolean _ :: _ -> s
+    | Symbol y :: t | String y :: t ->
+        match System.Boolean.TryParse y with
+        | (true, v) -> { s with Stack = Boolean v :: t }
+        | _ -> failwith "Cannot cast to Number"
+    | Number n :: t -> { s with Stack = Boolean (n <> 0.) :: t }
+    | List l :: t -> { s with Stack = Boolean (List.isEmpty l |> not) :: t }
+    | Map m :: t -> { s with Stack = Boolean (Map.isEmpty m |> not) :: t }
+    | _ -> failwith "Stack underflow")
+```
+
+Any value can become a `List` by merely enclosing it; including `Lists` themselves.
+
+```fsharp
+primitive ">list" (fun s ->
+    match s.Stack with
+    | v :: t -> { s with Stack = List [v] :: t }
+    | _ -> failwith "Stack underflow")
+```
+
+Values cannot be cast to a `Map`. One potential could be `Lists` of pairs of name/value.
+
+DEBATE 19: Should be support `>map` of `Lists` of name/value pairs?

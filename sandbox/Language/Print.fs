@@ -6,7 +6,7 @@ open Structure
 let rec stringOfString s = sprintf (if String.exists Char.IsWhiteSpace s then "\"%s\"" else "'%s") s
 let rec stringOfValue = function
     | Symbol s  -> sprintf "%s" s
-    | Number n  -> sprintf "%f" n
+    | Number n  -> sprintf "%g" n
     | String s  -> stringOfString s
     | Boolean b -> sprintf "%b" b
     | List l    -> sprintf "[%s]" (stringOfValues l)

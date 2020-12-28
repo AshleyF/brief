@@ -1200,7 +1200,11 @@ let 'max [drop when [swap] > 2dup]
 
 It's pretty fun filling out the language and starting to really code in Brief itself instead of F#!
 
-## 27 DEC 2020 Type Casting
+## 27 DEC 2020 Type Casting, (De)Construction
+
+Let's continue to fill out the language with type casts, 
+
+### Type Casts
 
 Casting values between types: `Numbers`, `Booleans`, and `Strings` (that don't contain white space) may be cast to `Symbols`:
 
@@ -1260,15 +1264,93 @@ primitive ">bool" (fun s ->
     | _ -> failwith "Stack underflow")
 ```
 
-Any value can become a `List` by merely enclosing it; including `Lists` themselves.
+Values cannot generally be cast to a `List` or `Map`. One potential could be `Lists` of pairs of name/value converted to/from `Maps`
+
+DEBATE 19: Should be support `>map` of `Lists` of name/value pairs and visa versa?
+
+One exception we'll make is to convert `Strings` and `Symbols` to `Lists` of single-character `Strings`. Rather than name this `>list`, we'll name it `split` because `>string` doesn't do the reverse. Instead `join` will do the reverse (although still missing symmetry with `join split <symbol>` producing a `String` rather than a `Symbol`).
 
 ```fsharp
-primitive ">list" (fun s ->
+primitive "split" (fun s ->
     match s.Stack with
-    | v :: t -> { s with Stack = List [v] :: t }
+    | Symbol y :: t | String y :: t -> { s with Stack = (y |> Seq.toList |> List.map (string >> String) |> List) :: t }
+    | _ :: _ -> failwith "Expected s"
+    | _ -> failwith "Stack underflow")
+
+primitive "join" (fun s ->
+    let str = function String y | Symbol y -> y | _ -> failwith "Expected List of Strings/Symbols"
+    match s.Stack with
+    | List l :: t -> { s with Stack = (l |> Seq.map str |> String.concat "" |> String) :: t }
+    | _ :: _ -> failwith "Expected l"
     | _ -> failwith "Stack underflow")
 ```
 
-Values cannot be cast to a `Map`. One potential could be `Lists` of pairs of name/value.
+### List and Map Words
 
-DEBATE 19: Should be support `>map` of `Lists` of name/value pairs?
+Counting the number of elements in a `List` or `Map` can be done by:
+
+```fsharp
+primitive "count" (fun s ->
+    match s.Stack with
+    | List l :: t -> { s with Stack = (List.length l |> double |> Number) :: t }
+    | Map m :: t -> { s with Stack = (Map.count m |> double |> Number) :: t }
+    | _ :: _ -> failwith "Cannot cast to List"
+    | _ -> failwith "Stack underflow")
+```
+
+With this we can create `empty?`. We could've used `>bool` instead, but that would work with types other than collections with strange behavior (e.g. `empty? 0` -> `true`?!).
+
+```brief
+let 'empty? [= 0 count]
+```
+
+Pushing an empty list of course is just the literal `[]`. Adding elements to this can be done by "consing" onto the head (e.g. `cons 1 [2 3]` -> `[1 2 3]`). The reverse of this we'll call `snoc` (e.g. `snoc [1 2 3]` -> `1 [2 3]`).
+
+```fsharp
+primitive "cons" (fun s ->
+    match s.Stack with
+    | v :: List l :: t -> { s with Stack = List (v :: l) :: t }
+    | _ :: _ :: _ -> failwith "Expected vl"
+    | _ -> failwith "Stack underflow")
+
+primitive "snoc" (fun s ->
+    match s.Stack with
+    | List (h :: t') :: t -> { s with Stack = h :: List t' :: t }
+    | List _ :: _ -> failwith "Expected non-empty list"
+    | _ :: _ :: _ -> failwith "Expected vl"
+    | _ -> failwith "Stack underflow")
+```
+
+With `snoc` we get both the head and tail of the list. Individual words will be useful:
+
+```brief
+let 'head [nip snoc]
+let 'tail [drop snoc]
+```
+
+Obviously, plenty of other operations will be added for sorting, reversing, filtering, folding, mapping, indexing into, etc. These can be built from primitives I believe.
+
+For `Maps` we need to be able to query for the existence of a key and to retrieve values by key, as well as to add key/value pairs. Perhaps we'll take over the fetch (`@`) and store (`!`) words for this and rename the existing ones to `map@` and `map!` (maybe these should go away and a single word to retrieve the machine state `Map` should be added). For example: `! 'foo 123 {}` -> `{ 'foo 123 }`, `@ 'foo { 'foo 123 }` -> `123 { 'foo 123 }`, `key? 'foo { 'foo 123 }` -> `true { 'foo 123 }`.
+
+```fsharp
+primitive "key?" (fun s ->
+    match s.Stack with
+    | String k :: (Map m :: _ as t) -> { s with Stack = Boolean (Map.containsKey k m) :: t }
+    | _ :: _ :: _ -> failwith "Expected sm"
+    | _ -> failwith "Stack underflow")
+
+primitive "@" (fun s ->
+    match s.Stack with
+    | String k :: (Map m :: _ as t) ->
+        match Map.tryFind k m with
+        | Some v -> { s with Stack = v :: t }
+        | None -> failwith "Key not found"
+    | _ :: _ :: _ -> failwith "Expected sm"
+    | _ -> failwith "Stack underflow")
+
+primitive "!" (fun s ->
+    match s.Stack with
+    | String k :: v :: Map m :: t -> { s with Stack = Map (Map.add k v m) :: t }
+    | _ :: _ :: _ :: _ -> failwith "Expected vsm"
+    | _ -> failwith "Stack underflow")
+```

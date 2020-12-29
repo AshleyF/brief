@@ -105,7 +105,6 @@ let primitiveState =
 
     comparisonOp "=" (=)
     comparisonOp ">" (>)
-    comparisonOp "<" (<)
 
     primitive "let" (fun s ->
         match s.Stack with

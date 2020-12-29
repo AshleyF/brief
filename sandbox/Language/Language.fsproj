@@ -6,12 +6,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="Prelude.b">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <None Include="Readme.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="Vocabulary.md">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <Content Include="Prelude.b">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Compile Include="Structure.fs" />
     <Compile Include="Syntax.fs" />
     <Compile Include="Print.fs" />

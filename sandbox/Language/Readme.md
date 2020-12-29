@@ -1,6 +1,6 @@
 # Brief Sandbox Journal
 
-Starting experimenting with Brief implementation details while documenting thoughts. Brief is a concatenative language with quotations.
+Starting experimenting with Brief implementation details while documenting thoughts. Brief is a concatenative language with quotations. See [Vocabulary reference](./Vocabulary.md).
 
 ## 09 DEC 2020 Structure
 

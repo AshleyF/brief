@@ -1,9 +1,9 @@
 # Brief Vocabulary
 
+## Stack Words
+
 | Word | Stack | Description | Type |
 | --- | --- | --- | --- |
-| `map!` | nv- | Store named value in `State.Map` | Primitive |
-| `map@` | n- | Fetch named value from `State.Map` | Primitive |
 | `depth` | -n | Get stack depth | Primitive |
 | `clear` | - | Clear stack | Primitive |
 | `dup` | x-xx | Duplicate top stack value | Primitive |
@@ -14,6 +14,16 @@
 | `3drop` | xyz- | Drop top three stack values | Secondary |
 | `swap` | xy-yx | Swap top two stack values | Primitive |
 | `pick` | xyz-zxyz | Duplicate third stack value | Primitive |
+| `over` | xy-yxy | Duplicate second stack value | Secondary |
+| `2over` | xyz-yzxyz | Duplicate second and third stack values | Secondary |
+| `nip` | xy-x | Drop second stack value | Secondary |
+| `tuck` | xy-xyx | Duplicate first stack value below second value | Secondary |
+
+## Quotation Application
+
+| Word | Stack | Description | Type |
+| --- | --- | --- | --- |
+| `apply` | q- | Apply quotation | Secondary |
 | `dip` | qx-x | Apply quotation "under" second stack value | Primitive |
 | `2dip` | qxy-xy | Apply quotation "under" first two stack value | Secondary |
 | `3dip` | qxyz-xyz | Apply quotation "under" first three stack value | Secondary |
@@ -21,53 +31,6 @@
 | `keep` | qx-x | Apply quotation to top stack value and restore value | Secondary |
 | `2keep` | qxy-xy | Apply quotation to top two stack values and restore values | Secondary |
 | `3keep` | qxyz-xyz | Apply quotation to top three stack values and restore values | Secondary |
-| `over` | xy-yxy | Duplicate second stack value | Secondary |
-| `2over` | xyz-yzxyz | Duplicate second and third stack values | Secondary |
-| `nip` | xy-x | Drop second stack value | Secondary |
-| `tuck` | xy-xyx | Duplicate first stack value below second value | Secondary |
-| `if` | qrb- | Apply one or the other quotation depending on boolean value | Primitive |
-| `when` | qb - | Apply quotation when boolean value is `true` | Secondary |
-| `unless` | qb - | Apply quotation unless boolean value is `true` | Secondary |
-| `+` | xy-n | Add top two stack values | Primitive |
-| `-` | xy-n | Subtract second stack value from top stack value | Primitive |
-| `*` | xy-n | Multiply top two stack values | Primitive |
-| `/` | xy-n | Divide top stack value by second stack value | Primitive |
-| `recip` | x-n | Compute reciprocal (1/x) of top stack value | Primitive |
-| `neg` | - | Negate top stack value | Secondary |
-| `abs` | - | Compute absolute value of top stack value | Secondary |
-| `and` | xy-b | Boolean and of top two stack values | Primitive |
-| `or` | xy-b | Boolean or of top two stack values | Primitive |
-| `not` | x-b | Boolean not of top stack value | Primitive |
-| `=` | xy-b | Compare top two stack values, returning `true` if equal | Primitive |
-| `>` | xy-b | Compare top two stack values, returning `true` if top value is greater than second value | Primitive |
-| `<` | xy-b | Compare top two stack values, returning `true` if top value is less than second value | Secondary |
-| `let` | nx- | Define named quotation or value as secondary word | Primitive |
-| `eval` | s- | Evaluate Brief source | Primitive |
-| `state` | - | Print machine state | Primitive |
-| `post` | nq- | Post quotation to named actor | Primitive |
-| `load` | n- | Load named Brief source file (path, not including .b extension) | Primitive |
-| `>sym` | x-s | Cast String (not including white space), Boolean, or Number to Symbol | Primitive |
-| `>num` | x-n | Cast Symbol, String, Boolean (-1, 0), List, or Map (lengths) to Number | Primitive |
-| `>str` | x-s | Cast value to string in Brief literal source form | Primitive |
-| `>bool` | x-b | Cast Symbol, String, Number, List, or Map to Boolean | Primitive |
-| `split` | s-l | Split Symbol or String into List of single-character Strings | Primitive |
-| `join` | l-s | Join List of Strings into single String | Primitive |
-| `count` | x-n | Count of values within List or Map | Primitive |
-| `cons` | vl-l | Cons value onto head of List (tail) | Primitive |
-| `snoc` | l-vl | Reverse cons List into head and tail | Primitive |
-| `key?` | km-bm | Determine whether key is in Map, while keeping Map | Primitive |
-| `@` | km-vm | Fetch value for key in Map, while keeping Map | Primitive |
-| `!` | kvm-m | Store key/value in Map, while keeping Map | Primitive |
-| `pi` | -n | Math constant | Secondary |
-| `e` | -n | Math constant | Secondary |
-| `sq` | n-n | Square top stack value | Secondary |
-| `cube` | n-n | Cube top stack value | Secondary |
-| `sign` | n-n | Determine sign of top stack value (-1, 1) | Secondary |
-| `min` | nn-n | Compute minimum of top two stack values | Secondary |
-| `max` | nn-n | Compute maximum of top two stack values | Secondary |
-| `both?` | qq-b | Apply two quotations and determine whether both are `true` | Secondary |
-| `either?` | qq-b | Apply two quotations and determine whether either are `true` | Secondary |
-| `neither?` | qq-b | Apply two quotations and determine whether neither are `true` | Secondary |
 | `bi` | qrx- | Apply each quotation to following value | Secondary |
 | `2bi` | qrxy- | Apply each quotation to following two values | Secondary |
 | `3bi` | qrxyz- | Apply each quotation to following three values | Secondary |
@@ -82,10 +45,80 @@
 | `2tri*` | pqrxy- | Apply first quotation (p) to values (xy), then second quotation (q) to values (xy), then third quotation (r) to values (xy) | Secondary |
 | `tri@` | qxyz- | Apply quotation to each value (x, y, z) | Secondary |
 | `2tri@` | qxyzwvu- | Apply quotation to each pair of values (xy, zw, vu) | Secondary |
-| `apply` | q- | Apply quotation | Secondary |
+| `both?` | qq-b | Apply two quotations and determine whether both are `true` | Secondary |
+| `either?` | qq-b | Apply two quotations and determine whether either are `true` | Secondary |
+| `neither?` | qq-b | Apply two quotations and determine whether neither are `true` | Secondary |
+
+## List and Map
+
+| Word | Stack | Description | Type |
+| --- | --- | --- | --- |
 | `empty?` | x- | Determine whether List or Map is empty | Secondary |
+| `count` | x-n | Count of values within List or Map | Primitive |
+| `cons` | vl-l | Cons value onto head of List (tail) | Primitive |
+| `snoc` | l-vl | Reverse cons List into head and tail | Primitive |
 | `head` | - | Retrieve first element of List | Secondary |
 | `tail` | - | Retrieve all but first element of List | Secondary |
+| `key?` | km-bm | Determine whether key is in Map, while keeping Map | Primitive |
+| `@` | km-vm | Fetch value for key in Map, while keeping Map | Primitive |
+| `!` | kvm-m | Store key/value in Map, while keeping Map | Primitive |
+| `map!` | nv- | Store named value in `State.Map` | Primitive |
+| `map@` | n- | Fetch named value from `State.Map` | Primitive |
+| `split` | s-l | Split Symbol or String into List of single-character Strings | Primitive |
+| `join` | l-s | Join List of Strings into single String | Primitive |
+
+## Comparison and Conditionals
+
+| Word | Stack | Description | Type |
+| --- | --- | --- | --- |
+| `=` | xy-b | Compare top two stack values, returning `true` if equal | Primitive |
+| `>` | xy-b | Compare top two stack values, returning `true` if top value is greater than second value | Primitive |
+| `<` | xy-b | Compare top two stack values, returning `true` if top value is less than second value | Secondary |
+| `<>` | xy-b | Compare top two stack values, returning `true` if not equal | Secondary |
+| `and` | xy-b | Boolean and of top two stack values | Primitive |
+| `or` | xy-b | Boolean or of top two stack values | Primitive |
+| `not` | x-b | Boolean not of top stack value | Primitive |
+| `if` | qrb- | Apply one or the other quotation depending on boolean value | Primitive |
+| `when` | qb - | Apply quotation when boolean value is `true` | Secondary |
+| `unless` | qb - | Apply quotation unless boolean value is `true` | Secondary |
+
+## Math
+
+| Word | Stack | Description | Type |
+| --- | --- | --- | --- |
+| `+` | xy-n | Add top two stack values | Primitive |
+| `-` | xy-n | Subtract second stack value from top stack value | Primitive |
+| `*` | xy-n | Multiply top two stack values | Primitive |
+| `/` | xy-n | Divide top stack value by second stack value | Primitive |
+| `recip` | x-n | Compute reciprocal (1/x) of top stack value | Primitive |
+| `neg` | - | Negate top stack value | Secondary |
+| `abs` | - | Compute absolute value of top stack value | Secondary |
+| `sign` | n-n | Determine sign of top stack value (-1, 1) | Secondary |
+| `min` | nn-n | Compute minimum of top two stack values | Secondary |
+| `max` | nn-n | Compute maximum of top two stack values | Secondary |
+| `sq` | n-n | Square top stack value | Secondary |
+| `cube` | n-n | Cube top stack value | Secondary |
+| `pi` | -n | Math constant | Secondary |
+| `e` | -n | Math constant | Secondary |
+
+## Casting
+
+| Word | Stack | Description | Type |
+| --- | --- | --- | --- |
+| `>sym` | x-s | Cast String (not including white space), Boolean, or Number to Symbol | Primitive |
+| `>num` | x-n | Cast Symbol, String, Boolean (-1, 0), List, or Map (lengths) to Number | Primitive |
+| `>str` | x-s | Cast value to string in Brief literal source form | Primitive |
+| `>bool` | x-b | Cast Symbol, String, Number, List, or Map to Boolean | Primitive |
+
+## Miscellaneous
+
+| Word | Stack | Description | Type |
+| --- | --- | --- | --- |
+| `let` | nx- | Define named quotation or value as secondary word | Primitive |
+| `eval` | s- | Evaluate Brief source | Primitive |
+| `state` | - | Print machine state | Primitive |
+| `post` | nq- | Post quotation to named actor | Primitive |
+| `load` | n- | Load named Brief source file (path, not including .b extension) | Primitive |
 
 ## Tesla Actor
 

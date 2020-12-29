@@ -55,6 +55,7 @@ let 'neg [- 0]
 let 'abs [when [neg] < 0 dup]
 
 let '< [not or 2bi [>] [=]]
+let '<> [not =]
 
 let 'empty? [= 0 count]
 let 'head [nip snoc]

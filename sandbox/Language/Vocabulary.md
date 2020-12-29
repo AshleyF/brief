@@ -1,5 +1,6 @@
 # Brief Vocabulary
 
+| Word | Stack | Description | Type |
 | --- | --- | --- | --- |
 | `map!` | nv- | Store named value in `State.Map` | Primitive |
 | `map@` | n- | Fetch named value from `State.Map` | Primitive |
@@ -90,6 +91,7 @@
 
 The Tesla actor [controls a Tesla vehicle](https://github.com/AshleyF/tesla).
 
+| Word | Stack | Description | Type |
 | --- | --- | --- | --- |
 | `auth` | vnp- | Authenticate with Tesla service, given VIN, name, and password | Primitive |
 | `wake` | - | Wake up vehicle | Primitive |
@@ -117,6 +119,7 @@ let 'tesla-auth [post 'tesla [auth '<my_vin> '<my_user> '<my_password>]]
 
 The Trigger actor works with If-This-Then-That ["webhooks"](https://ifttt.com/maker_webhooks).
 
+| Word | Stack | Description | Type |
 | --- | --- | --- | --- |
 | `hook` | kevvv- | Trigger an IFTTT Webhook using a key, event name and values | Primitive |
 
@@ -137,5 +140,6 @@ post 'trigger [let 'color-lights [hook ifttt-key 'all-lights-color pick ' ']]
 
 The Remote actor sends and receives Brief over TCP (e.g. `connect '127.0.0.1 11411`).
 
+| Word | Stack | Description | Type |
 | --- | --- | --- | --- |
 | `connect` | hp- | Connect to remote TCP host on port. | Primitive |

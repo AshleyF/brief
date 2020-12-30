@@ -46,6 +46,8 @@ let 'over [swap dip [dup]]
 let '2over [pick pick]
 let 'nip [drop swap]
 let 'tuck [over swap]
+let 'rot [swap dip [swap]]
+let '-rot [dip [swap] swap]
 
 let 'apply [when swap true]
 let 'when [if swap []]
@@ -60,3 +62,9 @@ let '<> [not =]
 let 'empty? [= 0 count]
 let 'head [nip snoc]
 let 'tail [drop snoc]
+
+let 'reverse [drop until [dip [cons] swap snoc] [empty?] swap []]
+
+let 'do [2dip dup]
+let 'while [if [while do] [2drop] rot dip [dip dup]]
+let 'until [while dip [compose [not]]]

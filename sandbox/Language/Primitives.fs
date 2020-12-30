@@ -193,8 +193,8 @@ let primitiveState =
 
     primitive "count" (fun s ->
         match s.Stack with
-        | List l :: t -> { s with Stack = (List.length l |> double |> Number) :: t }
-        | Map m :: t -> { s with Stack = (Map.count m |> double |> Number) :: t }
+        | (List l :: _) as t -> { s with Stack = (List.length l |> double |> Number) :: t }
+        | (Map m :: _) as t -> { s with Stack = (Map.count m |> double |> Number) :: t }
         | _ :: _ -> failwith "Cannot cast to List"
         | _ -> failwith "Stack underflow")
 
@@ -209,6 +209,12 @@ let primitiveState =
         | List (h :: t') :: t -> { s with Stack = h :: List t' :: t }
         | List _ :: _ -> failwith "Expected non-empty list"
         | _ :: _ :: _ -> failwith "Expected vl"
+        | _ -> failwith "Stack underflow")
+
+    primitive "compose" (fun s ->
+        match s.Stack with
+        | List q :: List r :: t -> { s with Stack = List (q @ r) :: t }
+        | _ :: _ :: _ -> failwith "Expected ll"
         | _ -> failwith "Stack underflow")
 
     primitive "key?" (fun s ->
@@ -230,6 +236,26 @@ let primitiveState =
         match s.Stack with
         | String k :: v :: Map m :: t -> { s with Stack = Map (Map.add k v m) :: t }
         | _ :: _ :: _ :: _ -> failwith "Expected vsm"
+        | _ -> failwith "Stack underflow")
+
+    primitive "words" (fun s ->
+        printf "Primitives:"
+        s.Primitives |> Map.iter (fun k _ -> printf " %s" k)
+        printfn "\nSecondaries:"
+        s.Dictionary |> Map.iter (fun k v -> printfn "%s %s" k (stringOfValue v))
+        s)
+
+    primitive "word" (fun s ->
+        match s.Stack with
+        | String n :: t ->
+            match Map.tryFind n s.Primitives with
+            | Some _ -> printfn "%s Primitive" n
+            | None ->
+                match Map.tryFind n s.Dictionary with
+                | Some v -> printfn "%s %s" n (stringOfValue v)
+                | None -> printfn "%s Unknown" n
+            { s with Stack = t }
+        | _ :: _ -> failwith "Expected s"
         | _ -> failwith "Stack underflow")
 
     { emptyState with Primitives = primitives }

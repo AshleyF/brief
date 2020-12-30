@@ -1069,7 +1069,7 @@ let '3dip [dip [2dip] swap]
 let '2dip [dip [dip] swap]
 ```
 
-Maybe add `pick` and `nip`, `tuck` and `over`:
+Maybe add `pick` and `nip`, `tuck`, `over`, `rot` and `-rot`
 
 ```fsharp
 primitive "pick" (fun s ->
@@ -1083,6 +1083,8 @@ let 'over [swap dip [dup]]
 let '2over [pick pick]
 let 'nip [drop swap]
 let 'tuck [over swap]
+let 'rot [swap dip [swap]]
+let '-rot [dip [swap] swap]
 ```
 
 Then let's add the extremely useful cleave, spread and apply combinators:
@@ -1292,8 +1294,8 @@ Counting the number of elements in a `List` or `Map` can be done by:
 ```fsharp
 primitive "count" (fun s ->
     match s.Stack with
-    | List l :: t -> { s with Stack = (List.length l |> double |> Number) :: t }
-    | Map m :: t -> { s with Stack = (Map.count m |> double |> Number) :: t }
+    | (List l :: _) as t -> { s with Stack = (List.length l |> double |> Number) :: t }
+    | (Map m :: _) as t -> { s with Stack = (Map.count m |> double |> Number) :: t }
     | _ :: _ -> failwith "Cannot cast to List"
     | _ -> failwith "Stack underflow")
 ```
@@ -1354,3 +1356,45 @@ primitive "!" (fun s ->
     | _ :: _ :: _ :: _ -> failwith "Expected vsm"
     | _ -> failwith "Stack underflow")
 ```
+
+## 29 DEC 2020 Flow Control
+
+Let's try implimenting a `reverse` word to reverse the contents of a list. The purely functional strategy will be to peel off values and build a new list in reverse. First thought:
+
+```brief
+let 'rev [if [drop] [rev dip [cons] swap snoc] empty? dup]
+let 'reverse [rev swap []]
+```
+
+The `reverse` word merely slips an initial empty list under the list being reversed and calls `rev` which peels off values (`snoc`), slips them under (`swap`), and `conses` onto the new list. It does this while the list has more to peel off (`empty?`) and otherwise `drops` the now empty list. This brings up a point about words defined in terms of "internal" words like here `reverse` using `rev` but this `rev` word isn't very useful on its own and doesn't need to be exposed.
+
+DEBATE 20: Should we add name scoping and perhaps an "off sides" rule?
+
+Trying to factor out the general pattern, let's define a `while` word to apply a quotation while another quotation is `true`. The `do` word will apply the second quotation once while keeping both quotations. This can be used with `while` to apply once up front (e.g. `while do ...`) and is used inside the `while` word itself to recursively iterate.
+
+```brief
+let 'do [2dip dup]
+let 'while [if [while do] [2drop] rot dip [dip dup]]
+```
+
+Now, using our out `while` word, we can redefine `reverse`:
+
+```brief
+let 'reverse [drop while [dip [cons] swap snoc] [not empty?] swap []]
+```
+
+Slip the initial empty list under (`swap []`) and then `while` the list is `not empty?` we peel off a value (`swap snoc`) and prepend it to the reverse list (`dip [cons]`). This is a bit more clear and doesn't require an "internal" word and doesn't even expose that it's using recursion (`reverse` doesn't refer to itself; `while` does).
+
+How about we add an `until` word which is essentially the same as `while` but with the condition reversed (with `dip [compose [not]]`:
+
+```brief
+let 'until [while dip [compose [not]]]
+```
+
+Then `reverse` can be written a bit more naturally as `until ... empty?` rather than `while ... not empty?`:
+
+```brief
+let 'reverse [drop until [dip [cons] swap snoc] [empty?] swap []]
+```
+
+This is fun!

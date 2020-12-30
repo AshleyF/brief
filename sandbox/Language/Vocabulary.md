@@ -1,5 +1,7 @@
 # Brief Vocabulary
 
+These are the words defined in a Brief system with Prelude.b loaded. The `words` word also lists them
+
 ## Stack Words
 
 | Word | Stack | Description | Type |
@@ -18,6 +20,8 @@
 | `2over` | xyz-yzxyz | Duplicate second and third stack values | Secondary |
 | `nip` | xy-x | Drop second stack value | Secondary |
 | `tuck` | xy-xyx | Duplicate first stack value below second value | Secondary |
+| `rot` | xyz-zxy | Rotate third stack value to the top | Secondary |
+| `-rot` | xyz-yzx | Rotate top stack value to third spot | Secondary |
 
 ## Quotation Application
 
@@ -53,10 +57,11 @@
 
 | Word | Stack | Description | Type |
 | --- | --- | --- | --- |
-| `empty?` | x- | Determine whether List or Map is empty | Secondary |
-| `count` | x-n | Count of values within List or Map | Primitive |
+| `empty?` | x- | Determine whether List or Map is empty, while keeping the collection | Secondary |
+| `count` | x-n | Count of values within List or Map, while keeping the collection | Primitive |
 | `cons` | vl-l | Cons value onto head of List (tail) | Primitive |
 | `snoc` | l-vl | Reverse cons List into head and tail | Primitive |
+| `compose` | qr-q | Compose two quotations (`Lists`) into one. | Primitive |
 | `head` | - | Retrieve first element of List | Secondary |
 | `tail` | - | Retrieve all but first element of List | Secondary |
 | `key?` | km-bm | Determine whether key is in Map, while keeping Map | Primitive |
@@ -66,6 +71,7 @@
 | `map@` | n- | Fetch named value from `State.Map` | Primitive |
 | `split` | s-l | Split Symbol or String into List of single-character Strings | Primitive |
 | `join` | l-s | Join List of Strings into single String | Primitive |
+| `reverse` | l-l | Reverse List | Secondary |
 
 ## Comparison and Conditionals
 
@@ -110,6 +116,13 @@
 | `>str` | x-s | Cast value to string in Brief literal source form | Primitive |
 | `>bool` | x-b | Cast Symbol, String, Number, List, or Map to Boolean | Primitive |
 
+## Loops
+| Word | Stack | Description | Type |
+| --- | --- | --- | --- |
+| `do` | qr- | Interate `while`/`until` loop, applying the second quotation (r) once| Secondary |
+| `while` | qr- | While second quotation (r) is `true`, apply first quotation (q) | Secondary |
+| `until` | qr- | Until second quotation (r) is `true`, apply first quotation (q) | Secondary |
+
 ## Miscellaneous
 
 | Word | Stack | Description | Type |
@@ -119,6 +132,8 @@
 | `state` | - | Print machine state | Primitive |
 | `post` | nq- | Post quotation to named actor | Primitive |
 | `load` | n- | Load named Brief source file (path, not including .b extension) | Primitive |
+| `words` | - | Display primitive and secondary words | Primitive |
+| `word` | n- | Display word definition | Primitive |
 
 ## Tesla Actor
 

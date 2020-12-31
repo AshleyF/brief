@@ -5,7 +5,7 @@ open Print
 
 let rec interpret state stream =
     let word state w = 
-        printDebug (Some w) state
+        // printDebug (Some w) state
         match w with
         | Symbol s ->
             match Map.tryFind s state.Dictionary with
@@ -21,7 +21,7 @@ let rec interpret state stream =
         match Seq.tryHead stream with
         | Some w -> interpret (word state w) (Seq.tail stream)
         | None ->
-            printDebug None state
+            // printDebug None state
             state
     | w :: c -> interpret (word { state with Continuation = c } w) stream
 

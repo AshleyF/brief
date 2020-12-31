@@ -74,6 +74,7 @@ let primitiveState =
     binaryOp "-" (-)
     binaryOp "*" (*)
     binaryOp "/" (/)
+    binaryOp "mod" (%)
 
     let unaryOp name op = primitive name (fun s ->
         match s.Stack with

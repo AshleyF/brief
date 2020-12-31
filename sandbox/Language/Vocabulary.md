@@ -57,10 +57,17 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 
 | Word | Stack | Description | Type |
 | --- | --- | --- | --- |
+| `map` | ql-l | Map a quotation (q) over a list | Secondary |
+| `filter` | ql-l | Filter a list by a boolean expression (q) | Secondary |
+| `fold` | qvl-x | Fold a quotation (q) along with a seed (v) over a list | Secondary |
+| `sum` | l-n | Compute the sum of a list of Numbers | Secondary |
+| `product` | l-n | Compute the roduct of a list of Numbers | Secondary |
 | `empty?` | x- | Determine whether List or Map is empty, while keeping the collection | Secondary |
 | `count` | x-n | Count of values within List or Map, while keeping the collection | Primitive |
 | `cons` | vl-l | Cons value onto head of List (tail) | Primitive |
 | `snoc` | l-vl | Reverse cons List into head and tail | Primitive |
+| `swons` | lv-l | Cons value (v) onto head of List (equivalent to `cons swap`) | Secondary |
+| `quote` | v-l | Quote a value into a single-element list | Secondary |
 | `compose` | qr-q | Compose two quotations (`Lists`) into one. | Primitive |
 | `head` | - | Retrieve first element of List | Secondary |
 | `tail` | - | Retrieve all but first element of List | Secondary |
@@ -81,6 +88,8 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `>` | xy-b | Compare top two stack values, returning `true` if top value is greater than second value | Primitive |
 | `<` | xy-b | Compare top two stack values, returning `true` if top value is less than second value | Secondary |
 | `<>` | xy-b | Compare top two stack values, returning `true` if not equal | Secondary |
+| `>=` | xy-b | Compare top two stack values, returning `true` if top value is greater than or equal to second value | Secondary |
+| `<=` | xy-b | Compare top two stack values, returning `true` if top value is less than or equal to second value | Secondary |
 | `and` | xy-b | Boolean and of top two stack values | Primitive |
 | `or` | xy-b | Boolean or of top two stack values | Primitive |
 | `not` | x-b | Boolean not of top stack value | Primitive |
@@ -96,6 +105,9 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `-` | xy-n | Subtract second stack value from top stack value | Primitive |
 | `*` | xy-n | Multiply top two stack values | Primitive |
 | `/` | xy-n | Divide top stack value by second stack value | Primitive |
+| `mod` | xy-n | Modulus top stack value by second stack value | Primitive |
+| `++` | n-n | Increment number | Secondary |
+| `--` | n-n | Decrement number | Secondary |
 | `recip` | x-n | Compute reciprocal (1/x) of top stack value | Primitive |
 | `neg` | - | Negate top stack value | Secondary |
 | `abs` | - | Compute absolute value of top stack value | Secondary |
@@ -106,6 +118,8 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `cube` | n-n | Cube top stack value | Secondary |
 | `pi` | -n | Math constant | Secondary |
 | `e` | -n | Math constant | Secondary |
+| `even?` | n-b | Determine whether a number is even | Secondary |
+| `odd?` | n-b | Determine whether a number is odd | Secondary |
 
 ## Casting
 
@@ -132,6 +146,8 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `state` | - | Print machine state | Primitive |
 | `post` | nq- | Post quotation to named actor | Primitive |
 | `load` | n- | Load named Brief source file (path, not including .b extension) | Primitive |
+| `range` | nm-l | Create a list of Numbers ranging from n to m | Secondary |
+| `factorial` | n-n | Compute the factorial of a Numeber | Secondary |
 | `words` | - | Display primitive and secondary words | Primitive |
 | `word` | n- | Display word definition | Primitive |
 

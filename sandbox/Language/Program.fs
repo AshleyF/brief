@@ -1,4 +1,5 @@
 ﻿open System
+open Print
 open Interpretation
 open Actor
 open Primitives
@@ -8,6 +9,7 @@ register "trigger" Trigger.triggerActor
 register "remote"  Remote.remoteActor
 
 let rec repl state =
+    printDebug None state
     try
         match Console.ReadLine() with
         | "exit" -> ()
@@ -18,4 +20,6 @@ let commandLine =
     let exe = Environment.GetCommandLineArgs().[0]
     Environment.CommandLine.Substring(exe.Length)
 
-commandLine :: ["load 'Prelude"] |> Seq.fold rep primitiveState |> repl
+let state = commandLine :: ["load 'Prelude"] |> Seq.fold rep primitiveState
+printfn "Welcome to Brief"
+repl state

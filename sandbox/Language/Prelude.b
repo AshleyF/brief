@@ -57,14 +57,36 @@ let 'neg [- 0]
 let 'abs [when [neg] < 0 dup]
 
 let '< [not or 2bi [>] [=]]
+let '<= [or 2bi [<] [=]]
+let '>= [or 2bi [>] [=]]
 let '<> [not =]
 
 let 'empty? [= 0 count]
 let 'head [nip snoc]
 let 'tail [drop snoc]
 
-let 'reverse [drop until [dip [cons] swap snoc] [empty?] swap []]
-
 let 'do [2dip dup]
 let 'while [if [while do] [2drop] rot dip [dip dup]]
 let 'until [while dip [compose [not]]]
+
+let 'swons [cons swap]
+let 'quote [swons []]
+
+let 'fold [2drop until [dip dup 2dip [snoc] -rot] [empty? rot]]
+let 'map [reverse fold swap [] compose swap [swap] compose [cons]]
+let 'filter [fold [compose] [] map compose [if [quote] [[] drop]] compose swap [dup]]
+
+let 'reverse [fold [swons] []]
+
+let 'even? [= 0 mod swap 2]
+let 'odd? [not even?]
+
+let 'sum [fold [+] 0]
+let 'product [fold [*] 1]
+
+let '++ [+ 1]
+let '-- [+ -1]
+
+let 'range [drop while [dip [cons] -- dup] compose [<=] swons [dup] -rot []]
+
+let 'factorial [product range 1]

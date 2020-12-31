@@ -193,6 +193,7 @@ let add = binaryOp "+" (+)
 let sub = binaryOp "-" (-)
 let mul = binaryOp "*" (*)
 let div = binaryOp "/" (/)
+lte mod = binaryOp "mod" (%)
 
 let neg = unaryOp "neg" (fun n -> -n)
 let recip = unaryOp "recip" (fun n -> 1. / n)
@@ -1174,7 +1175,14 @@ comparisonOp "=" (=)
 comparisonOp ">" (>)
 ```
 
-Then define `<` in terms of these: `let '< [not or 2bi [>] [=]]`.
+Then define `<`, `<=`, `>=`, and `<>` in terms of these:
+
+```brief
+let '< [not or 2bi [>] [=]]
+let '<= [or 2bi [<] [=]]
+let '>= [or 2bi [>] [=]]
+let '<> [not =]
+```
 
 ### Miscellaneous
 
@@ -1398,3 +1406,70 @@ let 'reverse [drop until [dip [cons] swap snoc] [empty?] swap []]
 ```
 
 This is fun!
+
+## 30 DEC 2020 Map, Fold, Filter
+
+Let's add the triumverate of functional programming, `map`, `fold` and `filter`. Starting with `fold`:
+
+```brief
+let 'fold [if [2drop] [fold dip dup 2dip [snoc] -rot] empty? rot]
+```
+
+This recursive definition is simple enough. It expects arguments in the form `<function> <seed> <list>`. For example, `[+] 0 [1 2 3]`. It will apply the `<function>` to the `<seed>` and the first element of the list (`snoced` off), then again to the result and the next element of the list until it's `empty?`. "Until it's `emtpty?`" Hmmm... perhaps we can redefine in terms of `until` and avoid the direct recursion; about equally simple:
+
+```brief
+let 'fold [2drop until [dip dup 2dip [snoc] -rot] [empty? rot]]
+```
+
+And now `reverse` can be redefined once again as quite simply: `let 'reverse [fold [cons swap] []]`.
+
+We can also define a couple of simple but possibly useful words to compute the `sum` or `product` of a list of numbers:
+
+```brief
+let 'sum [fold [+] 0]
+let 'product [fold [*] 1]
+```
+
+Funny enough, `map` is very similar. For example, to multiply each element by two: `fold [cons * 2 swap] []` and the `reverse` the result. The goal is to make an expression like `map [* 2] [1 2 3]` produce `[2 4 6]`. We just need to `compose` a `cons` before and a `swap` after (`compose swap [swap] compose [cons]`), then `swap` and empty list behind this (`swap []`), then `fold` over the list and `reverse` the result:
+
+```brief
+let 'map [reverse fold swap [] compose swap [swap] compose [cons]]
+```
+
+Next we define `filter`, which removes elements from a list depending on whether a quotation returns true. For example, `filter [even?] [1 2 3 4 5]` would produce `[2 4]` where `let 'even? [= 0 mod swap 2]`. The first thought is to first `map` the elements to single-element or empty lists with `map [if [cons swap []] [[] drop] even? dup]` and then combine the lists with `fold [compose] []`. This requires a bit of tricky `compose` calls to build the expresion with `even?` embedded:
+
+```brief
+let 'filter [fold [compose] [] map compose [if [cons swap []] [[] drop]] compose swap [dup]]
+```
+
+Another thought is to do it directly while folding over the list; either `consing` it onto a new list or `dropping` it, then `reversing` the result.
+
+```brief
+let 'filter [reverse fold swap [] compose [if [cons swap] [drop swap]] compose swap [over]]
+```
+
+This seems equally tricky and maybe a bit less clear. The need to reverse probably makes it similar performance to the two-pass `map`/`filter` version so perhaps we'll keep the first version for now.
+
+We can define a `swons` word as `cons swap` (taken [from Factor](https://docs.factorcode.org/content/word-swons,lists.html)) and replace the places we've done this (in `filter` and `reverse`). This ability to factor out code it one of the beauties of concatenative languages. In fact `swons []` can be replaced with a `quote` word meant to create single-element `Lists` from `Values`. So, `cons swap []` becomes just `quote`:
+
+```brief
+let 'filter [fold [compose] [] map compose [if [quote] [[] drop]] compose swap [dup]]
+```
+
+One final trick for the day. Let's add `range <n> <m>` word to generate a `List` of numbers from n to m. For example, this would generate `[0 1 2 3 4 5 6 7 8 9 10]`:
+
+```brief
+drop while [dip [cons] + -1 dup] [<= 0 dup] 10 []
+```
+
+Starting with `0 10` on the stack, `-rot []` will place the initial empty list underneath. A `compose [<=] swons [dup]` will create the `[<= <n> dup]` expression:
+
+```brief
+let 'range [drop while [dip [cons] + -1 dup] compose [<=] swons [dup] -rot []]
+```
+
+And the finale for the day is to implement `factorial` in terms of this. Factorial of a number is just the `product` of a `range` from `1` to that number:
+
+```brief
+let 'factorial [product range 1]
+```

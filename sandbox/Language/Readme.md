@@ -1468,8 +1468,17 @@ Starting with `0 10` on the stack, `-rot []` will place the initial empty list u
 let 'range [drop while [dip [cons] + -1 dup] compose [<=] swons [dup] -rot []]
 ```
 
-And the finale for the day is to implement `factorial` in terms of this. Factorial of a number is just the `product` of a `range` from `1` to that number:
+And now implement `factorial` in terms of this. Factorial of a number is just the `product` of a `range` from `1` to that number:
 
 ```brief
 let 'factorial [product range 1]
 ```
+
+The finale for the day is to implement the solution to [Project Euler problem #1](https://projecteuler.net/problem=1); Find the sum of all the multiples of 3 or 5 below 1000. This was [done in a previous encarnation of Brief some years ago](https://www.youtube.com/watch?v=R3MNcA2dpts).
+
+```brief
+let 'multiple? [= 0 mod swap]
+sum filter [or bi [multiple? 3] [multiple? 5]] range 1 999
+```
+
+Pretty "brief" solution. Fun, fun!

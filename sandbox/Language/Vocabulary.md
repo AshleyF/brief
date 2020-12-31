@@ -61,7 +61,7 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `filter` | ql-l | Filter a list by a boolean expression (q) | Secondary |
 | `fold` | qvl-x | Fold a quotation (q) along with a seed (v) over a list | Secondary |
 | `sum` | l-n | Compute the sum of a list of Numbers | Secondary |
-| `product` | l-n | Compute the roduct of a list of Numbers | Secondary |
+| `product` | l-n | Compute the product of a list of Numbers | Secondary |
 | `empty?` | x- | Determine whether List or Map is empty, while keeping the collection | Secondary |
 | `count` | x-n | Count of values within List or Map, while keeping the collection | Primitive |
 | `cons` | vl-l | Cons value onto head of List (tail) | Primitive |

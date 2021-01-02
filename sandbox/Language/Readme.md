@@ -1216,6 +1216,34 @@ Let's continue to fill out the language with type casts,
 
 ### Type Casts
 
+To determine the type of a value on the stack:
+
+```fsharp
+primitive "type" (fun s ->
+    let kind, t =
+        match s.Stack with
+        | Symbol  _ :: t -> "sym", t
+        | Number  _ :: t -> "num", t
+        | String  _ :: t -> "str", t
+        | Boolean _ :: t -> "bool", t
+        | List    _ :: t -> "list", t
+        | Map     _ :: t -> "map", t
+        | [] -> failwith "Stack underflow"
+    { s with Stack = String kind :: t })
+```
+
+And helpers for each type:
+
+```brief
+let 'list? [= 'list type]
+let 'sym?  [= 'sym  type]
+let 'num?  [= 'num  type]
+let 'str?  [= 'str  type]
+let 'bool? [= 'bool type]
+let 'list? [= 'list type]
+let 'map?  [= 'map  type]
+```
+
 Casting values between types: `Numbers`, `Booleans`, and `Strings` (that don't contain white space) may be cast to `Symbols`:
 
 ```fsharp
@@ -1365,7 +1393,7 @@ primitive "!" (fun s ->
     | _ -> failwith "Stack underflow")
 ```
 
-## 29 DEC 2020 Flow Control
+## 28 DEC 2020 Flow Control
 
 Let's try implimenting a `reverse` word to reverse the contents of a list. The purely functional strategy will be to peel off values and build a new list in reverse. First thought:
 
@@ -1407,7 +1435,7 @@ let 'reverse [drop until [dip [cons] swap snoc] [empty?] swap []]
 
 This is fun!
 
-## 30 DEC 2020 Map, Fold, Filter
+## 29 DEC 2020 Map, Fold, Filter
 
 Let's add the triumverate of functional programming, `map`, `fold` and `filter`. Starting with `fold`:
 
@@ -1482,3 +1510,156 @@ sum filter [or bi [multiple? 3] [multiple? 5]] range 1 999
 ```
 
 Pretty "brief" solution. Fun, fun!
+
+## 30 DEC 2020 Infix, Prefix, Postfix
+
+The `= 0 mod swap` above is bothersome. It would be better to avoid the `swap` (also in `let 'even? [= 0 mod swap 2]`). And the definition of `let '-- [+ -1]` should be just `let '-- [- 1]` symetrical with `let '++ [+ 1]`. The problem is the order of arguments to these binary operations. While keeping them in their standard infix order, they're not convenient for currying. While saying that `- x y` means "subtract y from x", what does `- x` mean? "Subtract <something> from x"? Much more convenient to say that it means "subtract x from ..." whatever's on the stack. The same goes for comparison operations. `> 10` should mean "is greater than 10 ...", not "is 10 greater than ..." It may be confusing, but let's reverse the arguments.
+
+It's interesting to note that infix argument order works nicely with postfix notation because `y x -` in postfix does mean "subtract x from y" and `x -` also means "subtract x." You can even have increment/decrement operators like `1+` and `11` that are simply defined as `1 +` and `1 -`. We had to use names like `++` and `--` in Brief because `-1`, for example, would be confused with a negative-one literal.
+
+While using the current system I'm personally finding myself authoring code backward; writing right to left. This may be because of being used to RPN, Forth, Factor, Joy, ... or may be that postfix is truely superior. Let's stick with prefix notation a bit longer and see what other snags we hit.
+
+## 31 DEC 2020 Fried Quotations
+
+Inspired by [Factor's fried quotations idea](https://docs.factorcode.org/content/article-fry.html), let's build a `fry` word for Brief, but without the special `'[` parsing word and without the distinction between `_` and `@` specifiers.
+
+What `fry` will do is replace "holes" in the form `_` with values from the stack:
+
+```brief
+fry [this _ a _] 'is 'test
+| [this is a test]
+```
+
+To accomplish this, the strategy will be to build a `List` of `Lists` and then flatten this. Some languages call this general idea `SelectMany`. We'll call it `flatmap`; essentially mapping over a list with a function that produces zero to many results as `Lists`, then `fold [compose] []` over that to concatenate all the inner lists:
+
+```brief
+let 'flatmap [fold [compose] [] map]
+```
+
+Using this, `fry` is quite simple. Just `flapmap` over the quotation and either rotate in values from the stack to replace "holes" or `quote` non-holes:
+
+```brief
+let 'fry [flatmap [if [rot drop] [quote] = >sym '_ dup]]
+```
+
+Right away we can start using `fry` to simplify some existing definitions. For example, `range` does this complicated `compose [>=] swons [dup]`:
+
+```brief
+let 'range [drop while [dip [cons] -- dup] compose [>=] swons [dup] -rot []]
+```
+
+This is merely to build up an expression in the form `[>= <some_value> dup]`. Replacing with `fry [>= _ dup]` is _much_ more clear:
+
+```brief
+let 'range [drop while [dip [cons] -- dup] fry [>= _ dup] -rot []]
+```
+
+The current `filter` definition literaly has a `flatmap` built into it (`fold [compose] [] map`):
+
+```brief
+let 'filter [fold [compose] [] map compose [if [quote] [[] drop]] compose swap [dup]]
+```
+
+This can be replaced of course. The beauty of the "algebra" of Brief is that these refactorings can be done blindly.
+
+```brief
+let 'filter [flatmap compose [if [quote] [[] drop]] compose swap [dup]]
+```
+
+Also, notice that the `compose [if [quote] [[] drop]] compose swap [dup]` is essentially constructing an expression of the form `[if [quote] [[] drop] <some_predicate> dup]`. This can be replaced with a fried quotation:
+
+```brief
+let 'filter [flatmap fry [if [quote] [[] drop] _ dup]]
+```
+
+An interesting one is in `map`. The `compose swap [swap] compose [cons]` is just constructing `[cons <some_expression> swap]`:
+
+We _can_ implement `prepose` ([taken from Factor](https://docs.factorcode.org/content/word-prepose,kernel.html)):
+
+```brief
+let 'prepose [compose swap]
+```
+
+And slightly simplify `map`:
+
+```brief
+let 'map [reverse fold swap [] prepose [swap] compose [cons]]
+```
+
+However, replacing the whole thing with a `fry [cons _ swap]` causes infinite recursion!
+
+```brief
+let 'map [reverse fold swap [] fry [cons _ swap]]
+```
+
+This is because `fry` itself uses `flatmap`, which uses `map`, which would then be defined in terms of `fry`. We'll have to see if there's a elegant solution to this some time. For now, we'll leave it as is.
+
+We also want to allow splicing in _whole quotations_. In Factor this is done with a separate `@` token, but we'll just make it work by "magic" based on the type of value filling the hole:
+
+```brief
+fry [this _ test] [is another]
+| [this is another test]
+```
+
+If the value is a list (`list?`) then we won't quote it and instead will allow `flatmap` to flatten it:
+
+```brief
+let 'fry [flatmap [if [unless [quote] list? dup rot drop] [quote] = >sym '_ dup]]
+```
+
+If we really want a quotation to fill a "hole" then we'll double-quote it:
+
+```brief
+fry [this _ test] [[is another]]
+| [this [is another] test]
+```
+
+This leaves the onus on the caller which is probably why Factor uses another token to enforce it. We don't have type safety anyway, so... something to consider for the future.
+
+DEBATE 21: Should fried quotations support [an `@` fry specifier](https://docs.factorcode.org/content/word-__at__%2Cfry.html)?
+
+What we still don't support is _nested_ fried quotations (aka *deep* fried quotations!). The following should be made to work:
+
+```brief
+fry [foo _ [bar _ ] baz] 1 2
+| [foo 1 [bar 2] baz]
+```
+
+To do this, instead of blindly quoting (`quote`) non-holes, we want to recursively `fry` them if they're a list (`[if [<recursively_fry>] [quote] list? dup]`). Recursively `frying` is a bit tricky because of the state of the stack at that point. It contains the quotation being fried and a partial resulting quotation. We need to rotate (`-rot`) the non-hole below these, the dip down (`2dip`) below them and fry (`[fry]`) this against the remaining stack, and then rotate (`rot`) the result back to be quotes (`quote`). Written forward, that's `quote rot 2dip [fry] -rot`.
+
+Notice how while thinking about this, we thing _operationally_ about the stack effects and walk through the words in revers order just as the machine does. It's still unclear whether prefix or postfix notation will be best in the end. The thinking is that maybe once we've moved on to higher level words, a top-down reading will be clear.
+
+DEBATE 22: Should we use prefix or postfix notation?
+
+Reading what we've just come up with as, "The `quote` of a value rotated from below, after having dipped down to fry it, after having rotated it below to begin with". Each of the "after having..." parts make is clear that thinking top-down about this is difficult.
+
+At any rate, here's what we have:
+
+```brief
+let 'fry [flatmap [if [unless [quote] list? dup rot drop] [if [quote rot 2dip [fry] -rot] [quote] list? dup] = >sym '_ dup]]
+```
+
+A very long and confusing definition! Factoring out some pieced to "document" them with name/intent:
+
+```brief
+let 'fill [unless [quote] list? dup rot drop]
+let 'deepfry [if [quote rot 2dip [fry] -rot] [quote] list? dup]
+let 'hole? [= >sym '_ dup]
+```
+
+Then it can be written much more clearly:
+
+```brief
+let 'fry [flatmap [if [fill] [deepfry] hole?]]
+```
+
+It's a shame to polute the dictionary with these extra words though. We could prefix them with `fry.` as a "namespace" of sorts and could indent them to show that they "belong" to the parent `fry` word:
+
+```brief
+let 'fry [flatmap [if [fry.fill] [fry.deepfry] fry.hole?]]
+    let 'fry.fill [unless [quote] list? dup rot drop]
+    let 'fry.deepfry [if [quote rot 2dip [fry] -rot] [quote] list? dup]
+    let 'fry.hole? [= >sym '_ dup]
+```
+
+It would be better to come up with a system for proper name scoping.

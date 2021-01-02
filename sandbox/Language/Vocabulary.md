@@ -19,7 +19,7 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `over` | xy-yxy | Duplicate second stack value | Secondary |
 | `2over` | xyz-yzxyz | Duplicate second and third stack values | Secondary |
 | `nip` | xy-x | Drop second stack value | Secondary |
-| `tuck` | xy-xyx | Duplicate first stack value below second value | Secondary |
+| `tuck` | xy-xyx | Duplicate top stack value below second value | Secondary |
 | `rot` | xyz-zxy | Rotate third stack value to the top | Secondary |
 | `-rot` | xyz-yzx | Rotate top stack value to third spot | Secondary |
 
@@ -58,6 +58,7 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | Word | Stack | Description | Type |
 | --- | --- | --- | --- |
 | `map` | ql-l | Map a quotation (q) over a list | Secondary |
+| `map-many` | ql-l | Map a list-producing quotation (q) over a list; composing the result | Secondary |
 | `filter` | ql-l | Filter a list by a boolean expression (q) | Secondary |
 | `fold` | qvl-x | Fold a quotation (q) along with a seed (v) over a list | Secondary |
 | `sum` | l-n | Compute the sum of a list of Numbers | Secondary |
@@ -68,7 +69,12 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `snoc` | l-vl | Reverse cons List into head and tail | Primitive |
 | `swons` | lv-l | Cons value (v) onto head of List (equivalent to `cons swap`) | Secondary |
 | `quote` | v-l | Quote a value into a single-element list | Secondary |
-| `compose` | qr-q | Compose two quotations (`Lists`) into one. | Primitive |
+| `compose` | qr-q | Compose two quotations (`Lists`) into one | Primitive |
+| `prepose` | qr-q | Compose two quotations is reverse order (`Lists`) into one | Primitive |
+| `curry` | qx-q | Compose value (x) onto end of quotations (q) | Secondary |
+| `2curry` | qxy-q | Compose two values (x, y) onto end of quotations (q) | Secondary |
+| `3curry` | qxyz-q | Compose three values (x, y, z) onto end of quotations (q) | Secondary |
+| `fry` | q...-q | Compose quotation containing _ "holes"; taking quotations from stack | Secondary |
 | `head` | - | Retrieve first element of List | Secondary |
 | `tail` | - | Retrieve all but first element of List | Secondary |
 | `key?` | km-bm | Determine whether key is in Map, while keeping Map | Primitive |
@@ -102,13 +108,13 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | Word | Stack | Description | Type |
 | --- | --- | --- | --- |
 | `+` | xy-n | Add top two stack values | Primitive |
-| `-` | xy-n | Subtract second stack value from top stack value | Primitive |
+| `-` | xy-n | Subtract top stack value from second stack value | Primitive |
 | `*` | xy-n | Multiply top two stack values | Primitive |
-| `/` | xy-n | Divide top stack value by second stack value | Primitive |
-| `mod` | xy-n | Modulus top stack value by second stack value | Primitive |
+| `/` | xy-n | Divide second stack value by top stack value | Primitive |
+| `mod` | xy-n | Modulus second stack value by top stack value | Primitive |
 | `++` | n-n | Increment number | Secondary |
 | `--` | n-n | Decrement number | Secondary |
-| `recip` | x-n | Compute reciprocal (1/x) of top stack value | Primitive |
+| `recip` | x-n | Compute reciprocal (1/x) of top stack value | Secondary |
 | `neg` | - | Negate top stack value | Secondary |
 | `abs` | - | Compute absolute value of top stack value | Secondary |
 | `sign` | n-n | Determine sign of top stack value (-1, 1) | Secondary |
@@ -125,6 +131,14 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 
 | Word | Stack | Description | Type |
 | --- | --- | --- | --- |
+| `type` | x-s | Determine the type of top stack value ('sym, 'num, 'str, 'bool, 'list, 'map) | Primitive |
+| `list?` | x-b | Determine whether top of stack value is a List | Secondary |
+| `sym?` | x-b | Determine whether top of stack value is a Symbol | Secondary |
+| `num?` | x-b | Determine whether top of stack value is a Number | Secondary |
+| `str?` | x-b | Determine whether top of stack value is a String | Secondary |
+| `bool?` | x-b | Determine whether top of stack value is a Boolean | Secondary |
+| `list?` | x-b | Determine whether top of stack value is a List | Secondary |
+| `map?` | x-b | Determine whether top of stack value is a Map | Secondary |
 | `>sym` | x-s | Cast String (not including white space), Boolean, or Number to Symbol | Primitive |
 | `>num` | x-n | Cast Symbol, String, Boolean (-1, 0), List, or Map (lengths) to Number | Primitive |
 | `>str` | x-s | Cast value to string in Brief literal source form | Primitive |

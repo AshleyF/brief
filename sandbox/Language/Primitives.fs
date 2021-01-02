@@ -66,7 +66,7 @@ let primitiveState =
 
     let binaryOp name op = primitive name (fun s ->
         match s.Stack with
-        | Number x :: Number y :: t -> { s with Stack = Number (op x y) :: t }
+        | Number x :: Number y :: t -> { s with Stack = Number (op y x) :: t }
         | _ :: _ :: _ -> failwith "Expected nn"
         | _ -> failwith "Stack underflow")
 
@@ -75,14 +75,6 @@ let primitiveState =
     binaryOp "*" (*)
     binaryOp "/" (/)
     binaryOp "mod" (%)
-
-    let unaryOp name op = primitive name (fun s ->
-        match s.Stack with
-        | Number x :: t -> { s with Stack = Number (op x) :: t }
-        | _ :: _ -> failwith "Expected n"
-        | _ -> failwith "Stack underflow")
-
-    unaryOp "recip" (fun n -> 1. / n)
 
     let booleanOp name op = primitive name (fun s ->
         match s.Stack with
@@ -101,7 +93,7 @@ let primitiveState =
 
     let comparisonOp name op = primitive name (fun s ->
         match s.Stack with
-        | x :: y :: t -> { s with Stack = Boolean (op x y) :: t }
+        | x :: y :: t -> { s with Stack = Boolean (op y x) :: t }
         | _ -> failwith "Stack underflow")
 
     comparisonOp "=" (=)
@@ -136,6 +128,18 @@ let primitiveState =
         | String p :: t -> File.ReadAllText(sprintf "%s.b" p) |> rep { s with Stack = t }
         | _  :: _ -> failwith "Expected s"
         | _ -> failwith "Stack underflow")
+
+    primitive "type" (fun s ->
+        let kind, t =
+            match s.Stack with
+            | Symbol  _ :: t -> "sym", t
+            | Number  _ :: t -> "num", t
+            | String  _ :: t -> "str", t
+            | Boolean _ :: t -> "bool", t
+            | List    _ :: t -> "list", t
+            | Map     _ :: t -> "map", t
+            | [] -> failwith "Stack underflow"
+        { s with Stack = String kind :: t })
 
     primitive ">sym" (fun s ->
         match s.Stack with

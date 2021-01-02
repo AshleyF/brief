@@ -5,8 +5,8 @@ let 'sq [* dup]
 let 'cube [* * dup dup]
 
 let 'sign [min 1 max -1]
-let 'min [drop when [swap] < 2dup]
-let 'max [drop when [swap] > 2dup]
+let 'min [drop when [swap] > 2dup]
+let 'max [drop when [swap] < 2dup]
 
 let 'both? [and bi@]
 let 'either? [or bi@]
@@ -49,12 +49,21 @@ let 'tuck [over swap]
 let 'rot [swap dip [swap]]
 let '-rot [dip [swap] swap]
 
+let 'list? [= 'list type]
+let 'sym?  [= 'sym  type]
+let 'num?  [= 'num  type]
+let 'str?  [= 'str  type]
+let 'bool? [= 'bool type]
+let 'list? [= 'list type]
+let 'map?  [= 'map  type]
+
 let 'apply [when swap true]
 let 'when [if swap []]
 let 'unless [if []]
 
-let 'neg [- 0]
+let 'neg [* -1]
 let 'abs [when [neg] < 0 dup]
+let 'recip [/ 1 swap]
 
 let '< [not or 2bi [>] [=]]
 let '<= [or 2bi [<] [=]]
@@ -71,22 +80,33 @@ let 'until [while dip [compose [not]]]
 
 let 'swons [cons swap]
 let 'quote [swons []]
+let 'prepose [compose swap]
+
+let 'curry [compose dip [quote]]
+let '2curry [curry curry]
+let '3curry [curry curry curry]
 
 let 'fold [2drop until [dip dup 2dip [snoc] -rot] [empty? rot]]
-let 'map [reverse fold swap [] compose swap [swap] compose [cons]]
-let 'filter [fold [compose] [] map compose [if [quote] [[] drop]] compose swap [dup]]
+let 'map [reverse fold swap [] prepose [swap] compose [cons]]
+let 'flatmap [fold [compose] [] map]
+let 'filter [flatmap fry [if [quote] [[] drop] _ dup]]
 
 let 'reverse [fold [swons] []]
 
-let 'even? [= 0 mod swap 2]
+let 'even? [= 0 mod 2]
 let 'odd? [not even?]
 
 let 'sum [fold [+] 0]
 let 'product [fold [*] 1]
 
 let '++ [+ 1]
-let '-- [+ -1]
+let '-- [- 1]
 
-let 'range [drop while [dip [cons] -- dup] compose [<=] swons [dup] -rot []]
+let 'range [drop while [dip [cons] -- dup] fry [>= _ dup] -rot []]
 
 let 'factorial [product range 1]
+
+let 'fry [flatmap [if [fry.fill] [fry.deepfry] fry.hole?]]
+    let 'fry.fill [unless [quote] list? dup rot drop]
+    let 'fry.deepfry [if [quote rot 2dip [fry] -rot] [quote] list? dup]
+    let 'fry.hole? [= >sym '_ dup]

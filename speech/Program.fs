@@ -150,9 +150,9 @@ let rec fade () =
     let rec fade' level =
         printfn "Fade: %i" level
         level |> sprintf "post 'trigger [hook ifttt-key 'all-lights-dim '%i ' ']" |> post
-        Thread.Sleep(5 * 60 * 1000 / 100)
+        Thread.Sleep(5 * 60 * 1000 / 25)
         if fading then
-            if level > 0 then fade' (level - 1)
+            if level > 0 then fade' (level - 4)
             else post "post 'trigger [hook ifttt-key 'all-lights-off ' ' ']"
     (new Thread(new ThreadStart(fun () -> fade' 100), IsBackground = true)).Start()
 

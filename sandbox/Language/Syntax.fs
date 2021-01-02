@@ -36,14 +36,14 @@ type Node =
 let stripLeadingTick s = if String.length s > 1 then s.Substring(1) else ""
 
 let parse tokens =
-    let rec parse' nodes tokens =
+    let rec parse' level nodes tokens =
         match tokens with
         | "]" :: t ->
-            let q, t' = parse' [] t
-            parse' (Quote (List.rev q) :: nodes) t'
-        | "[" :: t -> List.rev nodes, t
+            let q, t' = parse' (level + 1) [] t
+            parse' level (Quote (List.rev q) :: nodes) t'
+        | "[" :: t -> if level <> 0 then List.rev nodes, t else failwith "Unexpected quotation open"
         | "}" :: t ->
-            let m, t' = parse' [] t
+            let m, t' = parse' (level + 1) [] t
             let rec pairs list = seq {
                 match list with
                 | Token n :: v :: t ->
@@ -52,13 +52,13 @@ let parse tokens =
                     yield! pairs t
                 | [] -> ()
                 | _ -> failwith "Expected name/value pair" }
-            parse' (Pairs (m |> List.rev |> pairs |> List.ofSeq) :: nodes) t'
-        | "{" :: t -> List.rev nodes, t
-        | [] -> List.rev nodes, []
-        | token :: t -> parse' (Token token :: nodes) t
-    match tokens |> List.ofSeq |> parse' [] with
+            parse' level (Pairs (m |> List.rev |> pairs |> List.ofSeq) :: nodes) t'
+        | "{" :: t -> if level <> 0 then List.rev nodes, t else failwith "Unexpected map open"
+        | [] -> if level = 0 then List.rev nodes, [] else failwith "Unmatched quotation or map syntax"
+        | token :: t -> parse' level (Token token :: nodes) t
+    match tokens |> List.ofSeq |> parse' 0 [] with
     | (result, []) -> result
-    | _ -> failwith "Unexpected quotation close"
+    | _ -> failwith "Unmatched quotation or map syntax"
 
 let rec compile nodes =
     let rec compile' node =

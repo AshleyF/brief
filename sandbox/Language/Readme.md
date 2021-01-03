@@ -26,3 +26,4 @@ Starting experimenting with Brief implementation details while documenting thoug
     * [Infix, Prefix, Postfix](https://github.com/AshleyF/brief/blob/gh-pages/sandbox/Language/journal/DEC2020md#30-dec-2020-infix-prefix-postfix)
     * [Fried Quotations](https://github.com/AshleyF/brief/blob/gh-pages/sandbox/Language/journal/DEC2020md#31-dec-2020-fried-quotations)
 * [January 2021](https://github.com/AshleyF/brief/blob/gh-pages/sandbox/Language/journal/JAN2021.md)
+    * [Lexical Scoping](https://github.com/AshleyF/brief/blob/gh-pages/sandbox/Language/journal/JAN2021.md#02-jan-2021-lexical-scoping)

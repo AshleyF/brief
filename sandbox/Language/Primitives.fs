@@ -1,5 +1,6 @@
 ﻿module Primitives
 
+open System
 open System.IO
 open Structure
 open Syntax
@@ -76,6 +77,39 @@ let primitiveState =
     binaryOp "/" (/)
     binaryOp "mod" (%)
 
+    let unaryOp name op = primitive name (fun s ->
+        match s.Stack with
+        | Number x :: t -> { s with Stack = Number (op x) :: t }
+        | _ :: t -> failwith "Expected n"
+        | _ -> failwith "Stack underflow")
+
+    unaryOp "sqrt" (Math.Sqrt)
+    unaryOp "cbrt" (Math.Cbrt)
+
+    unaryOp "sin" (Math.Sin)
+    unaryOp "cos" (Math.Cos)
+    unaryOp "tan" (Math.Tan)
+    unaryOp "sinh" (Math.Sinh)
+    unaryOp "cosh" (Math.Cosh)
+    unaryOp "tanh" (Math.Tanh)
+    unaryOp "asin" (Math.Asin)
+    unaryOp "acos" (Math.Acos)
+    unaryOp "atan" (Math.Atan)
+    unaryOp "asinh" (Math.Asinh)
+    unaryOp "acosh" (Math.Acosh)
+    unaryOp "atanh" (Math.Atanh)
+    binaryOp "atan2" (fun x y -> Math.Atan2(float x, float y))
+
+    unaryOp "ceil" (Math.Ceiling)
+    unaryOp "floor" (Math.Floor)
+    unaryOp "trunc" (Math.Truncate)
+    unaryOp "round" (Math.Round)
+
+    binaryOp "pow" (fun x y -> Math.Pow(float x, float y))
+    unaryOp "ln" (Math.Log)
+    unaryOp "log" (Math.Log10)
+    unaryOp "log2" (Math.Log2)
+
     let booleanOp name op = primitive name (fun s ->
         match s.Stack with
         | Boolean x :: Boolean y :: t -> { s with Stack = Boolean (op x y) :: t }
@@ -101,9 +135,9 @@ let primitiveState =
 
     primitive "let" (fun s ->
         match s.Stack with
-        | String n :: (List _ as q) :: t -> { s with Dictionary = Map.add n q s.Dictionary; Stack = t }
-        | String n :: v :: t -> { s with Dictionary = Map.add n v s.Dictionary; Stack = t }
-        | _ :: _  :: _ -> failwith "Expected qs"
+        | String n :: (List _ as q) :: t -> { s with Dictionary = addWord n q s.Dictionary; Stack = t }
+        | String n :: v :: t -> { s with Dictionary = addWord n v s.Dictionary; Stack = t }
+        | _ :: _  :: _ -> failwith "Expected sq"
         | _ -> failwith "Stack underflow")
 
     primitive "eval" (fun s ->
@@ -247,7 +281,7 @@ let primitiveState =
         printf "Primitives:"
         s.Primitives |> Map.iter (fun k _ -> printf " %s" k)
         printfn "\nSecondaries:"
-        s.Dictionary |> Map.iter (fun k v -> printfn "%s %s" k (stringOfValue v))
+        s.Dictionary |> List.iter (Map.iter (fun k v -> printfn "%s %s" k (stringOfValue v)))
         s)
 
     primitive "word" (fun s ->
@@ -256,11 +290,13 @@ let primitiveState =
             match Map.tryFind n s.Primitives with
             | Some _ -> printfn "%s Primitive" n
             | None ->
-                match Map.tryFind n s.Dictionary with
+                match tryFindWord n s.Dictionary with
                 | Some v -> printfn "%s %s" n (stringOfValue v)
                 | None -> printfn "%s Unknown" n
             { s with Stack = t }
         | _ :: _ -> failwith "Expected s"
         | _ -> failwith "Stack underflow")
+
+    primitive "_dropFrame" (fun s -> { s with Dictionary = dropFrame s.Dictionary })
 
     { emptyState with Primitives = primitives }

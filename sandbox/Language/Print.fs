@@ -20,7 +20,8 @@ let printState s =
     printfn "Continuation: [%s]" (stringOfValues s.Continuation)
     printfn "Stack: [%s]" (stringOfValues s.Stack)
     printfn "Map: { %s }" (stringOfMap s.Map)
-    printfn "Dictionary: { %s }" (stringOfMap s.Dictionary)
+    printf  "Doctionary: "
+    List.iter (fun frame -> printf "{ %s }" (stringOfMap frame)) s.Dictionary
 
 let printDebug w s =
     let continuation = s.Continuation |> List.rev |> stringOfValues

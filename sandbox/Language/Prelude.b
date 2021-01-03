@@ -106,7 +106,7 @@ let 'range [drop while [dip [cons] -- dup] fry [>= _ dup] -rot []]
 
 let 'factorial [product range 1]
 
-let 'fry [flatmap [if [fry.fill] [fry.deepfry] fry.hole?]]
-    let 'fry.fill [unless [quote] list? dup rot drop]
-    let 'fry.deepfry [if [quote rot 2dip [fry] -rot] [quote] list? dup]
-    let 'fry.hole? [= >sym '_ dup]
+let 'fry [flatmap [if [fill] [deepfry] hole?]
+    let 'fill [unless [quote] list? dup rot drop]
+    let 'deepfry [if [quote rot 2dip [fry] -rot] [quote] list? dup]
+    let 'hole? [= >sym '_ dup]]

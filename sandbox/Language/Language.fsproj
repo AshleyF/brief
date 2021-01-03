@@ -6,9 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="Readme.md">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <None Include="Readme.md" />
+    <None Include="Journal\JAN2021.md" />
+    <None Include="Journal\DEC2020.md" />
     <None Include="Vocabulary.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

@@ -8,14 +8,14 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | --- | --- | --- | --- |
 | `depth` | -n | Get stack depth | Primitive |
 | `clear` | - | Clear stack | Primitive |
-| `dup` | x-xx | Duplicate top stack value | Primitive |
+| `dup` | x-xx | Duplicate top stack value | Secondary |
 | `2dup` | xy-xyxy | Duplicate top two stack values | Secondary |
 | `3dup` | xyz-xyzxyz | Duplicate top three stack values | Secondary |
-| `drop` | x- | Drop top stack value | Primitive |
+| `drop` | x- | Drop top stack value | Secondary |
 | `2drop` | xy- | Drop top two stack values | Secondary |
 | `3drop` | xyz- | Drop top three stack values | Secondary |
-| `swap` | xy-yx | Swap top two stack values | Primitive |
-| `pick` | xyz-zxyz | Duplicate third stack value | Primitive |
+| `swap` | xy-yx | Swap top two stack values | Secondary |
+| `pick` | xyz-zxyz | Duplicate third stack value | Secondary |
 | `over` | xy-yxy | Duplicate second stack value | Secondary |
 | `2over` | xyz-yzxyz | Duplicate second and third stack values | Secondary |
 | `nip` | xy-x | Drop second stack value | Secondary |
@@ -124,6 +124,29 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `cube` | n-n | Cube top stack value | Secondary |
 | `pi` | -n | Math constant | Secondary |
 | `e` | -n | Math constant | Secondary |
+| `sqrt` | n-n | Compute square root of top stack value | Primitive |
+| `cbrt` | n-n | Compute cube root of top stack value | Primitive |
+| `sin` | n-n | Compute sine of top stack value | Primitive |
+| `cos` | n-n | Compute cosine of top stack value | Primitive |
+| `tan` | n-n | Compute tangent of top stack value | Primitive |
+| `sinh` | n-n | Compute hyperbolic sine of top stack value | Primitive |
+| `cosh` | n-n | Compute hyperbolic cosine of top stack value | Primitive |
+| `tanh` | n-n | Compute hyperbolic tangent of top stack value | Primitive |
+| `asin` | n-n | Compute angle whose sine is top stack value | Primitive |
+| `acos` | n-n | Compute angle whose cosine is top stack value | Primitive |
+| `atan` | n-n | Compute angle whose tangent is top stack value | Primitive |
+| `asinh` | n-n | Compute angle whose hyperbolic sine is top stack value | Primitive |
+| `acosh` | n-n |  Compute angle whose hyperbolic cosine is top stack value| Primitive |
+| `atanh` | n-n |  Compute angle whose hyperbolic tangen is top stack value| Primitive |
+| `atan2` | xy-n |  Compute angle whose tangent is the quotient of top two stack values| Primitive |
+| `ceil` | n-n |  Compute ceiling of top stack value| Primitive |
+| `floor` | n-n | Compute floor of top stack value | Primitive |
+| `trunc` | n-n | Truncate top stack value | Primitive |
+| `round` | n-n | Round top stack value | Primitive |
+| `pow` | yx-n | Compute x raised to the power of y | Primitive |
+| `ln` | n-n | Compute natural logarithm of top stack value | Primitive |
+| `log` | n-n | Compute base10 logarithm of top stack value | Primitive |
+| `log2` | n-n | Compute base2 logarithm of top stack value | Primitive |
 | `even?` | n-b | Determine whether a number is even | Secondary |
 | `odd?` | n-b | Determine whether a number is odd | Secondary |
 
@@ -164,6 +187,12 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `factorial` | n-n | Compute the factorial of a Numeber | Secondary |
 | `words` | - | Display primitive and secondary words | Primitive |
 | `word` | n- | Display word definition | Primitive |
+
+## Internal
+
+| Word | Stack | Description | Type |
+| --- | --- | --- | --- |
+| `_dropFrame` | - | Drop dictionary frame | Primitive |
 
 ## Tesla Actor
 

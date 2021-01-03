@@ -8,9 +8,12 @@ let rec interpret state stream =
         // printDebug (Some w) state
         match w with
         | Symbol s ->
-            match Map.tryFind s state.Dictionary with
-            | Some (List l) -> { state with Continuation = List.rev l @ state.Continuation }
-            | Some v -> { state with Continuation = v :: state.Continuation }
+            match tryFindWord s state.Dictionary with
+            | Some (List l) ->
+                { state with Dictionary = addFrame state.Dictionary
+                             Continuation = List.rev l @ Symbol "_dropFrame" :: state.Continuation }
+            | Some v -> { state with Dictionary = addFrame state.Dictionary
+                                     Continuation = v :: Symbol "_dropFrame" :: state.Continuation }
             | None ->
                 match Map.tryFind s state.Primitives with
                 | Some p -> p state

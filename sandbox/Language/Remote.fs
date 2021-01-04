@@ -13,24 +13,22 @@ open Actor
 let remoteActor =
     let mutable (channel : BriefActor option) = None
     let remoteState =
-        let mutable (primitives : Map<string, (State -> State)>) = primitiveState.Primitives
-        let primitive name fn = primitives <- Map.add name fn primitives
+        [
+            primitive "connect" (fun s ->
+                match getStack s with
+                | String host :: Number port :: t ->
+                    let reader = new BinaryReader((new TcpClient(host, int port)).GetStream())
+                    let rec read () =
+                        let source = reader.ReadString()
+                        printfn "Remote: %s" source
+                        source |> brief |> channel.Value.Post
+                        read ()
+                    (new Thread(new ThreadStart(read), IsBackground = true)).Start()
+                    setStack s t
+                | _ :: _ :: _ -> failwith "Expected ss"
+                | _ -> failwith "Stack underflow")
 
-        primitive "connect" (fun s ->
-            match s.Stack with
-            | String host :: Number port :: t ->
-                let reader = new BinaryReader((new TcpClient(host, int port)).GetStream())
-                let rec read () =
-                    let source = reader.ReadString()
-                    printfn "Remote: %s" source
-                    source |> brief |> channel.Value.Post
-                    read ()
-                (new Thread(new ThreadStart(read), IsBackground = true)).Start()
-                { s with Stack = t }
-            | _ :: _ :: _ -> failwith "Expected ss"
-            | _ -> failwith "Stack underflow")
-
-        { primitiveState with Primitives = primitives }
+        ] |> addPrimitives primitiveState
 
     let chan = actor remoteState
     channel <- Some chan

@@ -42,6 +42,8 @@ let 'keep [dip dip [dup]]
 let '2keep [2dip dip [2dup]]
 let '3keep [3dip dip [3dup]]
 
+let 'clear [!map '_stack []]
+let 'depth [nip count @map '_stack]
 let 'over [swap dip [dup]]
 let '2over [pick pick]
 let 'nip [drop swap]
@@ -110,3 +112,9 @@ let 'fry [flatmap [if [fill] [deepfry] hole?]
     let 'fill [unless [quote] list? dup rot drop]
     let 'deepfry [if [quote rot 2dip [fry] -rot] [quote] list? dup]
     let 'hole? [= >sym '_ dup]]
+
+let 'assertTrue [clear print fry [_ " " _ "\n"] if ['PASS] ["!!! FAIL"] apply swap]
+let 'assertFalse [assertTrue dip [compose [not]]]
+let 'assertEqual [assertTrue dip [quote =] 2dip [apply]]
+
+let 'test [load 'Tests]

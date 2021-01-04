@@ -84,57 +84,56 @@ type Tesla(user: string, password: string, vin: string) =
     member this.RemoteStartDrive(password) = sprintf "remote_start_drive?password=%s" password |> command
 
 let teslaActor =
+
     let mutable car = None
 
+    let teslaCommand name fn = primitive name (fun s ->
+        match car with
+        | Some c -> String (fn c) :: getStack s |> setStack s
+        | None -> failwith "No Tesla car connected")
+
     let teslaState =
-        let mutable (primitives : Map<string, (State -> State)>) = primitiveState.Primitives
-        let primitive name fn = primitives <- Map.add name fn primitives
+        [
+            primitive "auth" (fun s ->
+                match getStack s with
+                | String vin :: String name :: String pass :: t ->
+                    car <- Some (new Tesla(name, pass, vin))
+                    setStack s t
+                | _ :: _ :: _ :: _ -> failwith "Expected sss"
+                | _ -> failwith "Stack underflow")
 
-        primitive "auth" (fun s ->
-            match s.Stack with
-            | String vin :: String name :: String pass :: t ->
-                car <- Some (new Tesla(name, pass, vin))
-                { s with Stack = t }
-            | _ :: _ :: _ :: _ -> failwith "Expected sss"
-            | _ -> failwith "Stack underflow")
+            teslaCommand "wake" (fun c -> c.WakeUp())
+            teslaCommand "honk" (fun c -> c.HonkHorn())
+            teslaCommand "flash" (fun c -> c.FlashLights())
+            teslaCommand "lock" (fun c -> c.DoorLock())
+            teslaCommand "unlock" (fun c -> c.DoorUnlock())
+            teslaCommand "startac" (fun c -> c.AutoConditioningStart())
+            teslaCommand "stopac" (fun c -> c.AutoConditioningStop())
+            teslaCommand "charge?" (fun c -> c.ChargeState())
+            teslaCommand "climate?" (fun c -> c.ClimateState())
+            teslaCommand "drive?" (fun c -> c.DriveState())
+            teslaCommand "gui?" (fun c -> c.GuiSettings())
+            teslaCommand "vehicle?" (fun c -> c.VehicleState())
 
-        let teslaCommand name fn = primitive name (fun s ->
-            match car with
-            | Some c -> { s with Stack = String (fn c) :: s.Stack }
-            | None -> failwith "No Tesla car connected")
+            primitive "charge" (fun s ->
+                match car with
+                | Some c ->
+                    match getStack s with
+                    | Number limit :: t -> String (c.SetChargeLimit(int limit)) :: t |> setStack s
+                    | _ :: _ -> failwith "Expected n"
+                    | _ -> failwith "Stack underflow"
+                | None -> failwith "No Tesla car connected")
 
-        teslaCommand "wake" (fun c -> c.WakeUp())
-        teslaCommand "honk" (fun c -> c.HonkHorn())
-        teslaCommand "flash" (fun c -> c.FlashLights())
-        teslaCommand "lock" (fun c -> c.DoorLock())
-        teslaCommand "unlock" (fun c -> c.DoorUnlock())
-        teslaCommand "startac" (fun c -> c.AutoConditioningStart())
-        teslaCommand "stopac" (fun c -> c.AutoConditioningStop())
-        teslaCommand "charge?" (fun c -> c.ChargeState())
-        teslaCommand "climate?" (fun c -> c.ClimateState())
-        teslaCommand "drive?" (fun c -> c.DriveState())
-        teslaCommand "gui?" (fun c -> c.GuiSettings())
-        teslaCommand "vehicle?" (fun c -> c.VehicleState())
+            primitive "temperature" (fun s ->
+                match car with
+                | Some c ->
+                    match getStack s with
+                    | Number driver :: Number passenger :: t ->
+                        String (c.SetTemperatures(float driver, float passenger)) :: t |> setStack s
+                    | _ :: _ :: _ -> failwith "Expected nn"
+                    | _ -> failwith "Stack underflow"
+                | None -> failwith "No Tesla car connected")
 
-        primitive "charge" (fun s ->
-            match car with
-            | Some c ->
-                match s.Stack with
-                | Number limit :: t -> { s with Stack = String (c.SetChargeLimit(int limit)) :: t }
-                | _ :: _ -> failwith "Expected n"
-                | _ -> failwith "Stack underflow"
-            | None -> failwith "No Tesla car connected")
-
-        primitive "temperature" (fun s ->
-            match car with
-            | Some c ->
-                match s.Stack with
-                | Number driver :: Number passenger :: t ->
-                    { s with Stack = String (c.SetTemperatures(float driver, float passenger)) :: t }
-                | _ :: _ :: _ -> failwith "Expected nn"
-                | _ -> failwith "Stack underflow"
-            | None -> failwith "No Tesla car connected")
-
-        { primitiveState with Primitives = primitives }
+        ] |> addPrimitives primitiveState
 
     actor teslaState

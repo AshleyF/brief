@@ -8,11 +8,17 @@ let lex source =
         let emit (token: char list) = seq { if List.length token > 0 then yield token |> List.rev |> String.Concat }
         if str then
             match source with
-            | '\\' :: '"' :: t -> yield! lex' ('"' :: token) true t
+            | '\\' :: '"'  :: t -> yield! lex' ('"'  :: token) true t
+            | '\\' :: '\\' :: t -> yield! lex' ('\\' :: token) true t
+            | '\\' :: 'b'  :: t -> yield! lex' ('\b' :: token) true t
+            | '\\' :: 'f'  :: t -> yield! lex' ('\f' :: token) true t
+            | '\\' :: 'n'  :: t -> yield! lex' ('\n' :: token) true t
+            | '\\' :: 'r'  :: t -> yield! lex' ('\r' :: token) true t
+            | '\\' :: 't'  :: t -> yield! lex' ('\t' :: token) true t
             | '"' :: t -> 
                 yield! emit token
                 yield! lex' [] false t
-            | c :: t -> yield! lex' (c :: token) true t
+            | c :: t ->           yield! lex' (c :: token) true t
             | [] -> failwith "Incomplete string"
         else
             match source with

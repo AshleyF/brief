@@ -6,16 +6,16 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 
 | Word | Stack | Description | Type |
 | --- | --- | --- | --- |
-| `depth` | -n | Get stack depth | Primitive |
-| `clear` | - | Clear stack | Primitive |
-| `dup` | x-xx | Duplicate top stack value | Secondary |
+| `depth` | -n | Get stack depth | Secondary |
+| `clear` | - | Clear stack | Secondary |
+| `dup` | x-xx | Duplicate top stack value | Primitive |
 | `2dup` | xy-xyxy | Duplicate top two stack values | Secondary |
 | `3dup` | xyz-xyzxyz | Duplicate top three stack values | Secondary |
-| `drop` | x- | Drop top stack value | Secondary |
+| `drop` | x- | Drop top stack value | Primitive |
 | `2drop` | xy- | Drop top two stack values | Secondary |
 | `3drop` | xyz- | Drop top three stack values | Secondary |
-| `swap` | xy-yx | Swap top two stack values | Secondary |
-| `pick` | xyz-zxyz | Duplicate third stack value | Secondary |
+| `swap` | xy-yx | Swap top two stack values | Primitive |
+| `pick` | xyz-zxyz | Duplicate third stack value | Primitive |
 | `over` | xy-yxy | Duplicate second stack value | Secondary |
 | `2over` | xyz-yzxyz | Duplicate second and third stack values | Secondary |
 | `nip` | xy-x | Drop second stack value | Secondary |
@@ -80,8 +80,8 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `key?` | km-bm | Determine whether key is in Map, while keeping Map | Primitive |
 | `@` | km-vm | Fetch value for key in Map, while keeping Map | Primitive |
 | `!` | kvm-m | Store key/value in Map, while keeping Map | Primitive |
-| `map!` | nv- | Store named value in `State.Map` | Primitive |
-| `map@` | n- | Fetch named value from `State.Map` | Primitive |
+| `!map` | nv- | Store named value in `State.Map` | Primitive |
+| `@map` | n- | Fetch named value from `State.Map` | Primitive |
 | `split` | s-l | Split Symbol or String into List of single-character Strings | Primitive |
 | `join` | l-s | Join List of Strings into single String | Primitive |
 | `reverse` | l-l | Reverse List | Secondary |
@@ -180,6 +180,7 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | --- | --- | --- | --- |
 | `let` | nx- | Define named quotation or value as secondary word | Primitive |
 | `eval` | s- | Evaluate Brief source | Primitive |
+| `print` | - | Print top of stack | Primitive |
 | `state` | - | Print machine state | Primitive |
 | `post` | nq- | Post quotation to named actor | Primitive |
 | `load` | n- | Load named Brief source file (path, not including .b extension) | Primitive |
@@ -187,6 +188,15 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `factorial` | n-n | Compute the factorial of a Numeber | Secondary |
 | `words` | - | Display primitive and secondary words | Primitive |
 | `word` | n- | Display word definition | Primitive |
+
+## Testing
+
+| Word | Stack | Description | Type |
+| --- | --- | --- | --- |
+| `assertTrue` | nq- | Assert named quotation evaluates to `true` | Secondary |
+| `assertFalse` | nq- | Assert named quotation evaluates to `false` | Secondary |
+| `assertEqual` | nqr- | Assert named quotation (r) evaluates to match first quotation (q) | Secondary |
+| `test` | - | Load unit tests (`Test.b`)| Secondary |
 
 ## Internal
 
@@ -214,7 +224,7 @@ The Tesla actor [controls a Tesla vehicle](https://github.com/AshleyF/tesla).
 | `gui?` | - | Display vehicle GUI information | Primitive |
 | `vehicle?` | - | Display vehicle information | Primitive |
 | `charge` | x- | Set vehicle charge limit (0-100) | Primitive |
-| `temperature` | x- | Set vehicle temperature | Primitive | Primitive |
+| `temperature` | x- | Set vehicle temperature | Primitive |
 
 Commonly, a `tesla-auth` word is defined in application parameters containing the actual credentials:
 

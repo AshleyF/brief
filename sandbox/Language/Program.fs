@@ -10,6 +10,10 @@ register "tesla"   Tesla.teslaActor
 register "trigger" Trigger.triggerActor
 register "remote"  Remote.remoteActor
 
+// while true do
+//     let foo = Console.ReadKey()
+//     printfn "Key: %A %A %A %b" foo.KeyChar foo.Key foo.Modifiers (Char.IsControl(foo.KeyChar))
+
 let rec repl state =
     printDebug None state
     try

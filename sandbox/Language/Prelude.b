@@ -118,3 +118,7 @@ let 'assertFalse [assertTrue dip [compose [not]]]
 let 'assertEqual [assertTrue dip [quote =] 2dip [apply]]
 
 let 'test [load 'Tests]
+
+let 'true -1
+let 'false 0
+

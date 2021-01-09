@@ -70,7 +70,7 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `swons` | lv-l | Cons value (v) onto head of List (equivalent to `cons swap`) | Secondary |
 | `quote` | v-l | Quote a value into a single-element list | Secondary |
 | `compose` | qr-q | Compose two quotations (`Lists`) into one | Primitive |
-| `prepose` | qr-q | Compose two quotations is reverse order (`Lists`) into one | Primitive |
+| `prepose` | qr-q | Compose two quotations is reverse order (`Lists`) into one | Secondary |
 | `curry` | qx-q | Compose value (x) onto end of quotations (q) | Secondary |
 | `2curry` | qxy-q | Compose two values (x, y) onto end of quotations (q) | Secondary |
 | `3curry` | qxyz-q | Compose three values (x, y, z) onto end of quotations (q) | Secondary |
@@ -90,6 +90,8 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 
 | Word | Stack | Description | Type |
 | --- | --- | --- | --- |
+| `true` | -b | True constant (`-1`) | Secondary |
+| `false` | -b | False constant (`0`) | Secondary |
 | `=` | xy-b | Compare top two stack values, returning `true` if equal | Primitive |
 | `>` | xy-b | Compare top two stack values, returning `true` if top value is greater than second value | Primitive |
 | `<` | xy-b | Compare top two stack values, returning `true` if top value is less than second value | Secondary |
@@ -165,7 +167,6 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `>sym` | x-s | Cast String (not including white space), Boolean, or Number to Symbol | Primitive |
 | `>num` | x-n | Cast Symbol, String, Boolean (-1, 0), List, or Map (lengths) to Number | Primitive |
 | `>str` | x-s | Cast value to string in Brief literal source form | Primitive |
-| `>bool` | x-b | Cast Symbol, String, Number, List, or Map to Boolean | Primitive |
 
 ## Loops
 | Word | Stack | Description | Type |
@@ -202,7 +203,8 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 
 | Word | Stack | Description | Type |
 | --- | --- | --- | --- |
-| `_dropFrame` | - | Drop dictionary frame | Primitive |
+| `_return` | - | Return from expanded secondary word; dropping dictionary frame | Primitive |
+| `_break` | - | Break point; pausing interpretation | Primitive |
 
 ## Tesla Actor
 

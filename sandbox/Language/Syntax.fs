@@ -72,10 +72,7 @@ let rec compile nodes =
         | Token t ->
             match Double.TryParse t with
             | (true, v) -> Number v
-            | _ ->
-                match Boolean.TryParse t with
-                | (true, v) -> Boolean v
-                | _ -> if t.StartsWith '\'' then stripLeadingTick t |> String else Symbol t
+            | _ -> if t.StartsWith '\'' then stripLeadingTick t |> String else Symbol t
         | Quote q -> List (compile q |> List.ofSeq)
         | Pairs p -> p |> Seq.map (fun (n, v) -> n, compile' v) |> Map.ofSeq |> Map
     nodes |> Seq.map compile'

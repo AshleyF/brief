@@ -1,16 +1,15 @@
 ﻿module Interpretation
 
 open Structure
-open Print
 
 let rec interpret state stream =
     let word state w = 
-        // printDebug (Some w) state
+        // Print.printDebug (Some w) state
         match w with
         | Symbol s ->
             match tryFindWord s (getDictionary state) with
             | Some (List l) ->
-                let continuation = List.rev l @ Symbol "_dropFrame" :: getContinuation state |> setContinuation state
+                let continuation = List.rev l @ Symbol "_return" :: getContinuation state |> setContinuation state
                 setDictionary continuation (getDictionary state |> addFrame)
             | Some (Word w) -> w.Func state
             | Some v -> v :: getStack state |> setStack state
@@ -20,9 +19,12 @@ let rec interpret state stream =
     | [] ->
         match Seq.tryHead stream with
         | Some w -> interpret (word state w) (Seq.tail stream)
+        // | Some w -> interpret (w :: getContinuation state |> setContinuation state) (Seq.tail stream)
         | None ->
-            // printDebug None state
+            // Print.printDebug None state
             state
     | w :: c -> interpret (word (setContinuation state c) w) stream
 
 let rep state source = [String source; Symbol "eval"] |> interpret state
+
+// | String b :: t -> brief b |> interpret (setStack s t)

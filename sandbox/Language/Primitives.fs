@@ -8,8 +8,6 @@ open Print
 open Interpretation
 open Actor
 
-let dropFrameWord = primitive "_dropFrame" (fun s -> setDictionary s (getDictionary s |> dropFrame))
-
 let primitiveState =
 
     [
@@ -33,11 +31,13 @@ let primitiveState =
             | x :: t -> x :: x :: t |> setStack s
             | _ -> failwith "Stack underflow")
 
+        // let 'drop [k []]
         primitive "drop" (fun s ->
             match getStack s with
             | _ :: t -> setStack s t
             | _ -> failwith "Stack underflow")
 
+        // let 'swap [dip quote]
         primitive "swap" (fun s ->
             match getStack s with
             | x :: y :: t -> y :: x :: t |> setStack s
@@ -48,6 +48,7 @@ let primitiveState =
             | x :: y :: z :: t -> z :: x :: y :: z :: t |> setStack s
             | _ -> failwith "Stack underflow")
 
+        // let 'dip [k cake]
         primitive "dip" (fun s ->
             match getStack s with
             | List q :: v :: t -> (List.rev q) @ v :: getContinuation s |> setContinuation (setStack s t)
@@ -56,8 +57,8 @@ let primitiveState =
 
         primitive "if" (fun s ->
             match getStack s with
-            | List q :: List r :: Boolean b :: t ->
-                (List.rev (if b then q else r)) @ getContinuation s |> setContinuation (setStack s t)
+            | List q :: List r :: Number b :: t ->
+                (List.rev (if b <> 0.0 then q else r)) @ getContinuation s |> setContinuation (setStack s t)
             | _ :: _ :: _ -> failwith "Expected vq"
             | _ -> failwith "Stack underflow")
 
@@ -108,22 +109,22 @@ let primitiveState =
 
         let booleanOp name op = primitive name (fun s ->
             match getStack s with
-            | Boolean x :: Boolean y :: t -> Boolean (op x y) :: t |> setStack s
+            | Number x :: Number y :: t -> Number (op (int x) (int y) |> double) :: t |> setStack s
             | _ :: _ :: _ -> failwith "Expected bb"
             | _ -> failwith "Stack underflow")
 
-        booleanOp "and" (&&)
-        booleanOp "or" (||)
+        booleanOp "and" (&&&)
+        booleanOp "or" (|||)
 
         primitive "not" (fun s ->
             match getStack s with
-            | Boolean x :: t -> Boolean (not x) :: t |> setStack s
+            | Number x :: t -> (Number (~~~(int x) |> double)) :: t |> setStack s
             | _ :: _ -> failwith "Expected b"
             | _ -> failwith "Stack underflow")
 
         let comparisonOp name op = primitive name (fun s ->
             match getStack s with
-            | x :: y :: t -> Boolean (op y x) :: t |> setStack s
+            | x :: y :: t -> Number (if (op y x) then -1. else 0.) :: t |> setStack s
             | _ -> failwith "Stack underflow")
 
         comparisonOp "=" (=)
@@ -174,7 +175,6 @@ let primitiveState =
                 | Symbol  _ :: t -> "sym", t
                 | Number  _ :: t -> "num", t
                 | String  _ :: t -> "str", t
-                | Boolean _ :: t -> "bool", t
                 | List    _ :: t -> "list", t
                 | Map     _ :: t -> "map", t
                 | Word    _ :: t -> "word", t
@@ -201,7 +201,6 @@ let primitiveState =
                 match System.Double.TryParse y with
                 | (true, v) -> Number v :: t |> setStack s
                 | _ -> failwith "Cannot cast to Number"
-            | Boolean b :: t -> Number (if b then -1. else 0.) :: t |> setStack s
             | List l :: t -> Number (List.length l |> float) :: t |> setStack s
             | Map m :: t -> Number (Map.count m |> float) :: t |> setStack s
             | Word _ :: _ -> failwith "Word cannot be cast to Number value"
@@ -212,19 +211,6 @@ let primitiveState =
             | String _ :: _ -> s
             | Word w :: t -> String (w.Name) :: t |> setStack s
             | v :: t -> String (stringOfValue v) :: t |> setStack s
-            | [] -> failwith "Stack underflow")
-
-        primitive ">bool" (fun s ->
-            match getStack s with
-            | Boolean _ :: _ -> s
-            | Symbol y :: t | String y :: t ->
-                match System.Boolean.TryParse y with
-                | (true, v) -> Boolean v :: t |> setStack s
-                | _ -> failwith "Cannot cast to Number"
-            | Number n :: t -> Boolean (n <> 0.) :: t |> setStack s
-            | List l :: t -> Boolean (List.isEmpty l |> not) :: t |> setStack s
-            | Map m :: t -> Boolean (Map.isEmpty m |> not) :: t |> setStack s
-            | Word _ :: _ -> failwith "Word cannot be cast to Boolean value"
             | [] -> failwith "Stack underflow")
 
         primitive "split" (fun s ->
@@ -268,7 +254,7 @@ let primitiveState =
 
         primitive "key?" (fun s ->
             match getStack s with
-            | String k :: (Map m :: _ as t) -> Boolean (Map.containsKey k m) :: t |> setStack s
+            | String k :: (Map m :: _ as t) -> Number (if Map.containsKey k m then -1. else 0.) :: t |> setStack s
             | _ :: _ :: _ -> failwith "Expected sm"
             | _ -> failwith "Stack underflow")
 
@@ -301,6 +287,19 @@ let primitiveState =
             | _ :: _ -> failwith "Expected s"
             | _ -> failwith "Stack underflow")
 
-        dropFrameWord
+        // primitive "k" (fun s ->
+        //     match getStack s with
+        //     | List q :: _ :: t -> (List.rev q) @ getContinuation s |> setContinuation (setStack s t)
+        //     | _ :: _ :: _ -> failwith "Expected lv"
+        //     | _ -> failwith "Stack underflow")
+
+        // primitive "cake" (fun s ->
+        //     match getStack s with
+        //     | List q :: v :: t -> List (v :: q) :: List (q @ [v]) :: t |> setStack s
+        //     | _ :: _ :: _ -> failwith "Expected lv"
+        //     | _ -> failwith "Stack underflow")
+
+        primitive "_return" (fun s -> setDictionary s (getDictionary s |> dropFrame))
+
 
     ] |> addPrimitives emptyState

@@ -10,7 +10,6 @@ let rec stringOfValue = function
     | Symbol s  -> sprintf "%s" s
     | Number n  -> sprintf "%g" n
     | String s  -> stringOfString s
-    | Boolean b -> sprintf "%b" b
     | List l    -> sprintf "[%s]" (stringOfValues l)
     | Map m     -> sprintf "{ %s }" (stringOfMap m)
     | Word w    -> sprintf "(%s)" w.Name

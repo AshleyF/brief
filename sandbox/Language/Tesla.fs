@@ -89,7 +89,7 @@ let teslaActor =
 
     let teslaCommand name fn = primitive name (fun s ->
         match car with
-        | Some c -> String (fn c) :: getStack s |> setStack s
+        | Some c -> pushStack (String (fn c)) s
         | None -> failwith "No Tesla car connected")
 
     let teslaState =
@@ -98,7 +98,7 @@ let teslaActor =
                 match getStack s with
                 | String vin :: String name :: String pass :: t ->
                     car <- Some (new Tesla(name, pass, vin))
-                    setStack s t
+                    setStack t s
                 | _ :: _ :: _ :: _ -> failwith "Expected sss"
                 | _ -> failwith "Stack underflow")
 
@@ -119,7 +119,7 @@ let teslaActor =
                 match car with
                 | Some c ->
                     match getStack s with
-                    | Number limit :: t -> String (c.SetChargeLimit(int limit)) :: t |> setStack s
+                    | Number limit :: t -> setStack (String (c.SetChargeLimit(int limit)) :: t) s
                     | _ :: _ -> failwith "Expected n"
                     | _ -> failwith "Stack underflow"
                 | None -> failwith "No Tesla car connected")
@@ -129,7 +129,7 @@ let teslaActor =
                 | Some c ->
                     match getStack s with
                     | Number driver :: Number passenger :: t ->
-                        String (c.SetTemperatures(float driver, float passenger)) :: t |> setStack s
+                        setStack (String (c.SetTemperatures(float driver, float passenger)) :: t) s
                     | _ :: _ :: _ -> failwith "Expected nn"
                     | _ -> failwith "Stack underflow"
                 | None -> failwith "No Tesla car connected")

@@ -38,26 +38,29 @@ let emptyState = Map.ofList [
 let primitive name fn = Primitive(name, fn)
 
 let getList name state = match Map.tryFind name state with Some (List s) -> s | _ -> failwith (sprintf "Malformed %s" name)
-let setList name state (list: Value list) = Map.add name (List list) state
+let setList name (list: Value list) state = Map.add name (List list) state
+let updateList name fn state = setList name (state |> getList name |> fn) state
 
 let getStack = getList _stack
 let setStack = setList _stack
+let updateStack = updateList _stack
+let pushStack v = updateStack (fun s -> v :: s)
 
 let getContinuation = getList _continuation
 let setContinuation = setList _continuation
+let updateContinuation = updateList _continuation
 
 let getDictionary = getList _dictionary
 let setDictionary = setList _dictionary
+let updateDictionary = updateList _dictionary
 
 let addPrimitives (state: State) (primitives: Primitive list) =
-    let dict = getDictionary state
-    match dict with
-    | Map h :: t ->
-        (Seq.fold (fun m (p: Primitive) -> Map.add (p.Name) (Word p) m) h primitives |> Map) :: t |> setDictionary state
+    match getDictionary state with
+    | Map h :: t -> setDictionary ((Seq.fold (fun m (p: Primitive) -> Map.add (p.Name) (Word p) m) h primitives |> Map) :: t) state
     | _ :: t -> failwith "Malformed dictionary"
     | [] -> failwith "Malformed dictionary"
 
-let addFrame dict = Map Map.empty :: dict
+let addFrame = updateDictionary (fun d -> Map Map.empty :: d)
 
 let dropFrame = function
     | _ :: [] -> failwith "Cannot drop final dictionary frame"
@@ -69,7 +72,7 @@ let addWord n v = function
     | _ :: t -> failwith "Malformed dictionary"
     | [] -> failwith "Malformed dictionary"
 
-let tryFindWord n dict =
+let tryFindWord n state =
     let rec tryFind = function
         | Map h :: t ->
             match Map.tryFind n h with
@@ -77,4 +80,4 @@ let tryFindWord n dict =
             | None -> tryFind t
         | _ :: t -> failwith "Malformed dictionary"
         | [] -> None
-    tryFind dict
+    getDictionary state |> tryFind

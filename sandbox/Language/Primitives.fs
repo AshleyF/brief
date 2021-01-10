@@ -13,58 +13,57 @@ let primitiveState =
     [
         primitive "!map" (fun s ->
             match getStack s with
-            | String n :: v :: t -> setStack s t |> Map.add n v
+            | String n :: v :: t -> setStack t s |> Map.add n v
             | _ :: _ :: _ -> failwith "Expected vs"
             | _ -> failwith "Stack underflow")
 
         primitive "@map" (fun s ->
             match getStack s with
             | String n :: t ->
-                match Map.tryFind n (setStack s t) with
-                | Some v -> v :: t |> setStack s
+                match Map.tryFind n (setStack t s) with
+                | Some v -> setStack (v :: t) s
                 | None -> failwith "Not found" // TODO return flag?
             | _ :: _ -> failwith "Expected s"
             | _ -> failwith "Stack underflow")
 
         primitive "dup" (fun s ->
             match getStack s with
-            | x :: t -> x :: x :: t |> setStack s
+            | x :: t -> setStack (x :: x :: t) s
             | _ -> failwith "Stack underflow")
 
         // let 'drop [k []]
         primitive "drop" (fun s ->
             match getStack s with
-            | _ :: t -> setStack s t
+            | _ :: t -> setStack t s
             | _ -> failwith "Stack underflow")
 
         // let 'swap [dip quote]
         primitive "swap" (fun s ->
             match getStack s with
-            | x :: y :: t -> y :: x :: t |> setStack s
+            | x :: y :: t -> setStack (y :: x :: t) s
             | _ -> failwith "Stack underflow")
 
         primitive "pick" (fun s ->
             match getStack s with
-            | x :: y :: z :: t -> z :: x :: y :: z :: t |> setStack s
+            | x :: y :: z :: t -> setStack (z :: x :: y :: z :: t) s
             | _ -> failwith "Stack underflow")
 
         // let 'dip [k cake]
         primitive "dip" (fun s ->
             match getStack s with
-            | List q :: v :: t -> (List.rev q) @ v :: getContinuation s |> setContinuation (setStack s t)
+            | List q :: v :: t -> setStack t s |> updateContinuation (fun c -> (List.rev q) @ v :: c)
             | _ :: _ :: _ -> failwith "Expected vq"
             | _ -> failwith "Stack underflow")
 
         primitive "if" (fun s ->
             match getStack s with
-            | List q :: List r :: Number b :: t ->
-                (List.rev (if b <> 0.0 then q else r)) @ getContinuation s |> setContinuation (setStack s t)
+            | List q :: List r :: Number b :: t -> setStack t s |> updateContinuation (fun c -> List.rev (if b <> 0.0 then q else r) @ c)
             | _ :: _ :: _ -> failwith "Expected vq"
             | _ -> failwith "Stack underflow")
 
         let binaryOp name op = primitive name (fun s ->
             match getStack s with
-            | Number x :: Number y :: t -> Number (op y x) :: t |> setStack s
+            | Number x :: Number y :: t -> setStack (Number (op y x) :: t) s
             | _ :: _ :: _ -> failwith "Expected nn"
             | _ -> failwith "Stack underflow")
 
@@ -76,7 +75,7 @@ let primitiveState =
 
         let unaryOp name op = primitive name (fun s ->
             match getStack s with
-            | Number x :: t -> Number (op x) :: t |> setStack s
+            | Number x :: t -> setStack (Number (op x) :: t) s
             | _ :: t -> failwith "Expected n"
             | _ -> failwith "Stack underflow")
 
@@ -109,7 +108,7 @@ let primitiveState =
 
         let booleanOp name op = primitive name (fun s ->
             match getStack s with
-            | Number x :: Number y :: t -> Number (op (int x) (int y) |> double) :: t |> setStack s
+            | Number x :: Number y :: t -> setStack (Number (op (int x) (int y) |> double) :: t) s
             | _ :: _ :: _ -> failwith "Expected bb"
             | _ -> failwith "Stack underflow")
 
@@ -118,13 +117,13 @@ let primitiveState =
 
         primitive "not" (fun s ->
             match getStack s with
-            | Number x :: t -> (Number (~~~(int x) |> double)) :: t |> setStack s
+            | Number x :: t -> setStack ((Number (~~~(int x) |> double)) :: t) s
             | _ :: _ -> failwith "Expected b"
             | _ -> failwith "Stack underflow")
 
         let comparisonOp name op = primitive name (fun s ->
             match getStack s with
-            | x :: y :: t -> Number (if (op y x) then -1. else 0.) :: t |> setStack s
+            | x :: y :: t -> setStack (Number (if (op y x) then -1. else 0.) :: t) s
             | _ -> failwith "Stack underflow")
 
         comparisonOp "=" (=)
@@ -132,14 +131,14 @@ let primitiveState =
 
         primitive "let" (fun s ->
             match getStack s with
-            | String n :: (List _ as q) :: t -> getDictionary s |> addWord n q |> setDictionary (setStack s t)
-            | String n :: v :: t -> getDictionary s |> addWord n v |> setDictionary (setStack s t)
+            | String n :: (List _ as q) :: t -> setStack t s |> updateDictionary (addWord n q)
+            | String n :: v :: t -> setStack t s |> updateDictionary (addWord n v)
             | _ :: _  :: _ -> failwith "Expected sq"
             | _ -> failwith "Stack underflow")
 
         primitive "eval" (fun s ->
             match getStack s with
-            | String b :: t -> brief b |> interpret (setStack s t)
+            | String b :: t -> brief b |> interpret (setStack t s)
             | _ :: _ -> failwith "Expected s"
             | _ -> failwith "Stack underflow")
 
@@ -149,7 +148,7 @@ let primitiveState =
                 | List l -> List.iter print l
                 | v -> stringOfValue v |> printf "%s"
             match getStack s with
-            | v :: t -> print v; setStack s t
+            | v :: t -> print v; setStack t s
             | _ -> failwith "Stack underflow")
 
         primitive "state" (fun s -> printState s; s)
@@ -158,14 +157,14 @@ let primitiveState =
             match getStack s with
             | String n :: List q :: t ->
                 match Map.tryFind n registry with
-                | Some actor -> actor.Post (List.rev q); setStack s t
+                | Some actor -> actor.Post (List.rev q); setStack t s
                 | None -> failwith "Actor not found"
             | _ :: _  :: _ -> failwith "Expected ss"
             | _ -> failwith "Stack underflow")
 
         primitive "load" (fun s ->
             match getStack s with
-            | String p :: t -> File.ReadAllText(sprintf "%s.b" p) |> rep (setStack s t)
+            | String p :: t -> File.ReadAllText(sprintf "%s.b" p) |> brief |> interpret (setStack t s)
             | _  :: _ -> failwith "Expected s"
             | _ -> failwith "Stack underflow")
 
@@ -179,7 +178,7 @@ let primitiveState =
                 | Map     _ :: t -> "map", t
                 | Word    _ :: t -> "word", t
                 | [] -> failwith "Stack underflow"
-            String kind :: t |> setStack s)
+            setStack (String kind :: t) s)
 
         primitive ">sym" (fun s ->
             match getStack s with
@@ -187,11 +186,11 @@ let primitiveState =
             | String str :: t ->
                 if str |> Seq.exists (System.Char.IsWhiteSpace)
                 then failwith "Symbols cannot contain whitespace"
-                else Symbol str :: t |> setStack s
-            | Word w :: t -> Symbol (w.Name) :: t |> setStack s
+                else setStack (Symbol str :: t) s
+            | Word w :: t -> setStack (Symbol (w.Name) :: t) s
             | List _ :: t -> failwith "Lists cannot be cast to a Symbol value"
             | Map _ :: t -> failwith "Maps cannot be cast to a Symbol value"
-            | v :: t -> Symbol (stringOfValue v) :: t |> setStack s
+            | v :: t -> setStack (Symbol (stringOfValue v) :: t) s
             | [] -> failwith "Stack underflow")
 
         primitive ">num" (fun s ->
@@ -199,62 +198,62 @@ let primitiveState =
             | Number _ :: _ -> s
             | Symbol y :: t | String y :: t ->
                 match System.Double.TryParse y with
-                | (true, v) -> Number v :: t |> setStack s
+                | (true, v) -> setStack (Number v :: t) s
                 | _ -> failwith "Cannot cast to Number"
-            | List l :: t -> Number (List.length l |> float) :: t |> setStack s
-            | Map m :: t -> Number (Map.count m |> float) :: t |> setStack s
+            | List l :: t -> setStack (Number (List.length l |> float) :: t) s
+            | Map m :: t -> setStack (Number (Map.count m |> float) :: t) s
             | Word _ :: _ -> failwith "Word cannot be cast to Number value"
             | [] -> failwith "Stack underflow")
 
         primitive ">str" (fun s ->
             match getStack s with
             | String _ :: _ -> s
-            | Word w :: t -> String (w.Name) :: t |> setStack s
-            | v :: t -> String (stringOfValue v) :: t |> setStack s
+            | Word w :: t -> setStack (String (w.Name) :: t) s
+            | v :: t -> setStack (String (stringOfValue v) :: t) s
             | [] -> failwith "Stack underflow")
 
         primitive "split" (fun s ->
             match getStack s with
-            | Symbol y :: t | String y :: t -> (y |> Seq.toList |> List.map (string >> String) |> List) :: t |> setStack s
+            | Symbol y :: t | String y :: t -> setStack ((y |> Seq.toList |> List.map (string >> String) |> List) :: t) s
             | _ :: _ -> failwith "Expected s"
             | [] -> failwith "Stack underflow")
 
         primitive "join" (fun s ->
             let str = function String y | Symbol y -> y | _ -> failwith "Expected List of Strings/Symbols"
             match getStack s with
-            | List l :: t -> (l |> Seq.map str |> String.concat "" |> String) :: t |> setStack s
+            | List l :: t -> setStack ((l |> Seq.map str |> String.concat "" |> String) :: t) s
             | _ :: _ -> failwith "Expected l"
             | [] -> failwith "Stack underflow")
 
         primitive "count" (fun s ->
             match getStack s with
-            | (List l :: _) as t -> (List.length l |> double |> Number) :: t |> setStack s
-            | (Map m :: _) as t -> (Map.count m |> double |> Number) :: t |> setStack s
+            | (List l :: _) as t -> setStack ((List.length l |> double |> Number) :: t) s
+            | (Map m :: _) as t -> setStack ((Map.count m |> double |> Number) :: t) s
             | _ :: _ -> failwith "Cannot cast to List"
             | [] -> failwith "Stack underflow")
 
         primitive "cons" (fun s ->
             match getStack s with
-            | v :: List l :: t -> List (v :: l) :: t |> setStack s
+            | v :: List l :: t -> setStack (List (v :: l) :: t) s
             | _ :: _ :: _ -> failwith "Expected vl"
             | _ -> failwith "Stack underflow")
 
         primitive "snoc" (fun s ->
             match getStack s with
-            | List (h :: t') :: t -> h :: List t' :: t |> setStack s
+            | List (h :: t') :: t -> setStack (h :: List t' :: t) s
             | List _ :: _ -> failwith "Expected non-empty list"
             | _ :: _ :: _ -> failwith "Expected vl"
             | _ -> failwith "Stack underflow")
 
         primitive "compose" (fun s ->
             match getStack s with
-            | List q :: List r :: t -> List (q @ r) :: t |> setStack s
+            | List q :: List r :: t -> setStack (List (q @ r) :: t) s
             | _ :: _ :: _ -> failwith "Expected ll"
             | _ -> failwith "Stack underflow")
 
         primitive "key?" (fun s ->
             match getStack s with
-            | String k :: (Map m :: _ as t) -> Number (if Map.containsKey k m then -1. else 0.) :: t |> setStack s
+            | String k :: (Map m :: _ as t) -> setStack (Number (if Map.containsKey k m then -1. else 0.) :: t) s
             | _ :: _ :: _ -> failwith "Expected sm"
             | _ -> failwith "Stack underflow")
 
@@ -262,14 +261,14 @@ let primitiveState =
             match getStack s with
             | String k :: (Map m :: _ as t) ->
                 match Map.tryFind k m with
-                | Some v -> v :: t |> setStack s
+                | Some v -> setStack (v :: t) s
                 | None -> failwith "Key not found"
             | _ :: _ :: _ -> failwith "Expected sm"
             | _ -> failwith "Stack underflow")
 
         primitive "!" (fun s ->
             match getStack s with
-            | String k :: v :: Map m :: t -> Map (Map.add k v m) :: t |> setStack s
+            | String k :: v :: Map m :: t -> setStack (Map (Map.add k v m) :: t) s
             | _ :: _ :: _ :: _ -> failwith "Expected vsm"
             | _ -> failwith "Stack underflow")
 
@@ -280,14 +279,14 @@ let primitiveState =
         primitive "word" (fun s ->
             match getStack s with
             | String n :: t ->
-                match getDictionary s |> tryFindWord n with
+                match tryFindWord n s with
                 | Some v -> printfn "%s %s" n (stringOfValue v)
                 | None -> printfn "%s Unknown" n
-                setStack s t
+                setStack t s
             | _ :: _ -> failwith "Expected s"
             | _ -> failwith "Stack underflow")
 
-        // primitive "k" (fun s ->
+        // primitive "k" (fun s -> // TODO updateContinuation with _return or _soft_break, etc. also
         //     match getStack s with
         //     | List q :: _ :: t -> (List.rev q) @ getContinuation s |> setContinuation (setStack s t)
         //     | _ :: _ :: _ -> failwith "Expected lv"
@@ -298,8 +297,5 @@ let primitiveState =
         //     | List q :: v :: t -> List (v :: q) :: List (q @ [v]) :: t |> setStack s
         //     | _ :: _ :: _ -> failwith "Expected lv"
         //     | _ -> failwith "Stack underflow")
-
-        primitive "_return" (fun s -> setDictionary s (getDictionary s |> dropFrame))
-
 
     ] |> addPrimitives emptyState

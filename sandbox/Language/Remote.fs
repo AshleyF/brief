@@ -24,7 +24,7 @@ let remoteActor =
                         source |> brief |> channel.Value.Post
                         read ()
                     (new Thread(new ThreadStart(read), IsBackground = true)).Start()
-                    setStack s t
+                    setStack t s
                 | _ :: _ :: _ -> failwith "Expected ss"
                 | _ -> failwith "Stack underflow")
 

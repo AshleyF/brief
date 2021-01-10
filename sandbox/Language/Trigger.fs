@@ -21,7 +21,7 @@ let triggerActor =
                 match getStack s with
                 | String key :: String event :: String val1 :: String val2 :: String val3 :: t ->
                     triggerEvent event val1 val2 val3 key |> Async.RunSynchronously
-                    setStack s t
+                    setStack t s
                 | _ :: _ :: _ :: _ :: _ :: _ -> failwith "Expected ssss"
                 | _ -> failwith "Stack underflow")
 

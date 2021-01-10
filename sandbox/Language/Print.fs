@@ -13,7 +13,7 @@ let rec stringOfValue = function
     | List l    -> sprintf "[%s]" (stringOfValues l)
     | Map m     -> sprintf "{ %s }" (stringOfMap m)
     | Word w    -> sprintf "(%s)" w.Name
-and stringOfValues = List.map stringOfValue >> String.concat " "
+and stringOfValues = (* List.filter (function Symbol s -> not (s.StartsWith('_')) | _ -> true) >> *) List.map stringOfValue >> String.concat " "
 and stringOfMap = Map.toSeq >> Seq.map (fun (k, v) -> sprintf "%s %s" (stringOfString k) (stringOfValue v)) >> String.concat "  "
 
 let printState s =
@@ -27,5 +27,5 @@ let printDebug w s =
     let continuation = getContinuation s |> List.rev |> stringOfValues
     let stack = stringOfValues (getStack s)
     match w with
-    | Some w -> printfn "%s %s | %s" continuation (stringOfValue w) stack
-    | None -> printfn "%s | %s" continuation stack
+    | Some w -> printfn "\n%s %s | %s" continuation (stringOfValue w) stack
+    | None -> printfn "\n%s | %s" continuation stack

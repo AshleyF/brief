@@ -2,29 +2,40 @@
 
 open Structure
 
-let rec interpret state stream =
-    let word state w = 
-        // Print.printDebug (Some w) state
-        match w with
-        | Symbol s ->
-            match tryFindWord s (getDictionary state) with
-            | Some (List l) ->
-                let continuation = List.rev l @ Symbol "_return" :: getContinuation state |> setContinuation state
-                setDictionary continuation (getDictionary state |> addFrame)
-            | Some (Word w) -> w.Func state
-            | Some v -> v :: getStack state |> setStack state
-            | None -> failwith (sprintf "Unknown word '%s'" s)
-        | v -> v :: getStack state |> setStack state
+let step state =
     match getContinuation state with
-    | [] ->
-        match Seq.tryHead stream with
-        | Some w -> interpret (word state w) (Seq.tail stream)
-        // | Some w -> interpret (w :: getContinuation state |> setContinuation state) (Seq.tail stream)
-        | None ->
-            // Print.printDebug None state
-            state
-    | w :: c -> interpret (word (setContinuation state c) w) stream
+    | Symbol "_return" :: c -> updateDictionary dropFrame state |> setContinuation c
+    | Symbol s :: c -> 
+        match tryFindWord s state with
+        | Some (List l) -> addFrame state |> setContinuation (List.rev l @ Symbol "_return" :: c)
+        | Some (Word w) -> setContinuation c state |> w.Func
+        | Some v -> pushStack v state |> setContinuation c
+        | None -> failwith (sprintf "Unknown word '%s'" s)
+    | v :: c -> pushStack v state |> setContinuation c
+    | [] -> state
 
-let rep state source = [String source; Symbol "eval"] |> interpret state
+let prependCode state code = updateContinuation (fun c -> List.ofSeq code @ c) state
 
-// | String b :: t -> brief b |> interpret (setStack s t)
+let stepIn state code = prependCode state code |> step
+
+let stepOut state code =
+    let rec out state =
+        match getContinuation state with
+        | Symbol "_return" :: _ | [] -> step state
+        | Symbol "_break" :: c -> setContinuation c state
+        | _ -> step state |> out
+    prependCode state code |> out
+
+let stepOver state code =
+    let state' = prependCode state code
+    let state'' = step state'
+    let len = getContinuation >> List.length
+    if len state'' > len state' then stepOut state'' [] else state''
+
+let interpret state code =
+    let rec interpret' state =
+        match getContinuation state with
+        | [] -> state
+        | Symbol "_break" :: c -> setContinuation c state
+        | _ -> step state |> interpret'
+    prependCode state code |> interpret'

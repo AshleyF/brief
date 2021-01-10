@@ -122,3 +122,4 @@ let 'test [load 'Tests]
 let 'true -1
 let 'false 0
 
+let 'break [_break]

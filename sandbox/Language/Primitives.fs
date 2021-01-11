@@ -138,7 +138,7 @@ let primitiveState =
 
         primitive "eval" (fun s ->
             match getStack s with
-            | String b :: t -> brief b |> interpret (setStack t s)
+            | String b :: t -> setStack t s |> (brief b |> interpret)
             | _ :: _ -> failwith "Expected s"
             | _ -> failwith "Stack underflow")
 
@@ -164,7 +164,7 @@ let primitiveState =
 
         primitive "load" (fun s ->
             match getStack s with
-            | String p :: t -> File.ReadAllText(sprintf "%s.b" p) |> brief |> interpret (setStack t s)
+            | String p :: t -> setStack t s |> (File.ReadAllText(sprintf "%s.b" p) |> brief |> interpret)
             | _  :: _ -> failwith "Expected s"
             | _ -> failwith "Stack underflow")
 

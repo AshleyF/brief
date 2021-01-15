@@ -10,13 +10,13 @@ let lex source =
         match source with
         | '\\' :: c :: t -> yield! tick (unescape c :: token) t
         | ((']' :: _) as t) | (('[' :: _) as t) | (('}' :: _) as t) | (('{' :: _) as t) ->
-            if token.Length > 0 then yield! emit token
+            yield! emit token
             yield! lex' [] t
         | c :: t when Char.IsWhiteSpace c ->
-            if token.Length > 0 then yield! emit token
+            yield! emit token
             yield! lex' [] t
         | c :: t -> yield! tick (c :: token) t
-        | [] -> if token.Length > 0 then yield! emit token }
+        | [] -> yield! emit token }
     and str token source = seq {
         match source with
         | '\\' :: c :: t -> yield! str (unescape c :: token) t

@@ -4,35 +4,41 @@ open System
 open Structure
 
 let lex source =
-    let rec lex' token str source = seq {
-        let emit (token: char list) = seq { if List.length token > 0 then yield token |> List.rev |> String.Concat }
-        if str then
-            match source with
-            | '\\' :: '"'  :: t -> yield! lex' ('"'  :: token) true t
-            | '\\' :: '\\' :: t -> yield! lex' ('\\' :: token) true t
-            | '\\' :: 'b'  :: t -> yield! lex' ('\b' :: token) true t
-            | '\\' :: 'f'  :: t -> yield! lex' ('\f' :: token) true t
-            | '\\' :: 'n'  :: t -> yield! lex' ('\n' :: token) true t
-            | '\\' :: 'r'  :: t -> yield! lex' ('\r' :: token) true t
-            | '\\' :: 't'  :: t -> yield! lex' ('\t' :: token) true t
-            | '"' :: t -> 
-                yield! emit token
-                yield! lex' [] false t
-            | c :: t ->           yield! lex' (c :: token) true t
-            | [] -> failwith "Incomplete string"
-        else
-            match source with
-            | c :: t when Char.IsWhiteSpace c ->
-                yield! emit token
-                yield! lex' [] false t
-            | ('[' as c) :: t | (']' as c) :: t | ('{' as c) :: t | ('}' as c) :: t ->
-                yield! emit token
-                yield c.ToString()
-                yield! lex' [] false t
-            | '"' :: t -> yield! lex' ['\''] true t // prefix token with '
-            | c :: t -> yield! lex' (c :: token) false t
-            | [] -> yield! emit token }
-    source |> List.ofSeq |> lex' [] false |> Seq.rev
+    let emit (token: char list) = seq { if List.length token > 0 then yield token |> List.rev |> String.Concat }
+    let rec unescape = function 'b' -> '\b' | 'f' -> '\f' | 'n' -> '\n' | 'r' -> '\r' | 't' -> '\t' | c -> c
+    and tick token source = seq {
+        match source with
+        | '\\' :: c :: t -> yield! tick (unescape c :: token) t
+        | ((']' :: _) as t) | (('[' :: _) as t) | (('}' :: _) as t) | (('{' :: _) as t) ->
+            if token.Length > 0 then yield! emit token
+            yield! lex' [] t
+        | c :: t when Char.IsWhiteSpace c ->
+            if token.Length > 0 then yield! emit token
+            yield! lex' [] t
+        | c :: t -> yield! tick (c :: token) t
+        | [] -> if token.Length > 0 then yield! emit token }
+    and str token source = seq {
+        match source with
+        | '\\' :: c :: t -> yield! str (unescape c :: token) t
+        | '"' :: t  -> 
+            if token.Length > 0 then yield! emit token
+            yield! lex' [] t
+        | c :: t -> yield! str (c :: token) t
+        | [] -> failwith "Incomplete string" }
+    and lex' token source = seq {
+        match source with
+        | c :: t when Char.IsWhiteSpace c ->
+            if token.Length > 0 then yield! emit token
+            yield! lex' [] t
+        | ('[' as c) :: t | (']' as c) :: t | ('{' as c) :: t | ('}' as c) :: t ->
+            if token.Length > 0 then yield! emit token
+            yield c.ToString()
+            yield! lex' [] t
+        | ('\'' :: _ as t) when token.Length = 0 -> yield! tick [] t
+        | '"' :: t when token.Length = 0 -> yield! str ['\''] t // prefix token with '
+        | c :: t -> yield! lex' (c :: token) t
+        | [] -> yield! emit token }
+    source |> List.ofSeq |> lex' [] |> Seq.rev
 
 type Node =
     | Token of string

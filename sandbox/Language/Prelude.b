@@ -1,4 +1,6 @@
-﻿let 'pi 3.14159
+﻿load 'brief
+
+let 'pi 3.14159
 let 'e 2.71828
 
 let 'sq [* dup]
@@ -78,20 +80,22 @@ let 'tail [drop snoc]
 
 let 'do [2dip dup]
 let 'while [if [while do] [2drop] rot dip [dip dup]]
-let 'until [while dip [compose [not]]]
+let 'until [while dip [prepose [not]]]
 
 let 'swons [cons swap]
 let 'quote [swons []]
-let 'prepose [compose swap]
+let 'compose [prepose swap]
 
-let 'curry [compose dip [quote]]
+let 'curry [prepose dip [quote]]
 let '2curry [curry curry]
 let '3curry [curry curry curry]
 
 let 'fold [2drop until [dip dup 2dip [snoc] -rot] [empty? rot]]
-let 'map [reverse fold swap [] prepose [swap] compose [cons]]
-let 'flatmap [fold [compose] [] map]
+let 'map [reverse fold swap [] compose [swap] prepose [cons]]
+let 'flatmap [fold [prepose] [] map]
 let 'filter [flatmap fry [if [quote] [[] drop] _ dup]]
+let 'any? [if [false 2drop] [if [true 2drop] [any? swap] apply pick snoc] empty? swap]
+let 'all? [not any? prepose [not]]
 
 let 'reverse [fold [swons] []]
 
@@ -114,10 +118,10 @@ let 'fry [flatmap [if [fill] [deepfry] hole?]
     let 'hole? [= >sym '_ dup]]
 
 let 'assertTrue [clear print fry [_ " " _ "\n"] if ['PASS] ["!!! FAIL"] apply swap]
-let 'assertFalse [assertTrue dip [compose [not]]]
+let 'assertFalse [assertTrue dip [prepose [not]]]
 let 'assertEqual [assertTrue dip [quote =] 2dip [apply]]
 
-let 'test [load 'Tests]
+let 'test [load 'tests]
 
 let 'true -1
 let 'false 0

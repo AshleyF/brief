@@ -51,6 +51,6 @@ let commandLine =
     Environment.CommandLine.Substring(exe.Length)
 
 printf "Loading Prelude..."
-let state = commandLine :: ["load 'Prelude"] |> Seq.fold (fun s c -> interpret (brief c) s) primitiveState
+let state = commandLine :: ["load 'prelude"] |> Seq.fold (fun s c -> interpret (brief c) s) primitiveState
 printfn " Ready"
 repl state

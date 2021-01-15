@@ -245,7 +245,7 @@ let primitiveState =
             | _ :: _ :: _ -> failwith "Expected vl"
             | _ -> failwith "Stack underflow")
 
-        primitive "compose" (fun s ->
+        primitive "prepose" (fun s ->
             match getStack s with
             | List q :: List r :: t -> setStack (List (q @ r) :: t) s
             | _ :: _ :: _ -> failwith "Expected ll"

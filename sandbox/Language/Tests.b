@@ -27,3 +27,8 @@ assertTrue "or true" [or false true]
 assertFalse "or false" [or false false]
 assertTrue "not true" [not false]
 assertFalse "not false" [not true]
+
+assertTrue "any? true" [any? [even?] [3 5 2 7]]
+assertFalse "any? false" [any? [even?] [3 5 7 9]]
+assertTrue "all? true" [all? [even?] [2 4 6 8]]
+assertFalse "all? false" [all? [even?] [2 4 7 8]]

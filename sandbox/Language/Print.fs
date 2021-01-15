@@ -3,8 +3,12 @@
 open System
 open Structure
 
-let rec stringOfString (s: string) =
-    let s' = s.Replace("\\", "\\\\").Replace("\b", "\\b").Replace("\f", "\\f").Replace("\n", "\\n").Replace("\r", "\\r").Replace("\t", "\\t")
+let escape (s: string) =
+    s.Replace("\\", "\\\\").Replace("\b", "\\b").Replace("\f", "\\f")
+     .Replace("\n", "\\n").Replace("\r", "\\r").Replace("\t", "\\t")
+     .Replace("[", "\[").Replace("]", "\]").Replace("{", "\{").Replace("}", "\}")
+let rec stringOfString s =
+    let s' = escape s
     sprintf (if String.exists Char.IsWhiteSpace s' then "\"%s\"" else "'%s") s'
 let rec stringOfValue = function
     | Symbol s  -> sprintf "%s" s

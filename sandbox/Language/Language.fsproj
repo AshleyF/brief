@@ -7,15 +7,19 @@
 
   <ItemGroup>
     <None Include="Readme.md" />
+    <None Include="Journal\Readme.md" />
     <None Include="Journal\JAN2021.md" />
     <None Include="Journal\DEC2020.md" />
     <None Include="Vocabulary.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <Content Include="Prelude.b">
+    <Content Include="brief.b">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Tests.b">
+    <Content Include="prelude.b">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="tests.b">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Compile Include="Structure.fs" />

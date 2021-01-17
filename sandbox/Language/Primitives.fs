@@ -205,6 +205,14 @@ let primitiveState =
             | Word _ :: _ -> failwith "Word cannot be cast to Number value"
             | [] -> failwith "Stack underflow")
 
+        primitive ">num?" (fun s ->
+            match getStack s with
+            | Symbol y :: t | String y :: t ->
+                match System.Double.TryParse y with
+                | (true, v) -> setStack (Number -1. :: Number v :: t) s
+                | _ -> setStack (Number 0. :: t) s
+            | t -> setStack (Number 0. :: t) s)
+
         primitive ">str" (fun s ->
             match getStack s with
             | String _ :: _ -> s

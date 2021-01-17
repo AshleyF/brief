@@ -102,6 +102,7 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `or` | xy-b | Boolean or of top two stack values | Primitive |
 | `not` | x-b | Boolean not of top stack value | Primitive |
 | `if` | qrb- | Apply one or the other quotation depending on boolean value | Primitive |
+| `cond` | q-* | Walks a list of quotations representing cases/default. | Secondary |
 | `when` | qb - | Apply quotation when boolean value is `true` | Secondary |
 | `unless` | qb - | Apply quotation unless boolean value is `true` | Secondary |
 
@@ -165,8 +166,9 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `list?` | x-b | Determine whether top of stack value is a List | Secondary |
 | `map?` | x-b | Determine whether top of stack value is a Map | Secondary |
 | `>sym` | x-s | Cast String (not including white space), Boolean, or Number to Symbol | Primitive |
-| `>num` | x-n | Cast Symbol, String, Boolean (-1, 0), List, or Map (lengths) to Number | Primitive |
 | `>str` | x-s | Cast value to string in Brief literal source form | Primitive |
+| `>num` | x-n | Cast Symbol, String, Boolean (-1, 0), List, or Map (lengths) to Number | Primitive |
+| `>num?` | x-?n | Try to parse string as Number, returning true and Number or false | Primitive |
 
 ## Loops
 | Word | Stack | Description | Type |

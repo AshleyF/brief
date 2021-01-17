@@ -3,6 +3,8 @@ assertEqual "lex regular strings" ['test "'foo is a" 'this] [lex "this \"foo is 
 assertEqual "lex tick strings" ['baz ''bar 'foo] [lex "foo 'bar baz"]
 assertEqual "lex escaped chars" ["'\b \f \n \r \t \\ x"] [lex "\"\b \f \n \r \t \\ \x\""]
 
+assertEqual "parse list" [this ['is 123 a] test] [parse lex "this ['is 123 a] test"]
+
 let 'whitespace? [any? swap [" " '\r '\n '\t] fry [= _] dup]
 
 let 'lex [tokenize rot [] [] split
@@ -33,9 +35,15 @@ let 'lex [tokenize rot [] [] split
     let 'singleCharToken [token dip [cons] swap dip [token]]
     let 'token [swap [] if [drop] [dip [cons] swap join reverse] empty? swap]]
 
-
-let 'cond [if [drop] [if [apply head] [pair] = 1 count] empty?
-    let 'pair [if [apply nip] [cond drop] rot dip [dip snoc] snoc]]
-
-drop [
-]
+let 'parse [next swap []
+    let 'next [cond [[drop]                       [empty?]
+                     [next dip [cons] parse drop] [= '\] dup snoc]
+                     [drop]                       [or bi [= '\{] [= '\[] dup]
+                     [next buildMap parse drop]   [= '\} dup]
+                     [next dip [cons convert] swap]]]]
+    let 'convert [cond [[join tail split] [= '' head split dup]
+                        [nip]             [>num? dup]
+                        [>sym]]]
+    let 'buildMap [build rot { }]
+        let 'build [if [dip [cons] swap drop]
+                       [build dip [! swap] swap snoc swap snoc] empty?]

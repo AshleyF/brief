@@ -1,6 +1,4 @@
-﻿load 'brief
-
-let 'pi 3.14159
+﻿let 'pi 3.14159
 let 'e 2.71828
 
 let 'sq [* dup]
@@ -64,6 +62,8 @@ let 'map?  [= 'map  type]
 let 'apply [when swap true]
 let 'when [if swap []]
 let 'unless [if []]
+let 'cond [if [drop] [if [apply head] [pair] = 1 count] empty?
+    let 'pair [if [apply nip] [cond drop] rot dip [dip snoc] snoc]]
 
 let 'neg [* -1]
 let 'abs [when [neg] < 0 dup]

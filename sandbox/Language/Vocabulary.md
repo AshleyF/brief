@@ -182,11 +182,13 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | Word | Stack | Description | Type |
 | --- | --- | --- | --- |
 | `let` | nx- | Define named quotation or value as secondary word | Primitive |
-| `eval` | s- | Evaluate Brief source | Primitive |
 | `print` | - | Print top of stack | Primitive |
 | `state` | - | Print machine state | Primitive |
 | `post` | nq- | Post quotation to named actor | Primitive |
+| `read` | s-s | Read text file as a string. | Primitive |
 | `load` | n- | Load named Brief source file (path, not including .b extension) | Primitive |
+| `lex` | s-l | Tokenize source. | Primitive (redefined in brief.b) |
+| `parse` | l-l | Parse tokens into structured, typed code. | Primitive (redefined in brief.b) |
 | `range` | nm-l | Create a list of Numbers ranging from n to m | Secondary |
 | `factorial` | n-n | Compute the factorial of a Numeber | Secondary |
 | `words` | - | Display primitive and secondary words | Primitive |

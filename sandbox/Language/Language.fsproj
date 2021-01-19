@@ -23,6 +23,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Compile Include="Structure.fs" />
+    <Compile Include="Serialization.fs" />
     <Compile Include="Syntax.fs" />
     <Compile Include="Print.fs" />
     <Compile Include="Interpretation.fs" />

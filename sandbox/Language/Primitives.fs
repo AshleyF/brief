@@ -3,13 +3,12 @@
 open System
 open System.IO
 open Structure
+open Serialization
 open Syntax
 open Print
-open Interpretation
 open Actor
 
-let primitiveState =
-
+let rec primitives =
     [
         primitive "!map" (fun s ->
             match getStack s with
@@ -136,12 +135,6 @@ let primitiveState =
             | _ :: _  :: _ -> failwith "Expected sq"
             | _ -> failwith "Stack underflow")
 
-        primitive "eval" (fun s ->
-            match getStack s with
-            | String b :: t -> setStack t s |> (brief b |> interpret)
-            | _ :: _ -> failwith "Expected s"
-            | _ -> failwith "Stack underflow")
-
         primitive "print" (fun s ->
             let rec print = function
                 | String str -> printf "%s" str
@@ -162,11 +155,24 @@ let primitiveState =
             | _ :: _  :: _ -> failwith "Expected ss"
             | _ -> failwith "Stack underflow")
 
-        primitive "load" (fun s ->
+        primitive "read" (fun s ->
             match getStack s with
-            | String p :: t -> setStack t s |> (File.ReadAllText(sprintf "%s.b" p) |> brief |> interpret)
+            | String p :: t -> setStack ((File.ReadAllText(p) |> String) :: t) s
             | _  :: _ -> failwith "Expected s"
             | _ -> failwith "Stack underflow")
+
+        // primitive "lex" (fun s ->
+        //     match getStack s with
+        //     | String b :: t -> setStack ((lex b |> Seq.map String |> List.ofSeq |> List) :: t) s
+        //     | _  :: _ -> failwith "Expected s"
+        //     | _ -> failwith "Stack underflow")
+
+        // primitive "parse" (fun s ->
+        //     let toString = function String s -> s | _ -> failwith "Expected String"
+        //     match getStack s with
+        //     | List l :: t -> setStack ((l |> Seq.map toString |> parse |> compile |> Seq.rev |> List.ofSeq |> List) :: t) s
+        //     | _  :: _ -> failwith "Expected l"
+        //     | _ -> failwith "Stack underflow")
 
         primitive "type" (fun s ->
             let kind, t =
@@ -306,4 +312,28 @@ let primitiveState =
         //     | _ :: _ :: _ -> failwith "Expected lv"
         //     | _ -> failwith "Stack underflow")
 
-    ] |> addPrimitives emptyState
+        primitive "save" (fun s ->
+            match getStack s with
+            | String n :: t ->
+                let s' = setStack t s
+                use writer = new BinaryWriter(File.OpenWrite(sprintf "%s.i" n))
+                serialize writer (Map s')
+                s'
+            | _ :: _ -> failwith "Expected s"
+            | _ -> failwith "Stack underflow")
+
+        primitive "open" (fun s ->
+            match getStack s with
+            | String n :: t ->
+                let s' = setStack t s
+                let primMap = primitives |> Seq.map (fun p -> p.Name, Word p) |> Map.ofSeq
+                use reader = new BinaryReader(File.OpenRead(sprintf "%s.i" n))
+                match deserialize primMap reader with
+                | Map m -> m
+                | _ -> failwith "Invalid image"
+            | _ :: _ -> failwith "Expected s"
+            | _ -> failwith "Stack underflow")
+
+    ]
+    
+let primitiveState = addPrimitives emptyState primitives

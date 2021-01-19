@@ -8,8 +8,8 @@ let _dictionary   = "_dictionary"
 
 type Value =                        // v
     | Symbol  of string             // y
-    | Number  of double             // n
     | String  of string             // s
+    | Number  of double             // n
     | List    of Value list         // l
     | Map     of Map<string, Value> // m
     | Word    of Primitive          // w

@@ -51,6 +51,9 @@ let commandLine =
     Environment.CommandLine.Substring(exe.Length)
 
 printf "Loading Prelude..."
-let state = commandLine :: ["load 'prelude"] |> Seq.fold (fun s c -> interpret (brief c) s) primitiveState
+let boot =
+    // "if parse lex read 'prelude.b [ ] -1"
+    "open 'boot.i"
+let state = commandLine :: [boot] |> Seq.fold (fun s c -> interpret (brief c) s) primitiveState
 printfn " Ready"
 repl state

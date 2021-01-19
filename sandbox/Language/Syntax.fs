@@ -9,12 +9,7 @@ let lex source =
     and tick token source = seq {
         match source with
         | '\\' :: c :: t -> yield! tick (unescape c :: token) t
-        | ((']' :: _) as t) | (('[' :: _) as t) | (('}' :: _) as t) | (('{' :: _) as t) ->
-            yield! emit token
-            yield! lex' [] t
-        | c :: t when Char.IsWhiteSpace c ->
-            yield! emit token
-            yield! lex' [] t
+        | c :: t when Char.IsWhiteSpace c -> yield! emit token; yield! lex' [] t
         | c :: t -> yield! tick (c :: token) t
         | [] -> yield! emit token }
     and str token source = seq {
@@ -29,10 +24,6 @@ let lex source =
         match source with
         | c :: t when Char.IsWhiteSpace c ->
             if token.Length > 0 then yield! emit token
-            yield! lex' [] t
-        | ('[' as c) :: t | (']' as c) :: t | ('{' as c) :: t | ('}' as c) :: t ->
-            if token.Length > 0 then yield! emit token
-            yield c.ToString()
             yield! lex' [] t
         | ('\'' :: _ as t) when token.Length = 0 -> yield! tick [] t
         | '"' :: t when token.Length = 0 -> yield! str ['\''] t // prefix token with '

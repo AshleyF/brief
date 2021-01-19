@@ -10,7 +10,10 @@ let step into state =
     | Symbol s :: c -> 
         let c' = pause c
         match tryFindWord s state with
-        | Some (List l) -> addFrame state |> setContinuation (List.rev l @ Symbol "_return" :: c')
+        | Some (List l) ->
+            if List.contains (Symbol "let") l
+            then addFrame state |> setContinuation (List.rev l @ Symbol "_return" :: c')
+            else setContinuation (List.rev l @ c') state
         | Some (Word w) -> setContinuation c' state |> w.Func
         | Some v -> pushStack v state |> setContinuation c'
         | None -> failwith (sprintf "Unknown word '%s'" s)

@@ -60,10 +60,10 @@ let rec speechGrammar = function
         dict.AppendDictation()
         dict
 
-let briefLightsOn = "'Turning lights on|post 'trigger [hook ifttt-key 'all-lights-on ' ' ']"
-let briefLightsOff = "Turning lights off|post 'trigger [hook ifttt-key 'all-lights-off ' ' ']"
-let briefLightsDim = "Dimming lights|post 'trigger [hook ifttt-key 'all-lights-dim '50 ' ']"
-let briefLightsBright = "Making lights bright|post 'trigger [hook ifttt-key 'all-lights-dim '100 ' ']"
+let briefLightsOn = "'Turning lights on|post 'trigger [ hook ifttt-key 'all-lights-on ' ' ' ]"
+let briefLightsOff = "Turning lights off|post 'trigger [ hook ifttt-key 'all-lights-off ' ' ' ]"
+let briefLightsDim = "Dimming lights|post 'trigger [ hook ifttt-key 'all-lights-dim '50 ' ' ]"
+let briefLightsBright = "Making lights bright|post 'trigger [ hook ifttt-key 'all-lights-dim '100 ' ' ]"
 
 let lightsOn = Choice [
     Phrase ("Illuminate",         Some briefLightsOn)
@@ -120,8 +120,8 @@ let lightsFade = Choice [
 let lightsExtra = Choice [
     Phrase ("Fuck mode", Some "lights-color:red")]
 
-let roombaCleanAll = "'Cleaning the floors|post 'trigger [hook ifttt-key 'roomba-clean-all ' ' ']"
-let roombaDock = "'Docking the vaccuume|post 'trigger [hook ifttt-key 'roomba-dock ' ' ']"
+let roombaCleanAll = "'Cleaning the floors|post 'trigger [ hook ifttt-key 'roomba-clean-all ' ' ' ]"
+let roombaDock = "'Docking the vaccuume|post 'trigger [ hook ifttt-key 'roomba-dock ' ' ' ]"
 
 let roomba = Choice [
     Phrase ("Clean the floors", Some roombaCleanAll)
@@ -149,11 +149,11 @@ let rec fade () =
     synth.Speak("Slowly dimming lights")
     let rec fade' level =
         printfn "Fade: %i" level
-        level |> sprintf "post 'trigger [hook ifttt-key 'all-lights-dim '%i ' ']" |> post
+        level |> sprintf "post 'trigger [ hook ifttt-key 'all-lights-dim '%i ' ' ]" |> post
         Thread.Sleep(5 * 60 * 1000 / 25)
         if fading then
             if level > 0 then fade' (level - 4)
-            else post "post 'trigger [hook ifttt-key 'all-lights-off ' ' ']"
+            else post "post 'trigger [ hook ifttt-key 'all-lights-off ' ' ' ]"
     (new Thread(new ThreadStart(fun () -> fade' 100), IsBackground = true)).Start()
 
 while true do
@@ -171,7 +171,7 @@ while true do
                     if s.StartsWith("lights-color:") then
                         let color = s.Substring(13)
                         synth.Speak(sprintf "Lights %s" color)
-                        color |> sprintf "post 'trigger [hook ifttt-key 'all-lights-color '%s ' ']" |> post
+                        color |> sprintf "post 'trigger [ hook ifttt-key 'all-lights-color '%s ' ' ]" |> post
                     else
                         let pair = s.Split('|')
                         synth.Speak(pair.[0])

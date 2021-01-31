@@ -70,7 +70,7 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `swons` | lv-l | Cons value (v) onto head of List (equivalent to `cons swap`) | Secondary |
 | `quote` | v-l | Quote a value into a single-element list | Secondary |
 | `compose` | qr-q | Compose two quotations (`Lists`) into one | Primitive |
-| `prepose` | qr-q | Compose two quotations is reverse order (`Lists`) into one | Secondary |
+| `prepose` | qr-q | Compose two quotations in reverse order (`Lists`) into one | Secondary |
 | `curry` | qx-q | Compose value (x) onto end of quotations (q) | Secondary |
 | `2curry` | qxy-q | Compose two values (x, y) onto end of quotations (q) | Secondary |
 | `3curry` | qxyz-q | Compose three values (x, y, z) onto end of quotations (q) | Secondary |
@@ -84,6 +84,7 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `@map` | n- | Fetch named value from `State.Map` | Primitive |
 | `split` | s-l | Split Symbol or String into List of single-character Strings | Primitive |
 | `join` | l-s | Join List of Strings into single String | Primitive |
+| `concat` | ss-s | Concatenate two strings | Secondary |
 | `reverse` | l-l | Reverse List | Secondary |
 
 ## Comparison and Conditionals
@@ -193,6 +194,8 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `factorial` | n-n | Compute the factorial of a Numeber | Secondary |
 | `words` | - | Display primitive and secondary words | Primitive |
 | `word` | n- | Display word definition | Primitive |
+| `save` | s- | Save image of machine state (path, not including .i extension). | Primivite |
+| `open` | s- | Open image of machine state (path, not including .i extension). | Primitive |
 
 ## Testing
 

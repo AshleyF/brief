@@ -75,4 +75,4 @@ let parse tokens =
     | (result, []) -> compile result
     | _ -> failwith "Unmatched quotation or map syntax"
 
-let brief source = source |> lex |> parse |>  List.ofSeq
+let brief source = source |> lex |> parse |> List.ofSeq

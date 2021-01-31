@@ -15,3 +15,30 @@
 	- Names like `prepose`/`compose` reversed
 	- "Natural" order of `-`, `/`, etc. reversed
 	- Reversed `let` expressions seem weird, but "red" words might fix that
+
+## Secondaries with in-built defintions
+
+One idea is to lazily populate definitions directly in secondary words without dictionary lookup:
+
+```fsharp
+and Word(name: string) =
+    member _.Name = name
+    override this.Equals(o) =
+        match o with
+            | :? Word as w -> this.Name = w.Name
+            | _ -> false
+    override this.GetHashCode() = hash (this.Name)
+    interface IComparable with
+        override this.CompareTo(o) =
+            match o with
+                | :? Word as w -> compare this.Name w.Name
+                | _ -> -1
+
+and PrimitiveWord(name: string, func: State -> State) =
+    inherit Word(name)
+    member _.Func = func
+
+and SecondaryWord(name: string) =
+    inherit Word(name) // assumes name is unique (e.g. namespace prepended)
+    member val Definition : Value option = None with get, set
+```

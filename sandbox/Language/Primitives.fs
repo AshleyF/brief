@@ -164,6 +164,7 @@ let rec primitives =
 
         // reimplemented in brief.b
         primitive "lex" (fun s ->
+            printfn "!!! F# Lex !!!"
             match getStack s with
             | String b :: t -> setStack ((lex b |> Seq.map String |> List.ofSeq |> List) :: t) s
             | _  :: _ -> failwith "Expected s"
@@ -171,6 +172,7 @@ let rec primitives =
 
         // reimplemented in brief.b
         primitive "parse" (fun s ->
+            printfn "!!! F# Parse !!!"
             let toString = function String s -> s | _ -> failwith "Expected String"
             match getStack s with
             | List l :: t -> setStack ((l |> Seq.map toString |> parse |> Seq.rev |> List.ofSeq |> List) :: t) s

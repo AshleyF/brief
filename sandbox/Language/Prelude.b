@@ -65,7 +65,8 @@ let 'unless [ if [ ] ]
 let 'cond [ if [ drop ] [ if [ apply head ] [ cond.pair ] = 1 count ] empty? ]
     let 'cond.pair [ if [ apply nip ] [ cond drop ] rot dip [ dip snoc ] snoc ]
 
-let 'load [ apply parse lex read ]
+let 'concat [ join prepose bi@ [ split ] ]
+let 'load [ apply parse lex read concat swap '.b ]
 
 let 'neg [ * -1 ]
 let 'abs [ when [ neg ] < 0 dup ]
@@ -123,7 +124,7 @@ let 'assertTrue [ clear print fry [ _ " " _ "\n" ] if [ 'PASS ] [ "!!! FAIL" ] a
 let 'assertFalse [ assertTrue dip [ prepose [ not ] ] ]
 let 'assertEqual [ assertTrue dip [ quote = ] 2dip [ apply ] ]
 
-let 'test [ load 'tests.b ]
+let 'test [ load 'tests ]
 
 let 'true -1
 let 'false 0

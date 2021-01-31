@@ -33,7 +33,7 @@ and State = Map<string, Value>
 let emptyState = Map.ofList [
     _stack, List []
     _continuation, List []
-    _dictionary, List [Map Map.empty]]
+    _dictionary, Map Map.empty]
 
 let primitive name fn = Primitive(name, fn)
 
@@ -50,34 +50,13 @@ let getContinuation = getList _continuation
 let setContinuation = setList _continuation
 let updateContinuation = updateList _continuation
 
-let getDictionary = getList _dictionary
-let setDictionary = setList _dictionary
-let updateDictionary = updateList _dictionary
+let getDictionary state = match Map.tryFind _dictionary state with Some (Map m) -> m | _ -> failwith (sprintf "Malformed dictionary")
+let setDictionary m state = Map.add _dictionary (Map m) state
+let updateDictionary fn state = setDictionary (state |> getDictionary |> fn) state
 
 let addPrimitives (state: State) (primitives: Primitive list) =
-    match getDictionary state with
-    | Map h :: t -> setDictionary ((Seq.fold (fun m (p: Primitive) -> Map.add (p.Name) (Word p) m) h primitives |> Map) :: t) state
-    | _ :: t -> failwith "Malformed dictionary"
-    | [] -> failwith "Malformed dictionary"
+    updateDictionary (fun d -> Seq.fold (fun m (p: Primitive) -> Map.add (p.Name) (Word p) m) d primitives) state
 
-let addFrame = updateDictionary (fun d -> Map Map.empty :: d)
+let addWord n v state = updateDictionary (Map.add n v) state
 
-let dropFrame = function
-    | _ :: [] -> failwith "Cannot drop final dictionary frame"
-    | _ :: t -> t
-    | [] -> failwith "Malformed dictionary"
-
-let addWord n v = function
-    | Map h :: t -> Map (Map.add n v h) :: t
-    | _ :: t -> failwith "Malformed dictionary"
-    | [] -> failwith "Malformed dictionary"
-
-let tryFindWord n state =
-    let rec tryFind = function
-        | Map h :: t ->
-            match Map.tryFind n h with
-            | Some v -> Some v
-            | None -> tryFind t
-        | _ :: t -> failwith "Malformed dictionary"
-        | [] -> None
-    getDictionary state |> tryFind
+let tryFindWord n state = getDictionary state |> Map.tryFind n

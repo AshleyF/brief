@@ -202,12 +202,18 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `assertFalse` | nq- | Assert named quotation evaluates to `false` | Secondary |
 | `assertEqual` | nqr- | Assert named quotation (r) evaluates to match first quotation (q) | Secondary |
 | `test` | - | Load unit tests (`Test.b`)| Secondary |
+| `stopwatch-reset` | - | Reset and start stopwatch. | Primitive |
+| `stopwatch-elapsed` | n | Return elapsed milliseconds. | Primitive |
+| `time` | q-n | Apply quotation while running stopwatch; returning elapsed milliseconds. | Secondary |
+| `steps-reset` | - | Reset interpreter step count. | Primitive |
+| `steps-count` | n | Return current interpreter step count. | Primitive |
+| `steps` | q-n | Apply quotation while returning counted steps. | Secondary |
+| `perf` | q-nn | Apply quotation while running stopwatch; returning counted steps and elapsed milliseconds. | Secondary |
 
 ## Internal
 
 | Word | Stack | Description | Type |
 | --- | --- | --- | --- |
-| `_return` | - | Return from expanded secondary word; dropping dictionary frame | Primitive |
 | `_break` | - | Break point; pausing interpretation | Primitive |
 
 ## Tesla Actor

@@ -2,6 +2,7 @@
 
 open System
 open System.IO
+open System.Diagnostics
 open Structure
 open Serialization
 open Syntax
@@ -130,8 +131,8 @@ let rec primitives =
 
         primitive "let" (fun s ->
             match getStack s with
-            | String n :: (List _ as q) :: t -> setStack t s |> updateDictionary (addWord n q)
-            | String n :: v :: t -> setStack t s |> updateDictionary (addWord n v)
+            | String n :: (List _ as q) :: t -> setStack t s |> addWord n q
+            | String n :: v :: t -> setStack t s |> addWord n v
             | _ :: _  :: _ -> failwith "Expected sq"
             | _ -> failwith "Stack underflow")
 
@@ -161,18 +162,31 @@ let rec primitives =
             | _  :: _ -> failwith "Expected s"
             | _ -> failwith "Stack underflow")
 
-        // primitive "lex" (fun s ->
-        //     match getStack s with
-        //     | String b :: t -> setStack ((lex b |> Seq.map String |> List.ofSeq |> List) :: t) s
-        //     | _  :: _ -> failwith "Expected s"
-        //     | _ -> failwith "Stack underflow")
+        // reimplemented in brief.b
+        primitive "lex" (fun s ->
+            match getStack s with
+            | String b :: t -> setStack ((lex b |> Seq.map String |> List.ofSeq |> List) :: t) s
+            | _  :: _ -> failwith "Expected s"
+            | _ -> failwith "Stack underflow")
 
-        // primitive "parse" (fun s ->
-        //     let toString = function String s -> s | _ -> failwith "Expected String"
-        //     match getStack s with
-        //     | List l :: t -> setStack ((l |> Seq.map toString |> parse |> compile |> Seq.rev |> List.ofSeq |> List) :: t) s
-        //     | _  :: _ -> failwith "Expected l"
-        //     | _ -> failwith "Stack underflow")
+        // reimplemented in brief.b
+        primitive "parse" (fun s ->
+            let toString = function String s -> s | _ -> failwith "Expected String"
+            match getStack s with
+            | List l :: t -> setStack ((l |> Seq.map toString |> parse |> Seq.rev |> List.ofSeq |> List) :: t) s
+            | _  :: _ -> failwith "Expected l"
+            | _ -> failwith "Stack underflow")
+
+        let stopwatch = new Stopwatch();
+
+        primitive "stopwatch-reset" (fun s -> stopwatch.Reset(); stopwatch.Start(); s)
+
+        primitive "stopwatch-elapsed" (fun s ->
+            pushStack (stopwatch.ElapsedMilliseconds |> double |> Number) s)
+
+        primitive "steps-reset" (fun s -> Interpretation.stepCount <- 0L; s)
+
+        primitive "steps-count" (fun s -> pushStack (Interpretation.stepCount |> double |> Number) s)
 
         primitive "type" (fun s ->
             let kind, t =
@@ -287,8 +301,7 @@ let rec primitives =
             | _ -> failwith "Stack underflow")
 
         primitive "words" (fun s ->
-            getDictionary s |> List.iter (function Map m -> Map.iter (fun k v -> printfn "%s %s" k (stringOfValue v)) m | _ -> failwith "Malformed dictionary")
-            s)
+            getDictionary s |> Map.iter (fun k v -> printfn "%s %s" k (stringOfValue v)); s)
 
         primitive "word" (fun s ->
             match getStack s with

@@ -2,18 +2,17 @@
 
 open Structure
 
+let mutable stepCount = 0L
+
 let step into state =
+    stepCount <- stepCount + 1L
     let pause c = if into then Symbol "_pause" :: c else c
     match getContinuation state with
-    | Symbol "_return" :: c -> updateDictionary dropFrame state |> setContinuation c
     | Symbol "_pause" :: c -> setContinuation c state
     | Symbol s :: c -> 
         let c' = pause c
         match tryFindWord s state with
-        | Some (List l) ->
-            if List.contains (Symbol "let") l
-            then addFrame state |> setContinuation (List.rev l @ Symbol "_return" :: c')
-            else setContinuation (List.rev l @ c') state
+        | Some (List l) -> setContinuation (List.rev l @ c') state
         | Some (Word w) -> setContinuation c' state |> w.Func
         | Some v -> pushStack v state |> setContinuation c'
         | None -> failwith (sprintf "Unknown word '%s'" s)
@@ -22,7 +21,6 @@ let step into state =
 
 let rec skip state =
     match getContinuation state with
-    | Symbol "_return" :: _
     | Symbol "_pause" :: _ -> step false state |> skip
     | _ -> state
 

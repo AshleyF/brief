@@ -62,8 +62,8 @@ let 'map? [ = 'map type ]
 let 'apply [ when swap true ]
 let 'when [ if swap [ ] ]
 let 'unless [ if [ ] ]
-let 'cond [ if [ drop ] [ if [ apply head ] [ pair ] = 1 count ] empty?
-    let 'pair [ if [ apply nip ] [ cond drop ] rot dip [ dip snoc ] snoc ] ]
+let 'cond [ if [ drop ] [ if [ apply head ] [ cond.pair ] = 1 count ] empty? ]
+    let 'cond.pair [ if [ apply nip ] [ cond drop ] rot dip [ dip snoc ] snoc ]
 
 let 'load [ apply parse lex read ]
 
@@ -114,10 +114,10 @@ let 'range [ drop while [ dip [ cons ] -- dup ] fry [ >= _ dup ] -rot [ ] ]
 
 let 'factorial [ product range 1 ]
 
-let 'fry [ flatmap [ if [ fill ] [ deepfry ] hole? ]
-    let 'fill [ unless [ quote ] list? dup rot drop ]
-    let 'deepfry [ if [ quote rot 2dip [ fry ] -rot ] [ quote ] list? dup ]
-    let 'hole? [ = >sym '_ dup ] ]
+let 'fry [ flatmap [ if [ fry.fill ] [ fry.deepfry ] fry.hole? ] ]
+    let 'fry.fill [ unless [ quote ] list? dup rot drop ]
+    let 'fry.deepfry [ if [ quote rot 2dip [ fry ] -rot ] [ quote ] list? dup ]
+    let 'fry.hole? [ = >sym '_ dup ]
 
 let 'assertTrue [ clear print fry [ _ " " _ "\n" ] if [ 'PASS ] [ "!!! FAIL" ] apply swap ]
 let 'assertFalse [ assertTrue dip [ prepose [ not ] ] ]
@@ -129,3 +129,7 @@ let 'true -1
 let 'false 0
 
 let 'break [ _break ]
+
+let 'time [ stopwatch-elapsed apply stopwatch-reset ]
+let 'steps [ steps-count apply steps-reset ]
+let 'perf [ steps-count stopwatch-elapsed apply stopwatch-reset steps-reset ]

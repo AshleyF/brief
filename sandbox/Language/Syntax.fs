@@ -3,6 +3,7 @@ module Syntax
 open System
 open Structure
 
+// reimplemented in brief.b
 let lex source =
     let emit (token: char list) = seq { if List.length token > 0 then yield token |> List.rev |> String.Concat }
     let rec unescape = function 'b' -> '\b' | 'f' -> '\f' | 'n' -> '\n' | 'r' -> '\r' | 't' -> '\t' | c -> c
@@ -38,6 +39,7 @@ type Node =
 
 let stripLeadingTick s = if String.length s > 1 then s.Substring(1) else ""
 
+// reimplemented in brief.b
 let parse tokens =
     let rec parse' level nodes tokens =
         match tokens with
@@ -59,19 +61,18 @@ let parse tokens =
         | "{" :: t -> if level <> 0 then List.rev nodes, t else failwith "Unexpected map open"
         | [] -> if level = 0 then List.rev nodes, [] else failwith "Unmatched quotation or map syntax"
         | token :: t -> parse' level (Token token :: nodes) t
+    let rec compile nodes =
+        let rec compile' node =
+            match node with
+            | Token t ->
+                match Double.TryParse t with
+                | (true, v) -> Number v
+                | _ -> if t.StartsWith '\'' then stripLeadingTick t |> String else Symbol t
+            | Quote q -> List (compile q |> List.ofSeq)
+            | Pairs p -> p |> Seq.map (fun (n, v) -> n, compile' v) |> Map.ofSeq |> Map
+        nodes |> Seq.map compile'
     match tokens |> List.ofSeq |> parse' 0 [] with
-    | (result, []) -> result
+    | (result, []) -> compile result
     | _ -> failwith "Unmatched quotation or map syntax"
 
-let rec compile nodes =
-    let rec compile' node =
-        match node with
-        | Token t ->
-            match Double.TryParse t with
-            | (true, v) -> Number v
-            | _ -> if t.StartsWith '\'' then stripLeadingTick t |> String else Symbol t
-        | Quote q -> List (compile q |> List.ofSeq)
-        | Pairs p -> p |> Seq.map (fun (n, v) -> n, compile' v) |> Map.ofSeq |> Map
-    nodes |> Seq.map compile'
-
-let brief source = source |> lex |> parse |> compile |> List.ofSeq
+let brief source = source |> lex |> parse |>  List.ofSeq

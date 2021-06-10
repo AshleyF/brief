@@ -64,7 +64,7 @@ var Brief = new function () {
 
     function compile(quote) {
         return function () {
-            for (var i = quote.length; i >= 0; i--) { // back-to-front
+            for (var i = quote.length - 1; i >= 0; i--) { // back-to-front
                 var w = quote[i];
                 if (typeof (w) == "function")
                     w();

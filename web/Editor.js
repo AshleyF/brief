@@ -355,7 +355,7 @@ $(document).keydown(function (e) {
                 while (Editor.MovePrev(false, false, e.shiftKey)); // Move to first
             }
             else {
-                Editor.MovePrev(e.ctrlKey, true, e.shiftKey);
+                Editor.MovePrev(!e.ctrlKey, true, e.shiftKey);
             }
             break;
         case 39: // ->
@@ -366,7 +366,7 @@ $(document).keydown(function (e) {
                 while (Editor.MoveNext(false, false, e.shiftKey)); // Move to first
             }
             else {
-                Editor.MoveNext(e.ctrlKey, true, e.shiftKey);
+                Editor.MoveNext(!e.ctrlKey, true, e.shiftKey);
             }
             break;
         case 65: // CTRL-A - Select All

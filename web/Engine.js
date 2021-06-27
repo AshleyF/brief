@@ -43,28 +43,9 @@ var Brief = new function () {
         return tokens;
     };
 
-    function parse(tokens) {
-        var ast = [];
-        ast.kind = "list";
-        while (tokens.length > 0) {
-            var t = tokens.shift();
-            switch (t) {
-                case "[":
-                    ast.push(parse(tokens));
-                    break;
-                case "]":
-                    return ast;
-                default:
-                    ast.push(word(t));
-                    break;
-            }
-        }
-        return ast;
-    }
-
     function compile(quote) {
         return function () {
-            for (var i = quote.length; i >= 0; i--) { // back-to-front
+            for (var i = 0; i < quote.length; i++) {
                 var w = quote[i];
                 if (typeof (w) == "function")
                     w();
@@ -79,63 +60,6 @@ var Brief = new function () {
             }
         }
     };
-
-    // TODO: Functional print/render
-
-    function print(ast) {
-        var output = "";
-        for (var i = 0; i < ast.length; i++) {
-            var a = ast[i];
-            if (a.kind == "list") {
-                output += "[ " + print(a) + "] ";
-            }
-            else {
-                if (a.disp)
-                    output += a.disp + " ";
-                else
-                    output += a + " ";
-            }
-        }
-        return output;
-    }
-
-    function escape(str) {
-        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/'/g, "&apos;").replace(/"/g, "&quot;");
-    }
-
-    function render(ast) {
-        var html = "";
-        for (var i = 0; i < ast.length; i++) {
-            var a = ast[i];
-            if (a.kind == "list")
-                html += "<span class='list'>" + render(a) + "</span>";
-            else
-                html += "<span class='" + a.kind + "'>" + escape(a.disp) + "</span>";
-        }
-        return html;
-    }
-
-    function error(token) {
-        var e = function () { /* alert("Undefined word: '" + token + "'"); */ };
-        e.kind = "error";
-        e.disp = token;
-        return e;
-    }
-
-    function word(token) {
-        var w = dictionary[token];
-        if (w) {
-            return w;
-        }
-        else {
-            try {
-                return literal(token);
-            }
-            catch (ex) {
-                return error(token);
-            }
-        }
-    }
 
     var dictionary = {};
 
@@ -159,7 +83,7 @@ var Brief = new function () {
         var word = function () {
             var len = f.length;
             assertStack(len);
-            var args = context.Stack.slice(0, len).reverse(); // TODO: something more efficient that slice/reverse
+            var args = context.Stack.slice(0, len).reverse(); // TODO: more efficient that slice/reverse
             context.Stack = context.Stack.slice(len);
             var result = f.apply(null, args);
             if (result) {
@@ -208,6 +132,82 @@ var Brief = new function () {
     function literal(val) {
         var lit = eval(val);
         return { kind: "literal", disp: val, val: lit };
+    }
+
+    function error(token) {
+        var e = function () { /* alert("Undefined word: '" + token + "'"); */ };
+        e.kind = "error";
+        e.disp = token;
+        return e;
+    }
+
+    function word(token) {
+        var w = dictionary[token];
+        if (w) {
+            return w;
+        }
+        else {
+            try {
+                return literal(token);
+            }
+            catch (ex) {
+                return error(token);
+            }
+        }
+    }
+
+    function parse(tokens) {
+        var ast = [];
+        ast.kind = "list";
+        while (tokens.length > 0) {
+            var t = tokens.shift();
+            switch (t) {
+                case "[":
+                    ast.push(parse(tokens));
+                    break;
+                case "]":
+                    return ast;
+                default:
+                    ast.push(word(t));
+                    break;
+            }
+        }
+        return ast;
+    }
+
+    // TODO: Functional print/render
+
+    function print(ast) {
+        var output = "";
+        for (var i = 0; i < ast.length; i++) {
+            var a = ast[i];
+            if (a.kind == "list") {
+                output += "[ " + print(a) + "] ";
+            }
+            else {
+                if (a.disp)
+                    output += a.disp + " ";
+                else
+                    output += a + " ";
+            }
+        }
+        return output;
+    }
+
+    function escape(str) {
+        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+    }
+
+    function render(ast) {
+        var html = "";
+        for (var i = 0; i < ast.length; i++) {
+            var a = ast[i];
+            if (a.kind == "list")
+                html += "<span class='list'>" + render(a) + "</span>";
+            else
+                html += "<span class='" + a.kind + "'>" + escape(a.disp) + "</span>";
+        }
+        return html;
     }
 
     this.Word = function (token) {
@@ -266,11 +266,11 @@ Brief.Primitive("swap", function (y, x) { var ret = [x, y]; ret.kind = "tuple"; 
 
 // combinators
 Brief.Primitive("dip", function (x, q) { Brief.Run(q); Brief.Push(x); });
-//Brief.Primitive("keep", function (q) { var x = Brief.Peek(); Brief.Run(q); Brief.Push(x); });
-//Brief.Primitive("bi", function (x, p, q) { Brief.Push(x); Brief.Run(p); Brief.Push(x); Brief.Run(q); });
-//Brief.Primitive("tri", function (x, p, q, r) { Brief.Push(x); Brief.Run(p); Brief.Push(x); Brief.Run(q); Brief.Push(x); Brief.Run(r); });
-//Brief.Primitive("2bi", function (y, x, p, q) { Brief.Push(y); Brief.Push(x); Brief.Run(p); Brief.Push(y); Brief.Push(x); Brief.Run(q); });
-//Brief.Primitive("bi*", function (y, x, p, q) { Brief.Push(y); Brief.Run(p); Brief.Push(x); Brief.Run(q); });
+Brief.Primitive("keep", function (q) { var x = Brief.Peek(); Brief.Run(q); Brief.Push(x); });
+Brief.Primitive("bi", function (x, p, q) { Brief.Push(x); Brief.Run(p); Brief.Push(x); Brief.Run(q); });
+Brief.Primitive("tri", function (x, p, q, r) { Brief.Push(x); Brief.Run(p); Brief.Push(x); Brief.Run(q); Brief.Push(x); Brief.Run(r); });
+Brief.Primitive("2bi", function (y, x, p, q) { Brief.Push(y); Brief.Push(x); Brief.Run(p); Brief.Push(y); Brief.Push(x); Brief.Run(q); });
+Brief.Primitive("bi*", function (y, x, p, q) { Brief.Push(y); Brief.Run(p); Brief.Push(x); Brief.Run(q); });
 
 // arithmetic
 Brief.Primitive("+", function (y, x) { return y + x; });
@@ -278,8 +278,8 @@ Brief.Primitive("-", function (y, x) { return y - x; });
 Brief.Primitive("*", function (y, x) { return y * x; });
 Brief.Primitive("/", function (y, x) { return y / x; });
 Brief.Primitive("mod", function (y, x) { Brief.Push(y % x); });
-//Brief.Primitive("neg", function (x) { return -x; });
-//Brief.Primitive("abs", function (x) { return Math.abs(x); });
+Brief.Primitive("neg", function (x) { return -x; });
+Brief.Primitive("abs", function (x) { return Math.abs(x); });
 
 // comparison
 Brief.Primitive("=", function (y, x) { Brief.Push(y == x); });

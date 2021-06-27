@@ -502,7 +502,6 @@ $(document).ready(function () {
 
 /*
 - Not allowing definitions containing literal values
-- Completion bug (fixed) with "2bi"
 
 TODO:
 - Quote/Unquote

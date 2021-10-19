@@ -172,11 +172,23 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `>num?` | x-?n | Try to parse string as Number, returning true and Number or false | Primitive |
 
 ## Loops
+
 | Word | Stack | Description | Type |
 | --- | --- | --- | --- |
 | `do` | qr- | Interate `while`/`until` loop, applying the second quotation (r) once| Secondary |
 | `while` | qr- | While second quotation (r) is `true`, apply first quotation (q) | Secondary |
 | `until` | qr- | Until second quotation (r) is `true`, apply first quotation (q) | Secondary |
+
+## Serialization
+
+| Word | Stack | Description | Type |
+| --- | --- | --- | --- |
+| `load` | s-r | Load binary file as raw bytes. | Primitive |
+| `store` | s r- | Store raw bytes to binary file. | Primitive |
+| `read` | s-s | Read text file as a string. | Primitive |
+| `source` | n- | Parse named Brief source file (path, conventionally ending with .b extension) | Primitive |
+| `save` | s- | Save image of machine state (path, conventionally ending with .i extension). | Primivite |
+| `open` | s- | Open image of machine state (path, conventionally ending with .i extension). | Primitive |
 
 ## Miscellaneous
 
@@ -186,16 +198,12 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `print` | - | Print top of stack | Primitive |
 | `state` | - | Print machine state | Primitive |
 | `post` | nq- | Post quotation to named actor | Primitive |
-| `read` | s-s | Read text file as a string. | Primitive |
-| `load` | n- | Load named Brief source file (path, not including .b extension) | Primitive |
 | `lex` | s-l | Tokenize source. | Primitive (redefined in brief.b) |
 | `parse` | l-l | Parse tokens into structured, typed code. | Primitive (redefined in brief.b) |
 | `range` | nm-l | Create a list of Numbers ranging from n to m | Secondary |
 | `factorial` | n-n | Compute the factorial of a Numeber | Secondary |
 | `words` | - | Display primitive and secondary words | Primitive |
 | `word` | n- | Display word definition | Primitive |
-| `save` | s- | Save image of machine state (path, not including .i extension). | Primivite |
-| `open` | s- | Open image of machine state (path, not including .i extension). | Primitive |
 
 ## Testing
 

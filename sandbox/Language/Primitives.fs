@@ -197,6 +197,7 @@ let rec primitives =
                 | Number  _ :: t -> "num", t
                 | String  _ :: t -> "str", t
                 | List    _ :: t -> "list", t
+                | Raw     _ :: t -> "raw", t
                 | Map     _ :: t -> "map", t
                 | Word    _ :: t -> "word", t
                 | [] -> failwith "Stack underflow"
@@ -223,6 +224,7 @@ let rec primitives =
                 | (true, v) -> setStack (Number v :: t) s
                 | _ -> failwith "Cannot cast to Number"
             | List l :: t -> setStack (Number (List.length l |> float) :: t) s
+            | Raw (_, _, c) :: t -> setStack (Number (float c) :: t) s
             | Map m :: t -> setStack (Number (Map.count m |> float) :: t) s
             | Word _ :: _ -> failwith "Word cannot be cast to Number value"
             | [] -> failwith "Stack underflow")
@@ -331,7 +333,7 @@ let rec primitives =
             match getStack s with
             | String n :: t ->
                 let s' = setStack t s
-                use writer = new BinaryWriter(File.OpenWrite(sprintf "%s.i" n))
+                use writer = new BinaryWriter(File.OpenWrite(sprintf "%s" n))
                 serialize writer (Map s')
                 s'
             | _ :: _ -> failwith "Expected s"
@@ -342,13 +344,31 @@ let rec primitives =
             | String n :: t ->
                 let s' = setStack t s
                 let primMap = primitives |> Seq.map (fun p -> p.Name, Word p) |> Map.ofSeq
-                use reader = new BinaryReader(File.OpenRead(sprintf "%s.i" n))
+                use reader = new BinaryReader(File.OpenRead(sprintf "%s" n))
                 match deserialize primMap reader with
                 | Map m -> m
                 | _ -> failwith "Invalid image"
             | _ :: _ -> failwith "Expected s"
             | _ -> failwith "Stack underflow")
 
+        primitive "load" (fun s ->
+            match getStack s with
+            | String n :: t ->
+                use reader = new BinaryReader(File.OpenRead(sprintf "%s" n))
+                let bytes = reader.ReadBytes(reader.ReadInt32())
+                setStack (Raw (bytes, 0, bytes.Length) :: t) s
+            | _ :: _ -> failwith "Expected s"
+            | _ -> failwith "Stack underflow")
+
+        primitive "store" (fun s ->
+            match getStack s with
+            | String n :: Raw (r, i, c) :: t ->
+                let s' = setStack t s
+                use file = File.OpenWrite(sprintf "%s" n)
+                file.Write(r, i, c)
+                s'
+            | _ :: _ :: _ -> failwith "Expected s r"
+            | _ -> failwith "Stack underflow")
     ]
     
 let primitiveState = addPrimitives emptyState primitives

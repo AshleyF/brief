@@ -5,6 +5,10 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OtherFlags>--nowarn:40</OtherFlags>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Include="Readme.md" />
     <None Include="Journal\Readme.md" />

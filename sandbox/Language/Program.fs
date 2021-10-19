@@ -13,8 +13,8 @@ register "trigger" Trigger.triggerActor
 register "remote"  Remote.remoteActor
 
 let printPrompt debugging s =
-    let continuation = getContinuation s |> List.rev |> stringOfValues
-    let stack = stringOfValues (getStack s)
+    let continuation = getContinuation s |> List.rev |> stringOfList
+    let stack = stringOfList (getStack s)
     Console.ForegroundColor <- ConsoleColor.DarkGray
     Console.Write(continuation)
     Console.ForegroundColor <- if debugging then ConsoleColor.DarkRed else ConsoleColor.DarkBlue
@@ -52,8 +52,8 @@ let commandLine =
 
 printf "Loading Prelude..."
 let boot =
-    // "if parse lex read 'prelude.b [ ] -1"
-    "open '../../../boot"
+    "if parse lex read 'prelude.b [ ] -1"
+    // "open '../../../boot"
 let state = commandLine :: [boot] |> Seq.fold (fun s c -> interpret (brief c) s) primitiveState
 printfn " Ready"
 repl state

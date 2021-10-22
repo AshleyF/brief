@@ -87,6 +87,13 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `concat` | ss-s | Concatenate two strings | Secondary |
 | `reverse` | l-l | Reverse List | Secondary |
 
+## Raw
+
+| Word | Stack | Description | Type |
+| --- | --- | --- | --- |
+| `slice` | nr-rr | Slice Raw into head of length n and tail | Primitive |
+| `append` | rr-r | Append one Raw value to head of another | Primitive |
+
 ## Comparison and Conditionals
 
 | Word | Stack | Description | Type |
@@ -170,6 +177,7 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `>str` | x-s | Cast value to string in Brief literal source form | Primitive |
 | `>num` | x-n | Cast Symbol, String, Boolean (-1, 0), List, or Map (lengths) to Number | Primitive |
 | `>num?` | x-?n | Try to parse string as Number, returning true and Number or false | Primitive |
+| `>raw` | n-r | Cast Number to single-byte Raw (must be 0..255) | Primitive |
 
 ## Loops
 

@@ -213,6 +213,7 @@ let rec primitives =
             | Word w :: t -> setStack (Symbol (w.Name) :: t) s
             | List _ :: t -> failwith "Lists cannot be cast to a Symbol value"
             | Map _ :: t -> failwith "Maps cannot be cast to a Symbol value"
+            | Raw _ :: t -> failwith "Raw cannot be cast to a Symbol value"
             | v :: t -> setStack (Symbol (stringOfValue v) :: t) s
             | [] -> failwith "Stack underflow")
 
@@ -244,6 +245,15 @@ let rec primitives =
             | v :: t -> setStack (String (stringOfValue v) :: t) s
             | [] -> failwith "Stack underflow")
 
+        primitive ">raw" (fun s ->
+            match getStack s with
+            | Number n :: t ->
+                let n' = int n
+                if n' < 0 || n' > 255 then failwith "Expected n=0..255"
+                setStack (Raw ([|byte n'|], 0, 1) :: t) s
+            | _ :: _ -> failwith "Expected r"
+            | [] -> failwith "Stack underflow")
+
         primitive "split" (fun s ->
             match getStack s with
             | Symbol y :: t | String y :: t -> setStack ((y |> Seq.toList |> List.map (string >> String) |> List) :: t) s
@@ -261,6 +271,7 @@ let rec primitives =
             match getStack s with
             | (List l :: _) as t -> setStack ((List.length l |> double |> Number) :: t) s
             | (Map m :: _) as t -> setStack ((Map.count m |> double |> Number) :: t) s
+            | (Raw (_, _, c) :: _) as t -> setStack ((c |> double |> Number) :: t) s
             | _ :: _ -> failwith "Cannot cast to List"
             | [] -> failwith "Stack underflow")
 
@@ -275,6 +286,23 @@ let rec primitives =
             | List (h :: t') :: t -> setStack (h :: List t' :: t) s
             | List _ :: _ -> failwith "Expected non-empty list"
             | _ :: _ :: _ -> failwith "Expected vl"
+            | _ -> failwith "Stack underflow")
+
+        primitive "slice" (fun s ->
+            match getStack s with
+            | Number n :: Raw (r, i, c) :: t ->
+                let n' = int n
+                if n' <= 0 then failwith "Expected n > 0"
+                if n' > c then failwith "Exceeded raw length"
+                setStack (Raw (r, i, n') :: Raw (r, i + n', c - n') :: t) s
+            | _ :: _ :: _ -> failwith "Expected nr"
+            | _ -> failwith "Stack underflow")
+
+        primitive "append" (fun s ->
+            match getStack s with
+            | Raw (r, i, c) :: Raw (r', i', c') :: t ->
+                setStack (Raw (Array.append r.[i..i + c - 1] r'.[i'..i' + c'], 0, c + c') :: t) s
+            | _ :: _ :: _ -> failwith "Expected rr"
             | _ -> failwith "Stack underflow")
 
         primitive "prepose" (fun s ->

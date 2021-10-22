@@ -9,12 +9,14 @@ let escape (s: string) =
 let rec stringOfString s =
     let s' = escape s
     sprintf (if String.exists Char.IsWhiteSpace s' then "\"%s\"" else "'%s") s'
-let rec stringOfValue = function
+let rec stringOfValue =
+    let toHex = Seq.fold (fun state x-> state + sprintf "%02X" x) String.Empty
+    function
     | Symbol s      -> sprintf "%s" s
     | Number n      -> sprintf "%g" n
     | String s      -> stringOfString s
     | List   l      -> sprintf "[ %s ]" (stringOfList l)
-    | Raw (r, i, c) -> sprintf "RAW_%i_%i" i c 
+    | Raw (r, i, c) -> sprintf "RAW[%s]" (toHex r.[i..i + c - 1])
     | Map    m      -> sprintf "{ %s }" (stringOfMap m)
     | Word   w      -> sprintf "(%s)" w.Name
 and stringOfList =

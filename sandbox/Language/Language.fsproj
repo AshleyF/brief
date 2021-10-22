@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <None Include="Readme.md" />
+    <None Include="Journal\OCT2021.md" />
     <None Include="Journal\Readme.md" />
     <None Include="Journal\JAN2021.md" />
     <None Include="Journal\DEC2020.md" />

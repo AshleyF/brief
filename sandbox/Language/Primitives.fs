@@ -225,7 +225,7 @@ let rec primitives =
                 | (true, v) -> setStack (Number v :: t) s
                 | _ -> failwith "Cannot cast to Number"
             | List l :: t -> setStack (Number (List.length l |> float) :: t) s
-            | Raw (_, _, c) :: t -> setStack (Number (float c) :: t) s
+            | Raw r :: t -> setStack (Number (float r.Length) :: t) s
             | Map m :: t -> setStack (Number (Map.count m |> float) :: t) s
             | Word _ :: _ -> failwith "Word cannot be cast to Number value"
             | [] -> failwith "Stack underflow")
@@ -250,7 +250,7 @@ let rec primitives =
             | Number n :: t ->
                 let n' = int n
                 if n' < 0 || n' > 255 then failwith "Expected n=0..255"
-                setStack (Raw ([|byte n'|], 0, 1) :: t) s
+                setStack (Raw [|byte n'|] :: t) s
             | _ :: _ -> failwith "Expected r"
             | [] -> failwith "Stack underflow")
 
@@ -271,7 +271,7 @@ let rec primitives =
             match getStack s with
             | (List l :: _) as t -> setStack ((List.length l |> double |> Number) :: t) s
             | (Map m :: _) as t -> setStack ((Map.count m |> double |> Number) :: t) s
-            | (Raw (_, _, c) :: _) as t -> setStack ((c |> double |> Number) :: t) s
+            | (Raw r :: _) as t -> setStack ((r.Length |> double |> Number) :: t) s
             | _ :: _ -> failwith "Cannot cast to List"
             | [] -> failwith "Stack underflow")
 
@@ -290,18 +290,18 @@ let rec primitives =
 
         primitive "slice" (fun s ->
             match getStack s with
-            | Number n :: Raw (r, i, c) :: t ->
+            | Number n :: Raw r :: t ->
                 let n' = int n
                 if n' <= 0 then failwith "Expected n > 0"
-                if n' > c then failwith "Exceeded raw length"
-                setStack (Raw (r, i, n') :: Raw (r, i + n', c - n') :: t) s
+                if n' > r.Length then failwith "Exceeded raw length"
+                setStack (Raw r.[0..n' - 1] :: Raw r.[n'..r.Length] :: t) s
             | _ :: _ :: _ -> failwith "Expected nr"
             | _ -> failwith "Stack underflow")
 
         primitive "append" (fun s ->
             match getStack s with
-            | Raw (r, i, c) :: Raw (r', i', c') :: t ->
-                setStack (Raw (Array.append r.[i..i + c - 1] r'.[i'..i' + c'], 0, c + c') :: t) s
+            | Raw r :: Raw r' :: t ->
+                setStack (Raw (Array.append r r') :: t) s
             | _ :: _ :: _ -> failwith "Expected rr"
             | _ -> failwith "Stack underflow")
 
@@ -383,17 +383,17 @@ let rec primitives =
             match getStack s with
             | String n :: t ->
                 use reader = new BinaryReader(File.OpenRead(sprintf "%s" n))
-                let bytes = reader.ReadBytes(reader.ReadInt32())
-                setStack (Raw (bytes, 0, bytes.Length) :: t) s
+                let r = reader.ReadBytes(reader.ReadInt32())
+                setStack (Raw r :: t) s
             | _ :: _ -> failwith "Expected s"
             | _ -> failwith "Stack underflow")
 
         primitive "store" (fun s ->
             match getStack s with
-            | String n :: Raw (r, i, c) :: t ->
+            | String n :: Raw r :: t ->
                 let s' = setStack t s
                 use file = File.OpenWrite(sprintf "%s" n)
-                file.Write(r, i, c)
+                file.Write(r, 0, r.Length)
                 s'
             | _ :: _ :: _ -> failwith "Expected s r"
             | _ -> failwith "Stack underflow")

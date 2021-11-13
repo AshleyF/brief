@@ -6,14 +6,14 @@ let _stack        = "_stack"
 let _continuation = "_continuation"
 let _dictionary   = "_dictionary"
 
-type Value =                            // v
-    | Symbol  of string                 // y
-    | String  of string                 // s
-    | Number  of double                 // n
-    | List    of Value list             // l
-    | Raw     of byte array * int * int // r - bytes, index, length
-    | Map     of Map<string, Value>     // m
-    | Word    of Primitive              // w
+type Value =                        // v
+    | Symbol  of string             // y
+    | String  of string             // s
+    | Number  of double             // n
+    | List    of Value list         // l
+    | Raw     of byte array         // r - bytes, index, length
+    | Map     of Map<string, Value> // m
+    | Word    of Primitive          // w
 
 and Primitive(name: string, func: State -> State)= 
     member _.Name = name

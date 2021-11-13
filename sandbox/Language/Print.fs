@@ -12,13 +12,13 @@ let rec stringOfString s =
 let rec stringOfValue =
     let toHex = Seq.fold (fun state x-> state + sprintf "%02X" x) String.Empty
     function
-    | Symbol s      -> sprintf "%s" s
-    | Number n      -> sprintf "%g" n
-    | String s      -> stringOfString s
-    | List   l      -> sprintf "[ %s ]" (stringOfList l)
-    | Raw (r, i, c) -> sprintf "RAW[%s]" (toHex r.[i..i + c - 1])
-    | Map    m      -> sprintf "{ %s }" (stringOfMap m)
-    | Word   w      -> sprintf "(%s)" w.Name
+    | Symbol s -> sprintf "%s" s
+    | Number n -> sprintf "%g" n
+    | String s -> stringOfString s
+    | List   l -> sprintf "[ %s ]" (stringOfList l)
+    | Raw    r -> sprintf "RAW[%s]" (toHex r)
+    | Map    m -> sprintf "{ %s }" (stringOfMap m)
+    | Word   w -> sprintf "(%s)" w.Name
 and stringOfList =
     let simplify = List.filter (function Symbol s -> not (s.StartsWith('_')) | _ -> true)
     simplify >> List.map stringOfValue >> String.concat " "

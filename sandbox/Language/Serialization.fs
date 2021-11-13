@@ -10,13 +10,13 @@ let rec serialize (writer: BinaryWriter) =
             write7bit (i >>> 7)
         else writer.Write(byte i)
     function
-    | Word   w        -> writer.Write(0uy); writer.Write(w.Name)
-    | Symbol w        -> writer.Write(1uy); writer.Write(w)
-    | String s        -> writer.Write(2uy); writer.Write(s)
-    | Number n        -> writer.Write(3uy); writer.Write(n)
-    | Raw (r, i, len) -> writer.Write(4uy); write7bit(len); writer.Write(r, i, len)
-    | List   l        -> writer.Write(5uy); write7bit(l.Length); List.iter (serialize writer) l
-    | Map    m        ->
+    | Word   w -> writer.Write(0uy); writer.Write(w.Name)
+    | Symbol w -> writer.Write(1uy); writer.Write(w)
+    | String s -> writer.Write(2uy); writer.Write(s)
+    | Number n -> writer.Write(3uy); writer.Write(n)
+    | Raw    r -> writer.Write(4uy); write7bit(r.Length); writer.Write(r, 0, r.Length)
+    | List   l -> writer.Write(5uy); write7bit(l.Length); List.iter (serialize writer) l
+    | Map    m ->
         writer.Write(6uy); write7bit(m.Count)
         Map.iter (fun (k: string) v -> writer.Write(k); serialize writer v) m
 
@@ -32,7 +32,7 @@ let rec deserialize primitives (reader: BinaryReader) =
     | 1uy -> reader.ReadString() |> Symbol
     | 2uy -> reader.ReadString() |> String
     | 3uy -> reader.ReadDouble() |> Number
-    | 4uy -> let raw = reader.ReadBytes(read7bit ()) in Raw (raw, 0, raw.Length)
+    | 4uy -> let r = reader.ReadBytes(read7bit ()) in Raw r
     | 5uy -> List.init (read7bit ()) (fun _ -> deserialize primitives reader) |> List
     | 6uy -> Seq.init (read7bit ()) (fun _ -> (reader.ReadString(), (deserialize primitives reader))) |> Map.ofSeq |> Map
     | _ -> failwith "Unknown type tag"

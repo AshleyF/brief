@@ -11,7 +11,6 @@ type Value =                        // v
     | String  of string             // s
     | Number  of double             // n
     | List    of Value list         // l
-    | Raw     of byte array         // r - bytes, index, length
     | Map     of Map<string, Value> // m
     | Word    of Primitive          // w
 

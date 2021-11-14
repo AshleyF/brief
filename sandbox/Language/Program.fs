@@ -22,29 +22,33 @@ let printPrompt debugging s =
     Console.ForegroundColor <- ConsoleColor.White
     Console.WriteLine(stack)
 
-let rec debugger state =
+let rec debugger history state =
     if getContinuation state |> List.length = 0
-    then repl state else
+    then repl history state else
         try
             printPrompt true state
             let key = Console.ReadKey()
             match key.Key with
-            | ConsoleKey.Enter -> interpret [] state |> repl
-            | ConsoleKey.RightArrow -> stepOver state |> debugger
-            | ConsoleKey.DownArrow -> stepIn state |> debugger
-            | ConsoleKey.UpArrow -> stepOut state |> debugger
-            | _ -> debugger state
-        with ex -> printfn "Error: %s" ex.Message; state |> setContinuation [] |> repl
+            | ConsoleKey.Enter -> interpret [] state |> repl history
+            | ConsoleKey.RightArrow -> stepOver state |> debugger history
+            | ConsoleKey.DownArrow -> stepIn state |> debugger history
+            | ConsoleKey.UpArrow -> stepOut state |> debugger history
+            | _ -> debugger history state
+        with ex -> printfn "Error: %s" ex.Message; state |> setContinuation [] |> repl history
 
-and repl state =
+and repl history state =
     if getContinuation state |> List.length > 0
-    then debugger state else
+    then debugger history state else
         printPrompt false state
         try
             match Console.ReadLine() with
             | "exit" -> ()
-            | line -> state |> (line |> brief |> interpret) |> repl
-        with ex -> printfn "Error: %s" ex.Message; repl state
+            | "undo" ->
+                match history with
+                | h :: t -> repl t h
+                | _ -> failwith "Empty history"
+            | line -> state |> (line |> brief |> interpret) |> repl (state :: history)
+        with ex -> printfn "Error: %s" ex.Message; repl history state
 
 let commandLine =
     let exe = Environment.GetCommandLineArgs().[0]
@@ -56,4 +60,4 @@ let boot =
     // "open '../../../boot"
 let state = commandLine :: [boot] |> Seq.fold (fun s c -> interpret (brief c) s) primitiveState
 printfn " Ready"
-repl state
+repl [] state

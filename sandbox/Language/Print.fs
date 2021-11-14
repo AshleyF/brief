@@ -10,19 +10,17 @@ let rec stringOfString s =
     let s' = escape s
     sprintf (if String.exists Char.IsWhiteSpace s' then "\"%s\"" else "'%s") s'
 let rec stringOfValue =
-    let toHex = Seq.fold (fun state x-> state + sprintf "%02X" x) String.Empty
+    let toHex = Seq.fold (fun state x-> state + sprintf "%02x" x) String.Empty
     function
     | Symbol s -> sprintf "%s" s
     | Number n -> sprintf "%g" n
     | String s -> stringOfString s
     | List   l -> sprintf "[ %s ]" (stringOfList l)
-    | Raw    r -> sprintf "RAW[%s]" (toHex r)
     | Map    m -> sprintf "{ %s }" (stringOfMap m)
     | Word   w -> sprintf "(%s)" w.Name
 and stringOfList =
     let simplify = List.filter (function Symbol s -> not (s.StartsWith('_')) | _ -> true)
     simplify >> List.map stringOfValue >> String.concat " "
-and stringOfRaw = Array.map (fun (b: byte) -> b.ToString("X2")) >> String.concat " "
 and stringOfMap = Map.toSeq >> Seq.map (fun (k, v) -> sprintf "%s %s" (stringOfString k) (stringOfValue v)) >> String.concat "  "
 
 let printState s =

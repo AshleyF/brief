@@ -33,5 +33,3 @@ assertFalse "any? false" [ any? [ even? ] [ 3 5 7 9 ] ]
 assertTrue "all? true" [ all? [ even? ] [ 2 4 6 8 ] ]
 assertFalse "all? false" [ all? [ even? ] [ 2 4 7 8 ] ]
 
-assertEqual "slice/append" swap fry [ append slice 2 append slice 1 _ ] dup append >raw 7 append >raw 42 >raw 123
-

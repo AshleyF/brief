@@ -134,3 +134,24 @@ let 'break [ _break ]
 let 'time [ stopwatch-elapsed apply stopwatch-reset ]
 let 'steps [ steps-count apply steps-reset ]
 let 'perf [ steps-count stopwatch-elapsed apply stopwatch-reset steps-reset ]
+
+let 'get-stack [ nip @ '_stack get-state ]
+let 'get-dictionary [ nip @ '_dictionary get-state ]
+
+let 'set-stack [ !map '_stack ]
+let 'set-dictionary [ !map '_dictionary ]
+let 'set-continuation [ !map '_continuation reverse ]
+
+let 'save-value [ save dip [ serialize ] ]
+let 'load-value [ deserialize load ]
+
+let 'save-state [ save-value dip [ ! '_continuation [ ] get-state ] ]
+let 'load-state [ set-state load-value ]
+
+let 'encode7bit [ reverse encode7bit.encode swap [ ]
+    let 'encode7bit.encode [ if [ encode7bit.step ] [ cons ] >= 128 dup ]
+    let 'encode7bit.step [ encode7bit.encode trunc >>> 7 keep [ cons or 128 and 127 ] ] ]
+
+let 'decode7bit [ decode7bit.decode dip [ 0 0 ]
+    let 'decode7bit.decode [ if [ decode7bit.decode ] [ drop -rot ] decode7bit.step ]
+    let 'decode7bit.step [ dip [ dip [ + 7 ] 2dip [ + ] -rot <<< pick ] <> tuck and 127 dup snoc ] ]

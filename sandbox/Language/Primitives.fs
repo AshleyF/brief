@@ -3,6 +3,7 @@
 open System
 open System.IO
 open System.Diagnostics
+open System.Text
 open Structure
 open Serialization
 open Syntax
@@ -108,7 +109,7 @@ let rec primitives =
 
         let booleanOp name op = primitive name (fun s ->
             match getStack s with
-            | Number x :: Number y :: t -> setStack (Number (op (int x) (int y) |> double) :: t) s
+            | Number x :: Number y :: t -> setStack (Number (op (int64 x) (int64 y) |> double) :: t) s
             | _ :: _ :: _ -> failwith "Expected bb"
             | _ -> failwith "Stack underflow")
 
@@ -117,9 +118,18 @@ let rec primitives =
 
         primitive "not" (fun s ->
             match getStack s with
-            | Number x :: t -> setStack ((Number (~~~(int x) |> double)) :: t) s
+            | Number x :: t -> setStack ((Number (~~~(int64 x) |> double)) :: t) s
             | _ :: _ -> failwith "Expected b"
             | _ -> failwith "Stack underflow")
+
+        let shiftOp name op = primitive name (fun s ->
+            match getStack s with
+            | Number x :: Number y :: t -> setStack ((Number (op (int64 y) (int32 x) |> double)) :: t) s
+            | _ :: _ :: _ -> failwith "Expected nn"
+            | _ -> failwith "Stack underflow")
+
+        shiftOp ">>>" (>>>)
+        shiftOp "<<<" (<<<)
 
         let comparisonOp name op = primitive name (fun s ->
             match getStack s with
@@ -145,7 +155,7 @@ let rec primitives =
             | v :: t -> print v; setStack t s
             | _ -> failwith "Stack underflow")
 
-        primitive "state" (fun s -> printState s; s)
+        primitive "psint-state" (fun s -> printState s; s)
 
         primitive "post" (fun s ->
             match getStack s with
@@ -242,6 +252,39 @@ let rec primitives =
             | v :: t -> setStack (String (stringOfValue v) :: t) s
             | [] -> failwith "Stack underflow")
 
+        primitive ">utf8" (fun s ->
+            match getStack s with
+            | String y :: t ->
+                setStack (List (Encoding.UTF8.GetBytes(y) |> Seq.map (double >> Number) |> Seq.toList) :: t) s
+            | _ :: _ -> failwith "Expected s"
+            | [] -> failwith "Stack underflow")
+
+        primitive "utf8>" (fun s ->
+            match getStack s with
+            | List b :: t -> 
+                let bytes = b |> List.map (function Number n -> byte n | _ -> failwith "Expected list of n") |> List.toArray
+                let str = Encoding.UTF8.GetString(bytes)
+                setStack (String str :: t) s
+            | _ :: _ -> failwith "Expected List"
+            | [] -> failwith "Stack underflow")
+
+        primitive ">ieee754" (fun s ->
+            match getStack s with
+            | Number n :: t ->
+                setStack (List (BitConverter.GetBytes(n) |> Seq.map (double >> Number) |> Seq.toList) :: t) s
+            | _ :: _ -> failwith "Expected n"
+            | [] -> failwith "Stack underflow")
+
+        primitive "ieee754>" (fun s ->
+            match getStack s with
+            | List b :: t -> 
+                if b.Length <> 8 then failwith "Expected list of length 8"
+                let bytes = b |> List.map (function Number n -> byte n | _ -> failwith "Expected list of n") |> List.toArray
+                let n = BitConverter.ToDouble(bytes, 0);
+                setStack (Number n :: t) s
+            | _ :: _ -> failwith "Expected List"
+            | [] -> failwith "Stack underflow")
+
         primitive "split" (fun s ->
             match getStack s with
             | Symbol y :: t | String y :: t -> setStack ((y |> Seq.toList |> List.map (string >> String) |> List) :: t) s
@@ -327,38 +370,46 @@ let rec primitives =
         //     | _ :: _ :: _ -> failwith "Expected lv"
         //     | _ -> failwith "Stack underflow")
 
-        primitive "save" (fun s ->
+        let continuation s =
+            match Map.find _continuation s with
+            | List c -> List (List.rev c)
+            | _ -> failwith "Expected List continuation"
+
+        let reverseContinuation s = Map.add _continuation (continuation s) s
+
+        primitive "get-state" (fun s -> setStack (Map (reverseContinuation s) :: getStack s) s)
+
+        primitive "get-continuation" (fun s -> setStack (continuation s :: getStack s) s)
+
+        primitive "set-state" (fun s ->
             match getStack s with
-            | String n :: t ->
-                let s' = setStack t s
-                use writer = new BinaryWriter(File.OpenWrite(sprintf "%s" n))
-                serialize writer (Map s')
-                s'
-            | _ :: _ -> failwith "Expected s"
+            | Map s' :: _ -> reverseContinuation s'
+            | _ :: _ -> failwith "Expected m"
             | _ -> failwith "Stack underflow")
 
-        primitive "open" (fun s ->
+        primitive "serialize" (fun s ->
             match getStack s with
-            | String n :: t ->
-                let s' = setStack t s
-                let primMap = primitives |> Seq.map (fun p -> p.Name, Word p) |> Map.ofSeq
-                use reader = new BinaryReader(File.OpenRead(sprintf "%s" n))
-                match deserialize primMap reader with
-                | Map m -> m
-                | _ -> failwith "Invalid image"
-            | _ :: _ -> failwith "Expected s"
-            | _ -> failwith "Stack underflow")
-
-        primitive "load" (fun s ->
-            match getStack s with
-            | String n :: t ->
-                use reader = new BinaryReader(File.OpenRead(sprintf "%s" n))
-                let r = reader.ReadBytes(reader.ReadInt32())
+            | x :: t ->
+                use mem = new MemoryStream()
+                use writer = new BinaryWriter(mem)
+                serialize writer x
+                let r = mem.ToArray()
                 setStack (List (Array.map (fun b -> b |> double |> Number) r |> Seq.toList) :: t) s
+            | _ -> failwith "Stack underflow")
+
+        primitive "deserialize" (fun s ->
+            match getStack s with
+            | List b :: t ->
+                let r = b |> List.map (function Number n -> byte n | _ -> failwith "Expected list of n") |> List.toArray
+                use mem = new MemoryStream(r)
+                use reader = new BinaryReader(mem)
+                let primMap = primitives |> Seq.map (fun p -> p.Name, Word p) |> Map.ofSeq
+                let x = deserialize primMap reader
+                setStack (x :: t) s
             | _ :: _ -> failwith "Expected s"
             | _ -> failwith "Stack underflow")
 
-        primitive "store" (fun s ->
+        primitive "save" (fun s ->
             match getStack s with
             | String n :: List b :: t ->
                 let s' = setStack t s
@@ -367,6 +418,16 @@ let rec primitives =
                 file.Write(r, 0, r.Length)
                 s'
             | _ :: _ :: _ -> failwith "Expected s r"
+            | _ -> failwith "Stack underflow")
+
+        primitive "load" (fun s ->
+            match getStack s with
+            | String n :: t ->
+                use file = File.OpenRead(sprintf "%s" n)
+                use reader = new BinaryReader(file)
+                let r = reader.ReadBytes(int file.Length)
+                setStack (List (Array.map (fun b -> b |> double |> Number) r |> Seq.toList) :: t) s
+            | _ :: _ -> failwith "Expected s"
             | _ -> failwith "Stack underflow")
     ]
     

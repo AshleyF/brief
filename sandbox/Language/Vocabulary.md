@@ -171,24 +171,52 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `>num` | x-n | Cast Symbol, String, Boolean (-1, 0), List, or Map (lengths) to Number | Primitive |
 | `>num?` | x-?n | Try to parse string as Number, returning true and Number or false | Primitive |
 
+## Binary
+
+| Word | Stack | Description | Type |
+| --- | --- | --- | --- |
+| `>utf8` | s-l | Convert String to List of UTF-8 encoded bytes (Numbers) | Primitive |
+| `utf8>` | l-s | Convert List of bytes (Numbers) representing UTF-8 encoding to a String | Primitive |
+| `>ieee754` | n-l | Convert Number to List of IEEE754 encoded bytes (Numbers) | Primitive |
+| `ieee754>` | l-n | Convert List of bytes (Numbers) representing IEEE754 encoding to a Number | Primitive |
+
 ## Loops
 
 | Word | Stack | Description | Type |
 | --- | --- | --- | --- |
-| `do` | qr- | Interate `while`/`until` loop, applying the second quotation (r) once| Secondary |
+| `do` | qr- | Interate `while`/`until` loop, applying the second quotation (r) once | Secondary |
 | `while` | qr- | While second quotation (r) is `true`, apply first quotation (q) | Secondary |
 | `until` | qr- | Until second quotation (r) is `true`, apply first quotation (q) | Secondary |
+
+## Machine State
+
+| Word | Stack | Description | Type |
+| --- | --- | --- | --- |
+| `get-state` | -m | Pushes Map representing current machine state. | Primitive |
+| `get-stack` | -m | Pushes List representing current stack. | Secondary |
+| `get-dictionary` | -m | Pushes List representing current dictionary. | Secondary |
+| `get-continuation` | -l | Pushes List representing current continuation. | Primitive |
+| `set-state` | m- | Sets current machine state Map (expected to have '_stack, '_dictionary and '_continuation). | Primitive |
+| `set-stack` | m- | Sets current stack. | Secondary |
+| `set-dictionary` | m- | Sets current dictionary. | Secondary |
+| `set-continuation` | l- | Sets current continuation. | Secondary |
 
 ## Serialization
 
 | Word | Stack | Description | Type |
 | --- | --- | --- | --- |
-| `load` | s-r | Load binary file as List of Numbers representing raw bytes. | Primitive |
-| `store` | s r- | Store List of Numbers as raw bytes to binary file. | Primitive |
+| `serialize` | v-b | Serialze value to raw bytes. | Primitive |
+| `deserialize` | b-v | Deserialze raw bytes as value. | Primitive |
+| `save` | nb- | Save raw bytes (List of Numbers) to binary file. | Primitive |
+| `load` | n-b | Load binary file as raw bytes (List of Numbers). | Primitive |
+| 'save-value` | nv- | Serialize and save value to binary file (conventionoally ending with .d extension). | Secondary |
+| 'load-value` | n-v | Load and deserialize value from binary file (conventionoally ending with .d extension). | Secondary |
+| `save-state` | n- | Save image of machine state to binary file (not including the continuation, conventionally ending with .i extension). | Primivite |
+| `load-state` | n- | Load image of machine state (path, conventionally ending with .i extension). | Primitive |
 | `read` | s-s | Read text file as a string. | Primitive |
-| `source` | n- | Parse named Brief source file (path, conventionally ending with .b extension) | Primitive |
-| `save` | s- | Save image of machine state (path, conventionally ending with .i extension). | Primivite |
-| `open` | s- | Open image of machine state (path, conventionally ending with .i extension). | Primitive |
+| `lex` | s-l | Tokenize source. | Primitive (redefined in brief.b) |
+| `parse` | l-l | Parse tokens into structured, typed code. | Primitive (redefined in brief.b) |
+| `source` | n- | Lex, parse and apply named Brief source file (path, conventionally ending with .b extension) | Secondary |
 
 ## Miscellaneous
 
@@ -196,10 +224,8 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | --- | --- | --- | --- |
 | `let` | nx- | Define named quotation or value as secondary word | Primitive |
 | `print` | - | Print top of stack | Primitive |
-| `state` | - | Print machine state | Primitive |
+| `print-state` | - | Print machine state | Primitive |
 | `post` | nq- | Post quotation to named actor | Primitive |
-| `lex` | s-l | Tokenize source. | Primitive (redefined in brief.b) |
-| `parse` | l-l | Parse tokens into structured, typed code. | Primitive (redefined in brief.b) |
 | `range` | nm-l | Create a list of Numbers ranging from n to m | Secondary |
 | `factorial` | n-n | Compute the factorial of a Numeber | Secondary |
 | `words` | - | Display primitive and secondary words | Primitive |

@@ -57,7 +57,7 @@ let commandLine =
 printf "Loading Prelude..."
 let boot =
     "if parse lex read 'prelude.b [ ] -1"
-    // "open '../../../boot"
+    // "load-state '../../../boot.i"
 let state = commandLine :: [boot] |> Seq.fold (fun s c -> interpret (brief c) s) primitiveState
 printfn " Ready"
 repl [] state

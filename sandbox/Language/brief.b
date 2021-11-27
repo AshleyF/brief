@@ -41,3 +41,4 @@ let 'parse [ parse.next swap [  ] ]
     let 'parse.buildMap [ parse.buildMap.build rot { } ]
     let 'parse.buildMap.build [ if [ dip [ cons ] swap drop ]
                                    [ parse.buildMap.build dip [ ! swap ] swap snoc swap snoc ] empty? ]
+

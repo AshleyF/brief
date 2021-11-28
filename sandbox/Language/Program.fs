@@ -1,4 +1,5 @@
 ﻿open System
+open System.IO
 open Structure
 open Syntax
 open Print
@@ -47,17 +48,24 @@ and repl history state =
                 match history with
                 | h :: t -> repl t h
                 | _ -> failwith "Empty history"
-            | line -> state |> (line |> brief |> interpret) |> repl (state :: history)
+            | line -> state |> (interpret [String line; Symbol "lex"; Symbol "parse"; Symbol "apply"]) |> repl (state :: history)
         with ex -> printfn "Error: %s" ex.Message; repl history state
 
 let commandLine =
     let exe = Environment.GetCommandLineArgs().[0]
     Environment.CommandLine.Substring(exe.Length)
 
-printf "Loading Prelude..."
-let boot =
-    "if parse lex read 'prelude.b [ ] -1"
-    // "load-state '../../../boot.i"
-let state = commandLine :: [boot] |> Seq.fold (fun s c -> interpret (brief c) s) primitiveState
-printfn " Ready"
+#if DEBUG
+let state =
+    commandLine :: ["if parse lex read 'prelude.b [ ] -1"] // boot from source: `source 'prelude`.b (applied with `if`)
+    |> Seq.fold (fun s c -> interpret (c |> lex |> parse) s) primitiveState
+#else
+let state =
+    use file = File.OpenRead("boot.i")
+    use reader = new BinaryReader(file)
+    let primMap = primitives |> Seq.map (fun p -> p.Name, Word p) |> Map.ofSeq
+    match Serialization.deserialize primMap reader with
+    | Map m -> m
+    | _ -> failwith "Expected boot image to contain state Map"
+#endif
 repl [] state

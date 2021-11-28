@@ -51,13 +51,12 @@ let 'tuck [ over swap ]
 let 'rot [ swap dip [ swap ] ]
 let '-rot [ dip [ swap ] swap ]
 
-let 'list? [ = 'list type ]
 let 'sym? [ = 'sym type ]
-let 'num? [ = 'num type ]
 let 'str? [ = 'str type ]
-let 'bool? [ = 'bool type ]
+let 'num? [ = 'num type ]
 let 'list? [ = 'list type ]
 let 'map? [ = 'map type ]
+let 'word? [ = 'word type ]
 
 let 'apply [ when swap true ]
 let 'when [ if swap [ ] ]
@@ -65,8 +64,8 @@ let 'unless [ if [ ] ]
 let 'cond [ if [ drop ] [ if [ apply head ] [ cond.pair ] = 1 count ] empty? ]
     let 'cond.pair [ if [ apply nip ] [ cond drop ] rot dip [ dip snoc ] snoc ]
 
-let 'concat [ join prepose bi@ [ split ] ]
-let 'source [ apply parse lex read ]
+let 'concat [ join prepose bi@ [ >list ] ]
+let 'open [ apply parse lex read ]
 
 let 'neg [ * -1 ]
 let 'abs [ when [ neg ] < 0 dup ]
@@ -124,7 +123,7 @@ let 'assertTrue [ clear print fry [ _ " " _ "\n" ] if [ 'PASS ] [ "!!! FAIL" ] a
 let 'assertFalse [ assertTrue dip [ prepose [ not ] ] ]
 let 'assertEqual [ assertTrue dip [ quote = ] 2dip [ apply ] ]
 
-let 'test [ source 'tests.b ]
+let 'test [ open 'tests.b ]
 
 let 'true -1
 let 'false 0
@@ -147,11 +146,3 @@ let 'load-value [ deserialize load ]
 
 let 'save-state [ save-value dip [ ! '_continuation [ ] get-state ] ]
 let 'load-state [ set-state load-value ]
-
-let 'encode7bit [ reverse encode7bit.encode swap [ ]
-    let 'encode7bit.encode [ if [ encode7bit.step ] [ cons ] >= 128 dup ]
-    let 'encode7bit.step [ encode7bit.encode trunc >>> 7 keep [ cons or 128 and 127 ] ] ]
-
-let 'decode7bit [ decode7bit.decode dip [ 0 0 ]
-    let 'decode7bit.decode [ if [ decode7bit.decode ] [ drop -rot ] decode7bit.step ]
-    let 'decode7bit.step [ dip [ dip [ + 7 ] 2dip [ + ] -rot <<< pick ] <> tuck and 127 dup snoc ] ]

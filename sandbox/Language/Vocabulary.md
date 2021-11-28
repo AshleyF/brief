@@ -58,7 +58,7 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | Word | Stack | Description | Type |
 | --- | --- | --- | --- |
 | `map` | ql-l | Map a quotation (q) over a list | Secondary |
-| `map-many` | ql-l | Map a list-producing quotation (q) over a list; composing the result | Secondary |
+| `flatmap` | ql-l | Map a list-producing quotation (q) over a list; composing the result | Secondary |
 | `filter` | ql-l | Filter a list by a boolean expression (q) | Secondary |
 | `fold` | qvl-x | Fold a quotation (q) along with a seed (v) over a list | Secondary |
 | `sum` | l-n | Compute the sum of a list of Numbers | Secondary |
@@ -82,10 +82,10 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `!` | kvm-m | Store key/value in Map, while keeping Map | Primitive |
 | `!map` | nv- | Store named value in `State.Map` | Primitive |
 | `@map` | n- | Fetch named value from `State.Map` | Primitive |
-| `split` | s-l | Split Symbol or String into List of single-character Strings | Primitive |
 | `join` | l-s | Join List of Strings into single String | Primitive |
 | `concat` | ss-s | Concatenate two strings | Secondary |
 | `reverse` | l-l | Reverse List | Secondary |
+| `>list` | s|y|m-l | Split Symbol or String into List of single-character Strings or convert Map to List of List | Primitive |
 
 ## Comparison and Conditionals
 
@@ -205,8 +205,8 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 
 | Word | Stack | Description | Type |
 | --- | --- | --- | --- |
-| `serialize` | v-b | Serialze value to raw bytes. | Primitive |
-| `deserialize` | b-v | Deserialze raw bytes as value. | Primitive |
+| `serialize` | v-b | Serialze value to raw bytes. | Primitive (redefined in serdes.b) |
+| `deserialize` | b-v | Deserialze raw bytes as value. | Primitive (redefined in serdes.b) |
 | `save` | nb- | Save raw bytes (List of Numbers) to binary file. | Primitive |
 | `load` | n-b | Load binary file as raw bytes (List of Numbers). | Primitive |
 | 'save-value` | nv- | Serialize and save value to binary file (conventionoally ending with .d extension). | Secondary |
@@ -216,7 +216,7 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `read` | s-s | Read text file as a string. | Primitive |
 | `lex` | s-l | Tokenize source. | Primitive (redefined in brief.b) |
 | `parse` | l-l | Parse tokens into structured, typed code. | Primitive (redefined in brief.b) |
-| `source` | n- | Lex, parse and apply named Brief source file (path, conventionally ending with .b extension) | Secondary |
+| `open` | n- | Lex, parse and apply named Brief source file (path, conventionally ending with .b extension) | Secondary |
 
 ## Miscellaneous
 

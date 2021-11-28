@@ -17,6 +17,7 @@
 	- Names like `prepose`/`compose` reversed
 	- "Natural" order of `-`, `/`, etc. reversed
 	- Reversed `let` expressions seem weird, but "red" words might fix that
+    - Continuation is in reverse internally and translated to a quotation to match prefix
 
 ## Secondaries with in-built defintions
 

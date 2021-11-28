@@ -10,6 +10,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="boot.i">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <None Include="Readme.md" />
     <None Include="Journal\OCT2021.md" />
     <None Include="Journal\NOV2021.md" />
@@ -19,6 +22,9 @@
     <None Include="Vocabulary.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <Content Include="serdes.b">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="brief.b">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

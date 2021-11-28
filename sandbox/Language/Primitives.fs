@@ -2,6 +2,7 @@
 
 open System
 open System.IO
+open System.Collections.Generic;
 open System.Diagnostics
 open System.Text
 open Structure
@@ -172,6 +173,7 @@ let rec primitives =
             | _  :: _ -> failwith "Expected s"
             | _ -> failwith "Stack underflow")
 
+#if DEBUG
         // reimplemented in brief.b
         primitive "lex" (fun s ->
             printfn "!!! F# Lex !!!"
@@ -188,6 +190,7 @@ let rec primitives =
             | List l :: t -> setStack ((l |> Seq.map toString |> parse |> Seq.rev |> List.ofSeq |> List) :: t) s
             | _  :: _ -> failwith "Expected l"
             | _ -> failwith "Stack underflow")
+#endif
 
         let stopwatch = new Stopwatch();
 
@@ -204,8 +207,8 @@ let rec primitives =
             let kind, t =
                 match getStack s with
                 | Symbol  _ :: t -> "sym", t
-                | Number  _ :: t -> "num", t
                 | String  _ :: t -> "str", t
+                | Number  _ :: t -> "num", t
                 | List    _ :: t -> "list", t
                 | Map     _ :: t -> "map", t
                 | Word    _ :: t -> "word", t
@@ -225,6 +228,13 @@ let rec primitives =
             | v :: t -> setStack (Symbol (stringOfValue v) :: t) s
             | [] -> failwith "Stack underflow")
 
+        primitive ">str" (fun s ->
+            match getStack s with
+            | String _ :: _ -> s
+            | Word w :: t -> setStack (String (w.Name) :: t) s
+            | v :: t -> setStack (String (stringOfValue v) :: t) s
+            | [] -> failwith "Stack underflow")
+
         primitive ">num" (fun s ->
             match getStack s with
             | Number _ :: _ -> s
@@ -237,6 +247,15 @@ let rec primitives =
             | Word _ :: _ -> failwith "Word cannot be cast to Number value"
             | [] -> failwith "Stack underflow")
 
+        primitive ">list" (fun s ->
+            match getStack s with
+            | Symbol y :: t | String y :: t -> setStack ((y |> Seq.toList |> List.map (string >> String) |> List) :: t) s
+            | Map m :: t ->
+                let listOfPairs (kv : KeyValuePair<string, Value>) = List [String kv.Key; kv.Value]
+                setStack (List (Seq.map listOfPairs m |> Seq.toList) :: t) s
+            | _ :: _ -> failwith "Expected s|y|m"
+            | [] -> failwith "Stack underflow")
+
         primitive ">num?" (fun s ->
             match getStack s with
             | Symbol y :: t | String y :: t ->
@@ -244,13 +263,6 @@ let rec primitives =
                 | (true, v) -> setStack (Number -1. :: Number v :: t) s
                 | _ -> setStack (Number 0. :: t) s
             | t -> setStack (Number 0. :: t) s)
-
-        primitive ">str" (fun s ->
-            match getStack s with
-            | String _ :: _ -> s
-            | Word w :: t -> setStack (String (w.Name) :: t) s
-            | v :: t -> setStack (String (stringOfValue v) :: t) s
-            | [] -> failwith "Stack underflow")
 
         primitive ">utf8" (fun s ->
             match getStack s with
@@ -283,12 +295,6 @@ let rec primitives =
                 let n = BitConverter.ToDouble(bytes, 0);
                 setStack (Number n :: t) s
             | _ :: _ -> failwith "Expected List"
-            | [] -> failwith "Stack underflow")
-
-        primitive "split" (fun s ->
-            match getStack s with
-            | Symbol y :: t | String y :: t -> setStack ((y |> Seq.toList |> List.map (string >> String) |> List) :: t) s
-            | _ :: _ -> failwith "Expected s"
             | [] -> failwith "Stack underflow")
 
         primitive "join" (fun s ->
@@ -387,7 +393,10 @@ let rec primitives =
             | _ :: _ -> failwith "Expected m"
             | _ -> failwith "Stack underflow")
 
+#if DEBUG
+        // reimplemented in brief.b
         primitive "serialize" (fun s ->
+            printfn "!!! F# Serialize !!!"
             match getStack s with
             | x :: t ->
                 use mem = new MemoryStream()
@@ -396,8 +405,10 @@ let rec primitives =
                 let r = mem.ToArray()
                 setStack (List (Array.map (fun b -> b |> double |> Number) r |> Seq.toList) :: t) s
             | _ -> failwith "Stack underflow")
+#endif
 
         primitive "deserialize" (fun s ->
+            printfn "!!! F# Deserialize !!!"
             match getStack s with
             | List b :: t ->
                 let r = b |> List.map (function Number n -> byte n | _ -> failwith "Expected list of n") |> List.toArray
@@ -413,7 +424,7 @@ let rec primitives =
             match getStack s with
             | String n :: List b :: t ->
                 let s' = setStack t s
-                use file = File.OpenWrite(sprintf "%s" n)
+                use file = File.OpenWrite(n)
                 let r = b |> List.map (function Number n -> byte n | _ -> failwith "Expected list of n") |> List.toArray
                 file.Write(r, 0, r.Length)
                 s'
@@ -423,9 +434,10 @@ let rec primitives =
         primitive "load" (fun s ->
             match getStack s with
             | String n :: t ->
-                use file = File.OpenRead(sprintf "%s" n)
-                use reader = new BinaryReader(file)
-                let r = reader.ReadBytes(int file.Length)
+                use file = File.OpenRead(n)
+                let len = int file.Length
+                let r = Array.create<byte> len 0uy
+                file.Read(r, 0, len) |> ignore
                 setStack (List (Array.map (fun b -> b |> double |> Number) r |> Seq.toList) :: t) s
             | _ :: _ -> failwith "Expected s"
             | _ -> failwith "Stack underflow")

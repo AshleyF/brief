@@ -1,12 +1,6 @@
-﻿assertEqual "lex regular strings" [ 'test "'foo is a" 'this ] [ lex "this \"foo is a\" test" ]
-assertEqual "lex tick strings" [ 'baz ''bar 'foo ] [ lex "foo 'bar baz" ]
-assertEqual "lex escaped chars" [ "'\b \f \n \r \t  x" ] [ lex "\"\b \f \n \r \t \\ \x\"" ]
+﻿let 'whitespace? [ any? swap [ " " '\r '\n '\t ] fry [ = _ ] dup ]
 
-assertEqual "parse list" [ this [ 'is 123 a ] test ] [ parse lex "this [ 'is 123 a ] test" ]
-
-let 'whitespace? [ any? swap [ " " '\r '\n '\t ] fry [ = _ ] dup ]
-
-let 'lex [ lex.tokenize rot [ ] [ ] split ]
+let 'lex [ lex.tokenize rot [ ] [ ] >list ]
     let 'lex.tokenize [ cond [ [ lex.done ]                    [ empty? ]
                                [ lex.tokenize lex.token drop ] [ whitespace? snoc ]
                                [ lex.tick lex.addChar ]        [ lex.firstCharIs? '' ]
@@ -35,7 +29,7 @@ let 'parse [ parse.next swap [  ] ]
                              [ drop ]                         [ or bi [ = "{" ] [ = "[" ] dup ]
                              [ parse.next parse.buildMap parse drop ]     [ = "}" dup ]
                              [ parse.next dip [ cons parse.convert ] swap ] ] ]
-    let 'parse.convert [ cond [ [ join tail split ] [ = '' head split dup ]
+    let 'parse.convert [ cond [ [ join tail >list ] [ = '' head >list dup ]
                                 [ nip ]             [ >num? dup ]
                                 [ >sym ] ] ]
     let 'parse.buildMap [ parse.buildMap.build rot { } ]

@@ -5,6 +5,7 @@ open System.Net.Sockets
 open System.Threading
 open Structure
 open Syntax
+open Interpretation
 open Primitives
 open Actor
 
@@ -18,12 +19,13 @@ let remoteActor =
                 match getStack s with
                 | String host :: Number port :: t ->
                     let reader = new BinaryReader((new TcpClient(host, int port)).GetStream())
-                    let rec read () =
-                        let source = reader.ReadString()
-                        printfn "Remote: %s" source
-                        source |> brief |> channel.Value.Post
-                        read ()
-                    (new Thread(new ThreadStart(read), IsBackground = true)).Start()
+                    let readThread () =
+                        let rec read s' =
+                            let source = reader.ReadString()
+                            printfn "Remote: %s" source
+                            interpret [String source; Symbol "lex"; Symbol "parse"; Symbol "apply"] s' |> read
+                        read s
+                    (new Thread(new ThreadStart(readThread), IsBackground = true)).Start()
                     setStack t s
                 | _ :: _ :: _ -> failwith "Expected ss"
                 | _ -> failwith "Stack underflow")

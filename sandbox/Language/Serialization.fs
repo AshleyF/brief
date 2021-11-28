@@ -3,6 +3,7 @@
 open System.IO
 open Structure
 
+#if DEBUG
 let rec serialize (writer: BinaryWriter) =
     let rec write7bit (i: int) =
         if i >= 0x80 then
@@ -18,6 +19,7 @@ let rec serialize (writer: BinaryWriter) =
     | Map    m ->
         writer.Write(5uy); write7bit(m.Count)
         Map.iter (fun (k: string) v -> writer.Write(k); serialize writer v) m
+#endif
 
 let rec deserialize primitives (reader: BinaryReader) =
     let read7bit () =

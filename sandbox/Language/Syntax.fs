@@ -1,5 +1,6 @@
 module Syntax
 
+#if DEBUG
 open System
 open Structure
 
@@ -74,5 +75,4 @@ let parse tokens =
     match tokens |> List.ofSeq |> parse' 0 [] with
     | (result, []) -> compile result
     | _ -> failwith "Unmatched quotation or map syntax"
-
-let brief source = source |> lex |> parse |> List.ofSeq
+#endif

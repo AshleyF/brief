@@ -107,10 +107,10 @@ let 'odd? [ not even? ]
 let 'sum [ fold [ + ] 0 ]
 let 'product [ fold [ * ] 1 ]
 
-let '++ [ + 1 ]
-let '-- [ - 1 ]
+let 'inc [ + 1 ]
+let 'dec [ - 1 ]
 
-let 'range [ drop while [ dip [ cons ] -- dup ] fry [ >= _ dup ] -rot [ ] ]
+let 'range [ drop while [ dip [ cons ] dec dup ] fry [ >= _ dup ] -rot [ ] ]
 
 let 'factorial [ product range 1 ]
 
@@ -146,3 +146,11 @@ let 'load-value [ deserialize load ]
 
 let 'save-state [ save-value dip [ ! '_continuation [ ] get-state ] ]
 let 'load-state [ set-state load-value ]
+
+let 'clear-dictionary [ set-dictionary >map filter [ word? nip snoc drop snoc ] >list get-dictionary ]
+let 'find [ nip @ swap get-dictionary ]
+
+let 'repeat [ if [ repeat 2dip [ apply ] over dec swap ] [ 2drop ] > 0 over ]
+
+let 'take [ reverse swap repeat [ dip [ cons ] swap snoc ] -rot [ ] ]
+let 'skip [ repeat [ tail ] ]

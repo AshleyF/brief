@@ -256,6 +256,16 @@ let rec primitives =
             | _ :: _ -> failwith "Expected s|y|m"
             | [] -> failwith "Stack underflow")
 
+        primitive ">map" (fun s ->
+            match getStack s with
+            | List l :: t ->
+                let pairOfList = function
+                    | List kv -> match kv with String k :: v :: [] -> (k, v) | _ -> failwith "Expected key-value pair"
+                    | _ -> failwith "Expected List of key-value pairs"
+                setStack (Map (l |> Seq.map pairOfList |> Map.ofSeq) :: t) s
+            | _ :: _ -> failwith "Expected l"
+            | [] -> failwith "Stack underflow")
+
         primitive ">num?" (fun s ->
             match getStack s with
             | Symbol y :: t | String y :: t ->
@@ -354,16 +364,6 @@ let rec primitives =
         primitive "words" (fun s ->
             getDictionary s |> Map.iter (fun k v -> printfn "%s %s" k (stringOfValue v)); s)
 
-        primitive "word" (fun s ->
-            match getStack s with
-            | String n :: t ->
-                match tryFindWord n s with
-                | Some v -> printfn "%s %s" n (stringOfValue v)
-                | None -> printfn "%s Unknown" n
-                setStack t s
-            | _ :: _ -> failwith "Expected s"
-            | _ -> failwith "Stack underflow")
-
         // primitive "k" (fun s -> // TODO updateContinuation with _return or _soft_break, etc. also
         //     match getStack s with
         //     | List q :: _ :: t -> (List.rev q) @ getContinuation s |> setContinuation (setStack s t)
@@ -394,7 +394,7 @@ let rec primitives =
             | _ -> failwith "Stack underflow")
 
 #if DEBUG
-        // reimplemented in brief.b
+        // reimplemented in serdes.b
         primitive "serialize" (fun s ->
             printfn "!!! F# Serialize !!!"
             match getStack s with

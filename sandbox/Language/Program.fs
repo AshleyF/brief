@@ -48,7 +48,7 @@ and repl history state =
                 match history with
                 | h :: t -> repl t h
                 | _ -> failwith "Empty history"
-            | line -> state |> (interpret [String line; Symbol "lex"; Symbol "parse"; Symbol "apply"]) |> repl (state :: history)
+            | line -> state |> (interpret [Number -1.; List []; String line; Symbol "lex"; Symbol "parse"; Symbol "if"]) |> repl (state :: history)
         with ex -> printfn "Error: %s" ex.Message; repl history state
 
 let commandLine =
@@ -61,7 +61,7 @@ let state =
     |> Seq.fold (fun s c -> interpret (c |> lex |> parse) s) primitiveState
 #else
 let state =
-    use file = File.OpenRead("boot.i")
+    use file = File.OpenRead("boot.i") // boot from image file
     use reader = new BinaryReader(file)
     let primMap = primitives |> Seq.map (fun p -> p.Name, Word p) |> Map.ofSeq
     match Serialization.deserialize primMap reader with

@@ -85,7 +85,7 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `join` | l-s | Join List of Strings into single String | Primitive |
 | `concat` | ss-s | Concatenate two strings | Secondary |
 | `reverse` | l-l | Reverse List | Secondary |
-| `>list` | s|y|m-l | Split Symbol or String into List of single-character Strings or convert Map to List of List | Primitive |
+| `take` | nl-ll | Take first n-elements into a new list | Secondary |
 
 ## Comparison and Conditionals
 
@@ -116,8 +116,8 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `*` | xy-n | Multiply top two stack values | Primitive |
 | `/` | xy-n | Divide second stack value by top stack value | Primitive |
 | `mod` | xy-n | Modulus second stack value by top stack value | Primitive |
-| `++` | n-n | Increment number | Secondary |
-| `--` | n-n | Decrement number | Secondary |
+| `inc | n-n | Increment number | Secondary |
+| `dec | n-n | Decrement number | Secondary |
 | `recip` | x-n | Compute reciprocal (1/x) of top stack value | Secondary |
 | `neg` | - | Negate top stack value | Secondary |
 | `abs` | - | Compute absolute value of top stack value | Secondary |
@@ -159,7 +159,6 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | Word | Stack | Description | Type |
 | --- | --- | --- | --- |
 | `type` | x-s | Determine the type of top stack value ('sym, 'num, 'str, 'bool, 'list, 'map) | Primitive |
-| `list?` | x-b | Determine whether top of stack value is a List | Secondary |
 | `sym?` | x-b | Determine whether top of stack value is a Symbol | Secondary |
 | `num?` | x-b | Determine whether top of stack value is a Number | Secondary |
 | `str?` | x-b | Determine whether top of stack value is a String | Secondary |
@@ -170,6 +169,8 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `>str` | x-s | Cast value to string in Brief literal source form | Primitive |
 | `>num` | x-n | Cast Symbol, String, Boolean (-1, 0), List, or Map (lengths) to Number | Primitive |
 | `>num?` | x-?n | Try to parse string as Number, returning true and Number or false | Primitive |
+| `>list` | x-l | Split Symbol or String into List of single-character Strings or convert Map to List of List | Primitive |
+| `>map` | l-m | Convert a List of List to a Map (expects the form returned by `>list <mymap>` | Primitive |
 
 ## Binary
 
@@ -199,6 +200,7 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `set-state` | m- | Sets current machine state Map (expected to have '_stack, '_dictionary and '_continuation). | Primitive |
 | `set-stack` | m- | Sets current stack. | Secondary |
 | `set-dictionary` | m- | Sets current dictionary. | Secondary |
+| `clear-dictionary` | - | Clears current dictionary of secondary definitions (primitives remain). | Secondary |
 | `set-continuation` | l- | Sets current continuation. | Secondary |
 
 ## Serialization
@@ -229,7 +231,7 @@ These are the words defined in a Brief system with Prelude.b loaded. The `words`
 | `range` | nm-l | Create a list of Numbers ranging from n to m | Secondary |
 | `factorial` | n-n | Compute the factorial of a Numeber | Secondary |
 | `words` | - | Display primitive and secondary words | Primitive |
-| `word` | n- | Display word definition | Primitive |
+| `find` | s-w | Find dictionary entry by name (either a primitive Word or a secondary quotation List) | Secondary |
 
 ## Testing
 

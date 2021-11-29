@@ -18,6 +18,8 @@
 	- "Natural" order of `-`, `/`, etc. reversed
 	- Reversed `let` expressions seem weird, but "red" words might fix that
     - Continuation is in reverse internally and translated to a quotation to match prefix
+    - It feels weird that `foo bar [ENTER]` is different to `foo [ENTER]` then `bar [ENTER]` at the REPL
+        - Tend to build piecewise at the REPL, but then need to assemble in _reverse_ into a definition
 
 ## Secondaries with in-built defintions
 

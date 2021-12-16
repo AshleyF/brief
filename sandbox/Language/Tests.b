@@ -1,55 +1,61 @@
-﻿assertEqual "+" 7 [ + 4 3 ]
-assertEqual "-" -1 [ - 4 3 ]
-assertEqual "*" 12 [ * 4 3 ]
-assertEqual "/" 0.5 [ / 4 2 ]
+﻿"+" [ 3 4 + ] 7 assertEqual
+"-" [ 3 4 - ] -1 assertEqual
+"*" [ 3 4 * ] 12 assertEqual
+"/" [ 2 4 / ] 0.5 assertEqual
 
-assertEqual "reverse" [ 3 2 1 ] [ reverse [ 1 2 3 ] ]
-assertEqual "fry" [ 1 foo [ 2 bar [ baz ] ] ] [ fry [ _ foo [ _ bar _ ] ] 1 2 [ [ baz ] ] ]
+"reverse" [ [ 1 2 3 ] reverse ] [ 3 2 1 ] assertEqual
+"fold" [ [ 1 2 3 ] 1 [ * ] fold ] 6 assertEqual
+"map" [ [ 1 2 3 ] [ 10 * ] map ] [ 10 20 30 ] assertEqual
+"flatmap" [ [ 1 2 3 ] [ dup 10 * quote swons ] flatmap ] [ 1 10 2 20 3 30 ] assertEqual
+"fry" [ [ [ baz ] ] 2 1 [ [ _ bar _ ] foo _ ] fry ] [ [ 1 bar 2 ] foo [ baz ] ] assertEqual
 
-assertEqual "depth" 3 [ depth 1 2 3 ]
-assertEqual "clear" 0 [ depth clear 1 2 3 ]
+"depth" [ 1 2 3 depth ] 3 assertEqual
+"clear" [ 1 2 3 clear depth ] 0 assertEqual
 
-assertEqual "drop" [ ] [ @map '_stack drop 'foo ]
-assertEqual "swap" [ 2 1 ] [ @map '_stack swap 1 2 ]
+"drop" [ 'foo drop '_stack @map ] [ ] assertEqual
+"swap" [ 1 2 swap '_stack @map ] [ 1 2 ] assertEqual
 
-assertEqual "dip" [ 1 6 ] [ @map '_stack dip [ * ] 1 2 3 ]
-assertEqual "if true" 5 [ if [ + ] [ * ] true 2 3 ]
-assertEqual "if false" 6 [ if [ + ] [ * ] false 2 3 ]
-assertEqual "if empty" 'FALSE [ if [ 'TRUE ] [ 'FALSE ] count [ ] ]
-assertEqual "if not empty" 'TRUE [ if [ 'TRUE ] [ 'FALSE ] count [ 1 2 3 ] ]
-assertEqual "when" 5 [ when [ + ] true 2 3 ]
-assertEqual "unless" 6 [ unless [ * ] false 2 3 ]
-assertEqual "unless empty" 'TRUE [ unless [ 'TRUE ] count [ ] ]
+"dip" [ 2 3 4 [ * ] dip get-stack ] [ 4 6 ] assertEqual
+"if true" [ 2 3 true [ + ] [ * ] if ] 5 assertEqual
+"if false" [ 2 3 false [ + ] [ * ] if ] 6 assertEqual
+"if empty" [ [ ] count [ 'FALSE ] [ 'TRUE ] if ] 'TRUE assertEqual
+"if not empty" [ [ 1 2 3 ] count [ 'FALSE ] [ 'TRUE ] if ] 'FALSE assertEqual
+"when" [ 2 3 true [ + ] when ] 5 assertEqual
+"unless" [ 2 3 false [ * ] unless ] 6 assertEqual
+"unless empty" [ [ ] count [ 'TRUE ] unless ] 'TRUE assertEqual
+"cond" [ 4 [ [ dup 3 = ] [ 123 ] [ dup 4 = ] [ 456 ] ] cond ] 456 assertEqual
 
-assertTrue "and true" [ and true true ]
-assertFalse "and false" [ and false true ]
-assertTrue "or true" [ or false true ]
-assertFalse "or false" [ or false false ]
-assertTrue "not true" [ not false ]
-assertFalse "not false" [ not true ]
+"and true" [ true true and ] assertTrue
+"and false" [ false true and ] assertFalse
+"or true" [ false true or ] assertTrue
+"or false" [ false false or ] assertFalse
+"not true" [ false not ] assertTrue
+"not false" [ true not ] assertFalse
 
-assertTrue "any? true" [ any? [ even? ] [ 3 5 2 7 ] ]
-assertFalse "any? false" [ any? [ even? ] [ 3 5 7 9 ] ]
-assertTrue "all? true" [ all? [ even? ] [ 2 4 6 8 ] ]
-assertFalse "all? false" [ all? [ even? ] [ 2 4 7 8 ] ]
+"any? true" [ [ 3 5 2 7 ] [ even? ] any? ] assertTrue
+"any? false" [ [ 3 5 7 9 ] [ even? ] any? ] assertFalse
+"all? true" [ [ 2 4 6 8 ] [ even? ] all? ] assertTrue
+"all? false" [ [ 2 4 7 8 ] [ even? ] all? ] assertFalse
 
-assertEqual "utf8" 'foo [ utf8> >utf8 "foo" ]
-assertEqual "ieee754" 2.71828 [ ieee754> >ieee754 2.71828 ]
+"utf8" [ "foo" >utf8 utf8> ] 'foo assertEqual
+"ieee754" [ 2.71828 >ieee754 ieee754> ] 2.71828 assertEqual
 
-assertEqual "repeat" 13 [ repeat [ + 2 ] 3 7 ]
-assertEqual "take" [ 0 1 2 ] [ nip take 3 [ 0 1 2 3 4 5 ] ]
-assertEqual "skip" [ 3 4 5 ] [ skip 3 [ 0 1 2 3 4 5 ] ]
+"repeat" [ 7 3 [ 2 + ] repeat ] 13 assertEqual
+"take" [ [ 0 1 2 3 4 5 ] 3 take nip ] [ 0 1 2 ] assertEqual
+"skip" [ [ 0 1 2 3 4 5 ] 3 skip ] [ 3 4 5 ] assertEqual
 
-assertEqual "lex regular strings" [ 'test "'foo is a" 'this ] [ lex "this \"foo is a\" test" ]
-assertEqual "lex tick strings" [ 'baz ''bar 'foo ] [ lex "foo 'bar baz" ]
-assertEqual "lex escaped chars" [ "'\b \f \n \r \t  x" ] [ lex "\"\b \f \n \r \t \\ \x\"" ]
-assertEqual "parse list" [ this [ 'is 123 a ] test ] [ parse lex "this [ 'is 123 a ] test" ]
+"lex regular strings" [ "this \"foo is a\" test" lex ] [ 'this "'foo is a" 'test ] assertEqual
+"lex tick strings" [ "foo 'bar baz" lex ] [ 'foo ''bar 'baz ] assertEqual
+"lex escaped chars" [ "\"\b \f \n \r \t \\ \x\"" lex ] [ "'\b \f \n \r \t  x" ] assertEqual
+"parse list" [ "this [ 'is 123 a ] test" lex parse ] [ this [ 'is 123 a ] test ] assertEqual
+"parse nested lists" [ "this [ 'is [ 123 456 ] a ] test" lex parse ] [ this [ 'is [ 123 456 ] a ] test ] assertEqual
+"parse map" [ "{ 'foo 123 'bar 'hi }" lex parse ] [ { 'foo 123 'bar 'hi } ] assertEqual
 
-assertTrue "serdes number" [ = deserialize serialize dup 2.71 ]
-assertTrue "serdes string" [ = deserialize serialize dup "this is a test" ]
-assertTrue "serdes symbol" [ = deserialize serialize dup nip snoc [ just-testing ] ]
-assertTrue "serdes list" [ = deserialize serialize dup [ 1 2 3 ] ]
-assertTrue "serdes nested list" [ = deserialize serialize dup [ 1 2 [ 3 4 ] 5 6 ] ]
-drop [ assertTrue "serdes map" [ = deserialize serialize dup { 'foo 123  'bar "just testing" } ] ]
-assertTrue "serdes nested map" [ = deserialize serialize dup { 'foo 123  'bar { 'baz 2.71 } } ]
-assertTrue "serdes machine state" [ = deserialize serialize dup get-state ]
+"serdes number" [ 2.71 dup serialize deserialize = ] assertTrue
+"serdes string" [ "this is a test" dup serialize deserialize = ] assertTrue
+"serdes symbol" [ [ just-testing ] snoc nip dup serialize deserialize = ] assertTrue
+"serdes list" [ [ 1 2 3 ] dup serialize deserialize = ] assertTrue
+"serdes nested list" [ [ 1 2 [ 3 4 ] 5 6 ] dup serialize deserialize = ] assertTrue
+"serdes map" [ { 'foo 123  'bar "just testing" } dup serialize deserialize = ] assertTrue
+"serdes nested map" [ { 'foo 123  'bar { 'baz 2.71 } } dup serialize deserialize = ] assertTrue
+"serdes machine state" [ get-state dup serialize deserialize = ] assertTrue

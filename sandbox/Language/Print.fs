@@ -19,7 +19,7 @@ let rec stringOfValue =
     | Map    m -> sprintf "{ %s }" (stringOfMap m)
     | Word   w -> sprintf "(%s)" w.Name
 and stringOfList =
-    let simplify = List.filter (function Symbol s -> not (s.StartsWith('_')) | _ -> true)
+    let simplify = List.filter (function Symbol s -> s = "_" || not (s.StartsWith('_')) | _ -> true)
     simplify >> List.map stringOfValue >> String.concat " "
 and stringOfMap = Map.toSeq >> Seq.map (fun (k, v) -> sprintf "%s %s" (stringOfString k) (stringOfValue v)) >> String.concat "  "
 

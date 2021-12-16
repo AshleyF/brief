@@ -37,7 +37,7 @@ let rec primitives =
         primitive "drop" (fun s ->
             match getStack s with
             | _ :: t -> setStack t s
-            | _ -> failwith "Stack underflow")
+            | _ -> failwith "Stack unerflow")
 
         // let 'swap [dip quote]
         primitive "swap" (fun s ->
@@ -53,13 +53,13 @@ let rec primitives =
         // let 'dip [k cake]
         primitive "dip" (fun s ->
             match getStack s with
-            | List q :: v :: t -> setStack t s |> updateContinuation (fun c -> (List.rev q) @ v :: c)
+            | List q :: v :: t -> setStack t s |> updateContinuation (fun c -> q @ v :: c)
             | _ :: _ :: _ -> failwith "Expected vq"
             | _ -> failwith "Stack underflow")
 
         primitive "if" (fun s ->
             match getStack s with
-            | List q :: List r :: Number b :: t -> setStack t s |> updateContinuation (fun c -> List.rev (if b <> 0.0 then q else r) @ c)
+            | List q :: List r :: Number b :: t -> setStack t s |> updateContinuation (fun c -> (if b <> 0.0 then r else q) @ c)
             | _ :: _ :: _ -> failwith "Expected vq"
             | _ -> failwith "Stack underflow")
 
@@ -142,8 +142,8 @@ let rec primitives =
 
         primitive "let" (fun s ->
             match getStack s with
-            | String n :: (List _ as q) :: t -> setStack t s |> addWord n q
-            | String n :: v :: t -> setStack t s |> addWord n v
+            | (List _ as q) :: String n :: t -> setStack t s |> addWord n q
+            | v :: String n :: t -> setStack t s |> addWord n v
             | _ :: _  :: _ -> failwith "Expected sq"
             | _ -> failwith "Stack underflow")
 
@@ -162,7 +162,7 @@ let rec primitives =
             match getStack s with
             | String n :: List q :: t ->
                 match Map.tryFind n registry with
-                | Some actor -> actor.Post (List.rev q); setStack t s
+                | Some actor -> actor.Post q; setStack t s
                 | None -> failwith "Actor not found"
             | _ :: _  :: _ -> failwith "Expected ss"
             | _ -> failwith "Stack underflow")
@@ -187,7 +187,7 @@ let rec primitives =
             printfn "!!! F# Parse !!!"
             let toString = function String s -> s | _ -> failwith "Expected String"
             match getStack s with
-            | List l :: t -> setStack ((l |> Seq.map toString |> parse |> Seq.rev |> List.ofSeq |> List) :: t) s
+            | List l :: t -> setStack ((l |> Seq.map toString |> parse |> List.ofSeq |> List) :: t) s
             | _  :: _ -> failwith "Expected l"
             | _ -> failwith "Stack underflow")
 #endif
@@ -364,32 +364,18 @@ let rec primitives =
         primitive "words" (fun s ->
             getDictionary s |> Map.iter (fun k v -> printfn "%s %s" k (stringOfValue v)); s)
 
-        // primitive "k" (fun s -> // TODO updateContinuation with _return or _soft_break, etc. also
-        //     match getStack s with
-        //     | List q :: _ :: t -> (List.rev q) @ getContinuation s |> setContinuation (setStack s t)
-        //     | _ :: _ :: _ -> failwith "Expected lv"
-        //     | _ -> failwith "Stack underflow")
+        primitive "get-state" (fun s -> setStack (Map s :: getStack s) s)
 
-        // primitive "cake" (fun s ->
-        //     match getStack s with
-        //     | List q :: v :: t -> List (v :: q) :: List (q @ [v]) :: t |> setStack s
-        //     | _ :: _ :: _ -> failwith "Expected lv"
-        //     | _ -> failwith "Stack underflow")
-
-        let continuation s =
-            match Map.find _continuation s with
-            | List c -> List (List.rev c)
-            | _ -> failwith "Expected List continuation"
-
-        let reverseContinuation s = Map.add _continuation (continuation s) s
-
-        primitive "get-state" (fun s -> setStack (Map (reverseContinuation s) :: getStack s) s)
-
-        primitive "get-continuation" (fun s -> setStack (continuation s :: getStack s) s)
+        primitive "get-continuation" (fun s ->
+            let continuation =
+                match Map.find _continuation s with
+                | List _ as c -> c
+                | _ -> failwith "Expected List continuation"
+            setStack (continuation :: getStack s) s)
 
         primitive "set-state" (fun s ->
             match getStack s with
-            | Map s' :: _ -> reverseContinuation s'
+            | Map s' :: _ -> s'
             | _ :: _ -> failwith "Expected m"
             | _ -> failwith "Stack underflow")
 

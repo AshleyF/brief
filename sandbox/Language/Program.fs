@@ -14,14 +14,15 @@ register "trigger" Trigger.triggerActor
 register "remote"  Remote.remoteActor
 
 let printPrompt debugging s =
-    let continuation = getContinuation s |> List.rev |> stringOfList
-    let stack = stringOfList (getStack s)
+    let continuation = getContinuation s |> stringOfList
+    let stack = stringOfList (getStack s |> List.rev)
     Console.ForegroundColor <- ConsoleColor.DarkGray
-    Console.Write(continuation)
+    Console.Write(stack)
     Console.ForegroundColor <- if debugging then ConsoleColor.DarkRed else ConsoleColor.DarkBlue
     Console.Write(" | ")
     Console.ForegroundColor <- ConsoleColor.White
-    Console.WriteLine(stack)
+    Console.Write(continuation)
+    if debugging then Console.WriteLine()
 
 let rec debugger history state =
     if getContinuation state |> List.length = 0
@@ -31,7 +32,7 @@ let rec debugger history state =
             let key = Console.ReadKey()
             match key.Key with
             | ConsoleKey.Enter -> interpret [] state |> repl history
-            | ConsoleKey.RightArrow -> stepOver state |> debugger history
+            | ConsoleKey.LeftArrow -> stepOver state |> debugger history
             | ConsoleKey.DownArrow -> stepIn state |> debugger history
             | ConsoleKey.UpArrow -> stepOut state |> debugger history
             | _ -> debugger history state
@@ -48,7 +49,7 @@ and repl history state =
                 match history with
                 | h :: t -> repl t h
                 | _ -> failwith "Empty history"
-            | line -> state |> (interpret [Number -1.; List []; String line; Symbol "lex"; Symbol "parse"; Symbol "if"]) |> repl (state :: history)
+            | line -> state |> (interpret [Number -1.; String line; Symbol "lex"; Symbol "parse"; List []; Symbol "if"]) |> repl (state :: history)
         with ex -> printfn "Error: %s" ex.Message; repl history state
 
 let commandLine =
@@ -57,7 +58,7 @@ let commandLine =
 
 #if DEBUG
 let state =
-    commandLine :: ["if parse lex read 'prelude.b [ ] -1"] // boot from source: `source 'prelude`.b (applied with `if`)
+    commandLine :: ["-1 'prelude.b read lex parse [ ] if"] // boot from source: `'prelude.b open` (applied with `if`)
     |> Seq.fold (fun s c -> interpret (c |> lex |> parse) s) primitiveState
 #else
 let state =

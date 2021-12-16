@@ -12,7 +12,7 @@ let step into state =
     | Symbol s :: c -> 
         let c' = pause c
         match tryFindWord s state with
-        | Some (List l) -> setContinuation (List.rev l @ c') state
+        | Some (List l) -> setContinuation (l @ c') state
         | Some (Word w) -> setContinuation c' state |> w.Func
         | Some v -> pushStack v state |> setContinuation c'
         | None -> failwith (sprintf "Unknown word '%s'" s)

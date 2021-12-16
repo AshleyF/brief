@@ -31,7 +31,7 @@ let lex source =
         | '"' :: t when token.Length = 0 -> yield! str ['\''] t // prefix token with '
         | c :: t -> yield! lex' (c :: token) t
         | [] -> yield! emit token }
-    source |> List.ofSeq |> lex' [] |> Seq.rev
+    source |> List.ofSeq |> lex' []
 
 type Node =
     | Token of string
@@ -44,11 +44,11 @@ let stripLeadingTick s = if String.length s > 1 then s.Substring(1) else ""
 let parse tokens =
     let rec parse' level nodes tokens =
         match tokens with
-        | "]" :: t ->
+        | "[" :: t ->
             let q, t' = parse' (level + 1) [] t
-            parse' level (Quote (List.rev q) :: nodes) t'
-        | "[" :: t -> if level <> 0 then List.rev nodes, t else failwith "Unexpected quotation open"
-        | "}" :: t ->
+            parse' level (Quote q :: nodes) t'
+        | "]" :: t -> if level <> 0 then List.rev nodes, t else failwith "Unexpected quotation open"
+        | "{" :: t ->
             let m, t' = parse' (level + 1) [] t
             let rec pairs list = seq {
                 match list with
@@ -58,8 +58,8 @@ let parse tokens =
                     yield! pairs t
                 | [] -> ()
                 | _ -> failwith "Expected name/value pair" }
-            parse' level (Pairs (m |> List.rev |> pairs |> List.ofSeq) :: nodes) t'
-        | "{" :: t -> if level <> 0 then List.rev nodes, t else failwith "Unexpected map open"
+            parse' level (Pairs (m |> pairs |> List.ofSeq) :: nodes) t'
+        | "}" :: t -> if level <> 0 then List.rev nodes, t else failwith "Unexpected map open"
         | [] -> if level = 0 then List.rev nodes, [] else failwith "Unmatched quotation or map syntax"
         | token :: t -> parse' level (Token token :: nodes) t
     let rec compile nodes =

@@ -1,38 +1,37 @@
-﻿let 'whitespace? [ any? swap [ " " '\r '\n '\t ] fry [ = _ ] dup ]
+﻿'whitespace? [ dup [ _ = ] fry [ " " '\r '\n '\t ] swap any? ] let
 
-let 'lex [ lex.tokenize rot [ ] [ ] >list ]
-    let 'lex.tokenize [ cond [ [ lex.done ]                    [ empty? ]
-                               [ lex.tokenize lex.token drop ] [ whitespace? snoc ]
-                               [ lex.tick lex.addChar ]        [ lex.firstCharIs? '' ]
-                               [ lex.str lex.addChar '' drop ] [ lex.firstCharIs? '" ]
-                               [ lex.tokenize lex.addChar ] ] ]
-    let 'lex.firstCharIs? [ apply fry [ and dip [ = _ dup ] rot 2dip [ empty? ] ] ]
-    let 'lex.str [ cond [ [ lex.tokenize lex.token drop ]      [ = '" dup snoc ]
-                          [ lex.str lex.addChar lex.unescape ] [ = '\\ dup ]
-                          [ lex.str lex.addChar ] ] ]
-    let 'lex.tick [ cond [ [ lex.done ]                      [ empty? ]
-                       [ lex.tokenize lex.token drop ]       [ whitespace? snoc ]
-                       [ lex.tick lex.addChar lex.unescape ] [ = '\\ dup ]
-                       [ lex.tick lex.addChar ] ] ]
-    let 'lex.unescape [ cond [ [ '\b drop ] [ = 'b dup ]
-                               [ '\f drop ] [ = 'f dup ]
-                               [ '\n drop ] [ = 'n dup ]
-                               [ '\r drop ] [ = 'r dup ]
-                               [ '\t drop ] [ = 't dup ] ] snoc drop ]
-    let 'lex.done [ 2drop lex.token ]
-    let 'lex.addChar [ dip [ cons ] swap ]
-    let 'lex.token [ swap [  ] if [ drop ] [ dip [ cons ] swap join reverse ] empty? swap ]
+    'lex.tokenize [ [ [ empty? ]              [ lex.done ]
+                      [ snoc whitespace? ]    [ drop lex.token lex.tokenize ]
+                      [ '' lex.firstCharIs? ] [ lex.addChar lex.tick ]
+                      [ '" lex.firstCharIs? ] [ drop '' lex.addChar lex.str ]
+                                              [ lex.addChar lex.tokenize ] ] cond ] let
+    'lex.firstCharIs? [ [ [ empty? ] 2dip rot [ dup _ = ] dip and ] fry apply ] let
+    'lex.str [ [ [ snoc dup '" = ] [ drop lex.token lex.tokenize ]      
+                 [ dup '\\ = ]     [ lex.unescape lex.addChar lex.str ] 
+                                   [ lex.addChar lex.str ] ] cond ] let
+    'lex.tick [ [ [ empty? ]           [ lex.done ]                      
+                  [ snoc whitespace? ] [ drop lex.token lex.tokenize ]       
+                  [ dup '\\ = ]        [ lex.unescape lex.addChar lex.tick ] 
+                                       [ lex.addChar lex.tick ] ] cond ] let
+    'lex.unescape [ [ [ dup 'b = ] [ drop '\b ]
+                      [ dup 'f = ] [ drop '\f ]
+                      [ dup 'n = ] [ drop '\n ]
+                      [ dup 'r = ] [ drop '\r ]
+                      [ dup 't = ] [ drop '\t ] ] cond drop snoc ] let
+    'lex.done [ lex.token 2drop ] let
+    'lex.addChar [ swap [ cons ] dip ] let
+    'lex.token [ swap empty? [ drop ] [ reverse join swap [ cons ] dip ] if [ ] swap ] let
+'lex [ >list [ ] [ ] rot lex.tokenize reverse ] let
 
-let 'parse [ parse.next swap [  ] ]
-    let 'parse.next [ cond [ [ drop ]                         [ empty? ]
-                             [ parse.next dip [ cons ] parse drop ] [ = "]" dup snoc ]
-                             [ drop ]                         [ or bi [ = "{" ] [ = "[" ] dup ]
-                             [ parse.next parse.buildMap parse drop ]     [ = "}" dup ]
-                             [ parse.next dip [ cons parse.convert ] swap ] ] ]
-    let 'parse.convert [ cond [ [ join tail >list ] [ = '' head >list dup ]
-                                [ nip ]             [ >num? dup ]
-                                [ >sym ] ] ]
-    let 'parse.buildMap [ parse.buildMap.build rot { } ]
-    let 'parse.buildMap.build [ if [ dip [ cons ] swap drop ]
-                                   [ parse.buildMap.build dip [ ! swap ] swap snoc swap snoc ] empty? ]
-
+    'parse.next [ [ [ empty? ]                        [ drop ]
+                    [ snoc dup "[" = ]                [ drop parse [ reverse cons ] dip parse.next ]
+                    [ dup [ "}" = ] [ "]" = ] bi or ] [ drop reverse ]
+                    [ dup "{" = ]                     [ drop parse parse.buildMap parse.next ]
+                                                      [ swap [ parse.convert cons ] dip parse.next ] ] cond ] let
+    'parse.convert [ [ [ dup >list head '' = ] [ >list tail join ]
+                       [ dup >num? ]           [ nip ]
+                                               [ >sym ] ] cond ] let
+    'parse.buildMap [ { } rot parse.buildMap.build ] let
+    'parse.buildMap.build [ empty? [ drop swap [ cons ] dip ]
+                                   [ snoc swap snoc swap [ ! ] dip parse.buildMap.build ] if ] let
+'parse [ [ ] swap parse.next reverse ] let

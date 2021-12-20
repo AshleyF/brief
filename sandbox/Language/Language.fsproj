@@ -2,11 +2,8 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
-    <OtherFlags>--nowarn:40</OtherFlags>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <TargetFramework>net6.0</TargetFramework>
+    <OtherFlags>--nowarn:40 --tailcalls+ --optimize+</OtherFlags>
     <Tailcalls>True</Tailcalls>
   </PropertyGroup>
 

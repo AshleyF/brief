@@ -4,6 +4,7 @@
 * [January 2021](https://github.com/AshleyF/brief/blob/gh-pages/sandbox/Language/journal/JAN2021.md)
 * [October 2021](https://github.com/AshleyF/brief/blob/gh-pages/sandbox/Language/journal/OCT2021.md)
 * [November 2021](https://github.com/AshleyF/brief/blob/gh-pages/sandbox/Language/journal/NOV2021.md)
+* [December 2021](https://github.com/AshleyF/brief/blob/gh-pages/sandbox/Language/journal/DEC2021.md)
 
 ## Ideas
 

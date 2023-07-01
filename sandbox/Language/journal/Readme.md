@@ -50,3 +50,7 @@ and SecondaryWord(name: string) =
     inherit Word(name) // assumes name is unique (e.g. namespace prepended)
     member val Definition : Value option = None with get, set
 ```
+
+# Clojure
+
+[Learning Clojure in 2022](./Clojure.md) and thinking of embedding Brief, similar to [Gershwin](https://gershwin.github.io/).

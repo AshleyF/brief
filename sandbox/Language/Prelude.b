@@ -10,7 +10,7 @@
 
 'both? [bi@ and] let
 'either? [bi@ or] let
-'neither? [bi@ or not] let
+'neither? [either? not] let
 
 'bi [[keep] dip apply] let
 '2bi [[2keep] dip apply] let

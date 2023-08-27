@@ -5,6 +5,7 @@
 * [October 2021](https://github.com/AshleyF/brief/blob/gh-pages/sandbox/Language/journal/OCT2021.md)
 * [November 2021](https://github.com/AshleyF/brief/blob/gh-pages/sandbox/Language/journal/NOV2021.md)
 * [December 2021](https://github.com/AshleyF/brief/blob/gh-pages/sandbox/Language/journal/DEC2021.md)
+* [July 2023](https://github.com/AshleyF/brief/blob/gh-pages/sandbox/Language/journal/JUL2023.md)
 
 ## Ideas
 
@@ -50,3 +51,7 @@ and SecondaryWord(name: string) =
     inherit Word(name) // assumes name is unique (e.g. namespace prepended)
     member val Definition : Value option = None with get, set
 ```
+
+# Clojure
+
+[Learning Clojure in 2022](./Clojure.md) and thinking of embedding Brief, similar to [Gershwin](https://gershwin.github.io/).

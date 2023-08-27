@@ -11,6 +11,16 @@ let lex source =
     and tick token source = seq {
         match source with
         | '\\' :: c :: t -> yield! tick (unescape c :: token) t
+        | ('[' as c) :: t
+        | (']' as c) :: t 
+        | ('{' as c) :: t
+        | ('}' as c) :: t ->
+            if token.Length > 1 then // delimeter within ticked string
+                yield! emit token // emit token up to delimiter
+                yield! lex' [] (c :: t) // continue lexing with delimeter
+            else // ticked delimiter, emit alone
+                yield! emit (c :: token) // emit alone
+                yield! lex' [] t // continue lexing beyond delimiter
         | c :: t when Char.IsWhiteSpace c -> yield! emit token; yield! lex' [] t
         | c :: t -> yield! tick (c :: token) t
         | [] -> yield! emit token }
@@ -24,6 +34,13 @@ let lex source =
         | [] -> failwith "Incomplete string" }
     and lex' token source = seq {
         match source with
+        | ('[' as c) :: t
+        | (']' as c) :: t 
+        | ('{' as c) :: t
+        | ('}' as c) :: t ->
+            if token.Length > 0 then yield! emit token
+            yield c.ToString()
+            yield! lex' [] t
         | c :: t when Char.IsWhiteSpace c ->
             if token.Length > 0 then yield! emit token
             yield! lex' [] t

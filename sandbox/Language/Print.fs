@@ -15,7 +15,7 @@ let rec stringOfValue =
     | Symbol s -> sprintf "%s" s
     | Number n -> sprintf "%g" n
     | String s -> stringOfString s
-    | List   l -> sprintf "[ %s ]" (stringOfList l)
+    | List   l -> sprintf "[%s]" (stringOfList l)
     | Map    m -> sprintf "{ %s }" (stringOfMap m)
     | Word   w -> sprintf "(%s)" w.Name
 and stringOfList =

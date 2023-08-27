@@ -63,14 +63,16 @@ let rec pack values = seq {
         | Map m -> failwith "TODO"
     }
 
-let unpack bytes =
-    let rec unpack bytes = seq {
+let rec unpack bytes = seq {
     let recurse skip value = seq { yield value; yield! bytes |> Seq.skip skip |> unpack }
     let getRawBytes n = bytes |> Seq.skip 1 |> Seq.take n
     let getBytes n = getRawBytes n |> (if BitConverter.IsLittleEndian then Seq.rev else id) |> Array.ofSeq
     let getString s n = Encoding.UTF8.GetString(getRawBytes (n + s) |> Seq.skip s |> Array.ofSeq) |> String |> recurse (n + s + 1)
     let getBin s n = getRawBytes (n + s) |> Seq.skip s |> List.ofSeq |> Bin |> recurse (n + s + 1)
-    let getArray s n = bytes |> Seq.skip s |> unpack |> Seq.take n |> List.ofSeq |> Array |> recurse
+    let getArray s n = seq {
+        let unpacked = bytes |> Seq.skip s |> unpack
+        yield unpacked |> Seq.take n |> List.ofSeq |> Array
+        yield! unpacked |> Seq.skip n }
     if not (Seq.isEmpty bytes) then
         match Seq.head bytes with
         | 0xc0uy -> yield! Nil |> recurse 1
@@ -96,6 +98,8 @@ let unpack bytes =
         | 0xc5uy -> yield! BitConverter.ToUInt16(getBytes 2, 0) |> int |> getBin 2 // bin (<= 16-bit len)
         | 0xc6uy -> yield! BitConverter.ToUInt32(getBytes 4, 0) |> int |> getBin 4 // bin (<= 32-bit len)
         | b when b &&& 0b11110000uy = 0b10010000uy -> yield! 0b00001111uy &&& b |> int |> getArray 1
+        | 0xdcuy -> yield! BitConverter.ToUInt16(getBytes 2, 0) |> int |> getArray 3
+        | 0xdduy -> yield! BitConverter.ToUInt32(getBytes 4, 0) |> int |> getArray 5
         | _ -> failwith "Invalid format"
     }
 

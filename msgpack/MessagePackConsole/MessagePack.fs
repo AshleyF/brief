@@ -44,13 +44,13 @@ let rec pack values = seq {
         if len < 32 then (0b10100000uy ||| (byte len)) :: bytes // string (< 32)
         else packBytes 0xd9uy 0xdauy 0xdbuy bytes
     let packBin bytes = packBytes 0xc4uy 0xc5uy 0xc6uy bytes
-    let packArray (values : Value list) =
-        let packed = pack values |> List.ofSeq
-        let len = values.Length
-        if len < 16 then (0b10010000uy ||| (byte len)) :: packed
-        elif len <= int UInt16.MaxValue then 0xdcuy :: (BitConverter.GetBytes(uint16 len) |> byteOrder) @ packed
-        elif len <= int UInt32.MaxValue then 0xdduy :: (BitConverter.GetBytes(uint32 len) |> byteOrder) @ packed
-        else failwith "Array length out of range"
+    let packCollection code8 code16 code32 len packed =
+        if len < 16 then (code8 ||| (byte len)) :: packed
+        elif len <= int UInt16.MaxValue then code16 :: (BitConverter.GetBytes(uint16 len) |> byteOrder) @ packed
+        elif len <= int UInt32.MaxValue then code32 :: (BitConverter.GetBytes(uint32 len) |> byteOrder) @ packed
+        else failwith "Collection length out of range"
+    let packArray (values : Value list) = pack values |> List.ofSeq |> packCollection 0b10010000uy 0xdcuy 0xdduy values.Length
+    let packMap map = map |> Map.toSeq |> Seq.map (fun (k, v) -> [k; v]) |> Seq.concat |> pack |> List.ofSeq |> packCollection 0b10000000uy 0xdeuy 0xdfuy (Map.count map)
     if not (Seq.isEmpty values) then
         match Seq.head values with
         | Nil -> yield! [0xc0uy] |> recurse
@@ -60,7 +60,7 @@ let rec pack values = seq {
         | String s -> yield! packString s |> recurse
         | Bin b -> yield! b |> List.ofSeq |> packBin |> recurse
         | Array v -> yield! v |> packArray |> recurse
-        | Map m -> failwith "TODO"
+        | Map m -> yield! m |> packMap |> recurse
     }
 
 let rec unpack bytes = seq {
@@ -73,6 +73,11 @@ let rec unpack bytes = seq {
         let unpacked = bytes |> Seq.skip s |> unpack
         yield unpacked |> Seq.take n |> List.ofSeq |> Array
         yield! unpacked |> Seq.skip n }
+    let getMap s n = seq {
+        let unpacked = bytes |> Seq.skip s |> unpack
+        let toPairs = Seq.chunkBySize 2 >> Seq.map (function [|a; b|] -> a, b | _ -> failwith "Malformed map values")
+        yield unpacked |> Seq.take (n * 2) |> toPairs |> Map.ofSeq |> Map
+        yield! unpacked |> Seq.skip (n * 2) }
     if not (Seq.isEmpty bytes) then
         match Seq.head bytes with
         | 0xc0uy -> yield! Nil |> recurse 1
@@ -100,6 +105,9 @@ let rec unpack bytes = seq {
         | b when b &&& 0b11110000uy = 0b10010000uy -> yield! 0b00001111uy &&& b |> int |> getArray 1
         | 0xdcuy -> yield! BitConverter.ToUInt16(getBytes 2, 0) |> int |> getArray 3
         | 0xdduy -> yield! BitConverter.ToUInt32(getBytes 4, 0) |> int |> getArray 5
+        | b when b &&& 0b11110000uy = 0b10000000uy -> yield! 0b00001111uy &&& b |> int |> getMap 1
+        | 0xdeuy -> yield! BitConverter.ToUInt16(getBytes 2, 0) |> int |> getMap 3
+        | 0xdfuy -> yield! BitConverter.ToUInt32(getBytes 4, 0) |> int |> getMap 5
         | _ -> failwith "Invalid format"
     }
 

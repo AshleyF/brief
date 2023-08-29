@@ -12,6 +12,8 @@ type Value =
     | Bin of byte list
     | Array of Value list
     | Map of Map<Value, Value>
+    | Extension of sbyte * byte list
+    | Timestamp of DateTime
 
 let rec pack values = seq {
     let recurse value = seq { yield! value; yield! Seq.tail values |> pack }
@@ -36,8 +38,7 @@ let rec pack values = seq {
         let len = bytes.Length
         if len <= int Byte.MaxValue then code8 :: (byte len) :: bytes // <= 8-bit len
         elif len <= int UInt16.MaxValue then code16 :: (BitConverter.GetBytes(uint16 len) |> byteOrder) @ bytes // <= 16-bit len
-        elif len <= int UInt32.MaxValue then code32 :: (BitConverter.GetBytes(uint32 len) |> byteOrder) @ bytes // <= 32-bit len
-        else failwith "Size out of range"
+        else code32 :: (BitConverter.GetBytes(uint32 len) |> byteOrder) @ bytes // <= 32-bit len
     let packString (s : string) =
         let bytes = Encoding.UTF8.GetBytes(s) |> List.ofSeq
         let len = bytes.Length
@@ -47,10 +48,22 @@ let rec pack values = seq {
     let packCollection code8 code16 code32 len packed =
         if len < 16 then (code8 ||| (byte len)) :: packed
         elif len <= int UInt16.MaxValue then code16 :: (BitConverter.GetBytes(uint16 len) |> byteOrder) @ packed
-        elif len <= int UInt32.MaxValue then code32 :: (BitConverter.GetBytes(uint32 len) |> byteOrder) @ packed
-        else failwith "Collection length out of range"
+        else code32 :: (BitConverter.GetBytes(uint32 len) |> byteOrder) @ packed
     let packArray (values : Value list) = pack values |> List.ofSeq |> packCollection 0b10010000uy 0xdcuy 0xdduy values.Length
     let packMap map = map |> Map.toSeq |> Seq.map (fun (k, v) -> [k; v]) |> Seq.concat |> pack |> List.ofSeq |> packCollection 0b10000000uy 0xdeuy 0xdfuy (Map.count map)
+    let packExt typ bytes =
+        let data = (byte typ) :: bytes
+        match bytes.Length with
+        | 1 -> 0xd4uy :: data | 2 -> 0xd5uy :: data | 4 -> 0xd6uy :: data | 8 -> 0xd7uy :: data | 16 -> 0xd8uy :: data
+        | len when len <= int Byte.MaxValue -> 0xc7uy :: (byte len) :: data // <= 8-bit len
+        | len when len <= int UInt16.MaxValue -> 0xc8uy :: (BitConverter.GetBytes(uint16 len) |> byteOrder) @ data // <= 16-bit len
+        | len -> 0xc9uy :: (BitConverter.GetBytes(uint32 len) |> byteOrder) @ data // <= 32-bit len
+    let packTimestamp dt =
+        let span = dt - (new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc))
+        let unixTime = span.TotalSeconds;
+        let sec = Math.Floor(unixTime) |> int64
+        let nano = Math.Round((unixTime - float sec) * 1000000000.) |> uint32
+        0xc7uy :: 12uy :: 255uy :: (BitConverter.GetBytes(nano) |> byteOrder) @ (BitConverter.GetBytes(sec) |> byteOrder)
     if not (Seq.isEmpty values) then
         match Seq.head values with
         | Nil -> yield! [0xc0uy] |> recurse
@@ -61,7 +74,8 @@ let rec pack values = seq {
         | Bin b -> yield! b |> List.ofSeq |> packBin |> recurse
         | Array v -> yield! v |> packArray |> recurse
         | Map m -> yield! m |> packMap |> recurse
-    }
+        | Extension (t, b) -> yield! packExt t b |> recurse
+        | Timestamp dt -> yield! packTimestamp dt |> recurse }
 
 let rec unpack bytes = seq {
     let recurse skip value = seq { yield value; yield! bytes |> Seq.skip skip |> unpack }
@@ -78,6 +92,17 @@ let rec unpack bytes = seq {
         let toPairs = Seq.chunkBySize 2 >> Seq.map (function [|a; b|] -> a, b | _ -> failwith "Malformed map values")
         yield unpacked |> Seq.take (n * 2) |> toPairs |> Map.ofSeq |> Map
         yield! unpacked |> Seq.skip (n * 2) }
+    let getExt s n = seq { // 1 3 - c7 3 7 2a 0
+        match getRawBytes (n + s + 1) |> Seq.skip s |> Seq.take (n + 1) |> List.ofSeq with
+        | 255uy :: n0 :: n1 :: n2 :: n3 :: s0 :: s1 :: s2 :: s3 :: s4 :: s5 :: s6 :: s7 :: _ ->
+            let byteOrder = if BitConverter.IsLittleEndian then Array.rev else id
+            let nano = BitConverter.ToUInt32(byteOrder [|n0; n1; n2; n3|], 0)
+            let sec = BitConverter.ToInt64(byteOrder [|s0; s1; s2; s3; s4; s5; s6; s7|], 0)
+            let ticks = sec * 10000000L + int64 nano / 100L
+            let date = (new DateTime(ticks)).AddYears(1969)
+            yield date |> Timestamp
+        | typ :: data -> yield! Extension ((sbyte typ), data) |> recurse (s + n + 2)
+        | _ -> failwith "Malformed extension data" }
     if not (Seq.isEmpty bytes) then
         match Seq.head bytes with
         | 0xc0uy -> yield! Nil |> recurse 1
@@ -108,8 +133,12 @@ let rec unpack bytes = seq {
         | b when b &&& 0b11110000uy = 0b10000000uy -> yield! 0b00001111uy &&& b |> int |> getMap 1
         | 0xdeuy -> yield! BitConverter.ToUInt16(getBytes 2, 0) |> int |> getMap 3
         | 0xdfuy -> yield! BitConverter.ToUInt32(getBytes 4, 0) |> int |> getMap 5
-        | _ -> failwith "Invalid format"
-    }
-
-(*
-*)
+        | 0xd4uy -> yield! getExt 0 1
+        | 0xd5uy -> yield! getExt 0 2
+        | 0xd6uy -> yield! getExt 0 4
+        | 0xd7uy -> yield! getExt 0 8
+        | 0xd8uy -> yield! getExt 0 16
+        | 0xc7uy -> yield! bytes |> Seq.skip 1 |> Seq.head |> int |> getExt 1
+        | 0xc8uy -> yield! BitConverter.ToUInt16(getBytes 2, 0) |> int |> getExt 2
+        | 0xc9uy -> yield! BitConverter.ToUInt32(getBytes 4, 0) |> int |> getExt 4
+        | _ -> failwith "Invalid format" }

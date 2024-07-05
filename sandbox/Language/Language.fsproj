@@ -8,9 +8,35 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="boot.i">
+    <Content Include="v0\serdes.b">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="v0\brief.b">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="v0\prelude.b">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="v0\tests.b">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Compile Include="v0\Structure.fs" />
+    <Compile Include="v0\Serialization.fs" />
+    <Compile Include="v0\Syntax.fs" />
+    <Compile Include="v0\Print.fs" />
+    <Compile Include="v0\Interpretation.fs" />
+    <Compile Include="v0\Actor.fs" />
+    <Compile Include="v0\Primitives.fs" />
+    <Compile Include="v0\Tesla.fs" />
+    <Compile Include="v0\Trigger.fs" />
+    <Compile Include="v0\Remote.fs" />
+    <Compile Include="v0\Main.fs" />
+    <Content Include="v0\boot.i">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Include="Journal\Clojure.md" />
+    <None Include="Journal\JUL2023.md" />
+    <None Include="Journal\JUL2024.md" />
     <None Include="Readme.md" />
     <None Include="Journal\DEC2021.md" />
     <None Include="Journal\OCT2021.md" />
@@ -21,28 +47,6 @@
     <None Include="Vocabulary.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <Content Include="serdes.b">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="brief.b">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="prelude.b">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="tests.b">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Compile Include="Structure.fs" />
-    <Compile Include="Serialization.fs" />
-    <Compile Include="Syntax.fs" />
-    <Compile Include="Print.fs" />
-    <Compile Include="Interpretation.fs" />
-    <Compile Include="Actor.fs" />
-    <Compile Include="Primitives.fs" />
-    <Compile Include="Tesla.fs" />
-    <Compile Include="Trigger.fs" />
-    <Compile Include="Remote.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 

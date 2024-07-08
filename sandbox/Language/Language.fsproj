@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="v1\Main.fs" />
     <Content Include="v0\serdes.b">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -34,16 +35,16 @@
     <Content Include="v0\boot.i">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <None Include="Journal\Clojure.md" />
-    <None Include="Journal\JUL2023.md" />
-    <None Include="Journal\JUL2024.md" />
     <None Include="Readme.md" />
-    <None Include="Journal\DEC2021.md" />
+    <None Include="Journal\Readme.md" />
+    <None Include="Journal\DEC2020.md" />
     <None Include="Journal\OCT2021.md" />
     <None Include="Journal\NOV2021.md" />
-    <None Include="Journal\Readme.md" />
+    <None Include="Journal\DEC2021.md" />
     <None Include="Journal\JAN2021.md" />
-    <None Include="Journal\DEC2020.md" />
+    <None Include="Journal\JUL2023.md" />
+    <None Include="Journal\JUL2024.md" />
+    <None Include="Journal\Clojure.md" />
     <None Include="Vocabulary.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

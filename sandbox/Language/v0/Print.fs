@@ -10,7 +10,6 @@ let rec stringOfString s =
     let s' = escape s
     sprintf (if String.exists Char.IsWhiteSpace s' then "\"%s\"" else "'%s") s'
 let rec stringOfValue =
-    let toHex = Seq.fold (fun state x-> state + sprintf "%02x" x) String.Empty
     function
     | Symbol s -> sprintf "%s" s
     | Number n -> sprintf "%g" n
